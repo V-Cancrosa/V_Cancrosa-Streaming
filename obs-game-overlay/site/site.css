@@ -17,6 +17,8 @@ input[type=checkbox] { accent-color: var(--acc); width: 16px; height: 16px; }
 .nav a[aria-current="page"] { background: color-mix(in srgb, var(--acc) 22%, var(--panel2)); color: #fff; font-weight: 600; }
 .nav a i { font-style: normal; width: 20px; text-align: center; }
 .nav .sep { margin: 10px 10px 4px; font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--dim); }
+.nav .kill { margin-top: 8px; padding: 10px; border-radius: 10px; background: color-mix(in srgb, var(--bad) 16%, var(--panel2)); border: 1px solid color-mix(in srgb, var(--bad) 55%, transparent); color: #ffd9dd; font-weight: 700; }
+.nav .kill:hover { background: color-mix(in srgb, var(--bad) 30%, var(--panel2)); }
 .nav .stat { margin-top: auto; display: flex; flex-direction: column; gap: 4px; padding: 10px; border-radius: 10px; background: var(--panel2); font-size: 12px; }
 .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--dim); margin-right: 6px; }
 .dot.ok { background: var(--ok); box-shadow: 0 0 8px var(--ok); } .dot.bad { background: var(--bad); } .dot.wait { background: var(--warn); }

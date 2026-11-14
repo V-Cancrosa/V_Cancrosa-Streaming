@@ -654,6 +654,16 @@ file:///C:/OBS/obs-game-overlay/overlay.html?panel=0&game=Elden%20Ring&theme=esp
 
 Z `panel=0` możesz zrobić kilka źródeł z różnymi stałymi ustawieniami. Bez `panel=0` ustawienia z panelu nadpisują te z adresu.
 
+## Zamknij OBS i GameRadar („zamykamy budę”)
+
+W serwisie w lewym menu, na każdej stronie, jest czerwony przycisk **⏻ Zamknij OBS i GameRadar**. Po kliknięciu:
+1. strona pyta o potwierdzenie;
+2. jeśli trwa transmisja albo nagrywanie, pyta drugi raz, potem je kończy przez OBS WebSocket i czeka, aż nagranie się zapisze;
+3. GameRadar zamyka OBS normalnie, jak krzyżykiem, więc przy następnym starcie nie ma pytania o tryb awaryjny; jeśli OBS nie zamknie się w 20 s, zamyka go na siłę;
+4. GameRadar zapisuje swoje dane i kończy pracę.
+
+**Nic nie odpala się samo z powrotem.** GameRadar zostawia znacznik `detector\data\stopped.flag`. Strażnik z Harmonogramu zadań i start w tle widzą go i od razu się kończą. Nie uruchamiają też OBS z opcji „uruchamiaj OBS razem z GameRadarem”. Znacznik znika, gdy sam uruchomisz GameRadar albo skrót „Start streamu”, gdy sam otworzysz OBS albo po ponownym uruchomieniu komputera.
+
 ## 1.47: miejsce na alerty, cenzura bez ramek, głos widać, pilot z potwierdzeniem
 
 - **Ekrany przed streamem i przerwy** (przygotowania, stream za…, zaraz zaczynamy, spóźnienie, przerwa):

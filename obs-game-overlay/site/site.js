@@ -30,7 +30,9 @@
     const nav = document.querySelector('.nav'); if (!nav) return;
     nav.innerHTML = `<div class="brand">Vincent-Media<small>stream · ${esc(window.VM_VERSION || '')}</small></div>` +
       NAV.map(([href, ic, name]) => `<a href="${href}"${href === here ? ' aria-current="page"' : ''}><i>${ic}</i>${name}</a>`).join('') +
-      `<div class="stat"><span><i class="dot" id="stDet"></i>GameRadar <b id="stDetT">…</b></span><span><i class="dot" id="stSync"></i>Połączenie z OBS <b id="stSyncT">…</b></span></div>`;
+      `<div class="stat"><span><i class="dot" id="stDet"></i>GameRadar <b id="stDetT">…</b></span><span><i class="dot" id="stSync"></i>Połączenie z OBS <b id="stSyncT">…</b></span></div>
+      <button class="kill" id="killBtn" title="Kończy transmisję i nagrywanie (jeśli trwają), zamyka OBS i GameRadar">⏻ Zamknij OBS i GameRadar</button>`;
+    document.getElementById('killBtn').onclick = annihilate;
   }
   async function ping() {
     let ok = false;
@@ -41,6 +43,31 @@
   function syncStatus() {
     if (!window.VMSync) return;
     window.VMSync.onStatus(v => { if (!$('stSync')) return; $('stSync').className = 'dot ' + (v ? 'ok' : 'bad'); $('stSyncT').textContent = v ? 'zmiany idą do OBS' : 'brak (wykrywacz?)'; });
+  }
+
+  // --- „zamykamy budę”: transmisja i nagrywanie stop (przez OBS WebSocket), potem GameRadar zamyka OBS i siebie ---
+  const loadScript = src => new Promise(ok => { if (window.OverlayOBS) return ok(); const sc = document.createElement('script'); sc.src = src; sc.onload = ok; sc.onerror = ok; document.head.appendChild(sc); });
+  async function annihilate() {
+    if (!confirm('Zamknąć OBS i GameRadar?')) return;
+    const b = document.getElementById('killBtn'); b.disabled = true; b.textContent = 'Zamykam…';
+    try {
+      await loadScript('../themes/obsws.js');
+      if (window.OverlayOBS) {
+        const cfg = await window.OverlayOBS.config(get());
+        const obs = window.OverlayOBS.connect({ ...cfg, onStatus: () => {} });
+        await new Promise(r => setTimeout(r, 1500));
+        let st = {}, rec = {}; try { st = await obs.call('GetStreamStatus'); rec = await obs.call('GetRecordStatus'); } catch (e) {}
+        if (st.outputActive || rec.outputActive) {
+          if (!confirm((st.outputActive ? 'Transmisja trwa' : 'Nagrywanie trwa') + '. Zakończyć ' + (st.outputActive && rec.outputActive ? 'transmisję i nagrywanie' : st.outputActive ? 'transmisję' : 'nagrywanie') + ' i zamknąć wszystko?')) { b.disabled = false; b.textContent = '⏻ Zamknij OBS i GameRadar'; try { obs.close(); } catch (e) {} return; }
+          try { if (st.outputActive) await obs.call('StopStream'); if (rec.outputActive) await obs.call('StopRecord'); } catch (e) {}
+          await new Promise(r => setTimeout(r, 3000));      // OBS domyka plik nagrania
+        }
+        try { obs.close(); } catch (e) {}
+      }
+      const r = await fetch(hub() + '/shutdown', { cache: 'no-store' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      b.textContent = '✓ Zamknięte – do zobaczenia!'; toast('OBS i GameRadar zamykają się. Wrócą, gdy sam je uruchomisz.');
+    } catch (e) { b.disabled = false; b.textContent = '⏻ Zamknij OBS i GameRadar'; toast('GameRadar nie odpowiada – zamknij OBS ręcznie.'); }
   }
 
   // --- podgląd widoku 1920×1080 ---

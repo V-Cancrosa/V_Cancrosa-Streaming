@@ -58,6 +58,17 @@ if (-not $gotMutex) {
     if (-not $gotMutex) { exit 0 }
 }
 
+# «Zamknij OBS i GameRadar» (strona) zostawia znacznik data\stopped.flag. Uruchomienie w tle (strażnik co 5 min, autostart)
+# kończy się od razu, jeśli znacznik jest z tej sesji Windows i OBS nie działa. Ręczne uruchomienie, «Start streamu»
+# albo start razem z OBS (panel) zdejmuje znacznik. Dzięki temu strażnik nie wskrzesi GameRadara, a ten nie odpali
+# na nowo OBS (opcja «uruchamiaj OBS razem z GameRadarem») – zamknięte zostaje zamknięte aż do Twojego ruchu.
+$StoppedFlag = Join-Path (Join-Path $PSScriptRoot 'data') 'stopped.flag'
+if (Test-Path $StoppedFlag) {
+    $obsUp = [bool](Get-Process -Name obs64, obs32 -ErrorAction SilentlyContinue)
+    $boot = try { (Get-CimInstance Win32_OperatingSystem -ErrorAction Stop).LastBootUpTime } catch { [DateTime]::MinValue }
+    if ($Hidden -and -not $StartObs -and -not $obsUp -and (Get-Item $StoppedFlag).LastWriteTime -gt $boot) { try { $script:Mutex.ReleaseMutex() } catch {}; exit 0 }
+    Remove-Item $StoppedFlag -Force -ErrorAction SilentlyContinue
+}
 $ErrorActionPreference = 'Stop'
 $Host.UI.RawUI.WindowTitle = 'Vincent-Media: wykrywacz gier'
 try { [Console]::OutputEncoding = [Text.Encoding]::UTF8 } catch {}
@@ -1618,6 +1629,20 @@ function Update-Updater {
     }
 }
 
+$script:ShutdownAt = $null
+function Stop-Everything {
+    foreach ($p in @(Get-Process -Name obs64, obs32 -ErrorAction SilentlyContinue)) { try { [void]$p.CloseMainWindow() } catch {} }
+    # do 20 s na zamknięcie OBS (zapisuje sceny i ustawienia); potem twardo, żeby nie wisiał
+    for ($i = 0; $i -lt 40 -and (Get-Process -Name obs64, obs32 -ErrorAction SilentlyContinue); $i++) { Start-Sleep -Milliseconds 500 }
+    foreach ($p in @(Get-Process -Name obs64, obs32 -ErrorAction SilentlyContinue)) { try { $p.Kill(); Log 'OBS nie zamknął się sam – zamknięty na siłę' 'Yellow' } catch {} }
+    try { [IO.File]::WriteAllText($StoppedFlag, (Get-Date).ToString('o'), $Utf8NoBom) } catch {}
+    Log 'OBS zamknięty. GameRadar kończy pracę. Do zobaczenia!' 'Green'
+    try { Save-Chatters -Force; Save-StreamSummary; Save-Library -Force } catch {}
+    try { $listener.Stop(); $listener.Close() } catch {}
+    Stop-Censor
+    try { $script:Mutex.ReleaseMutex() } catch {}
+    [Environment]::Exit(0)
+}
 function Restart-Detector {
     Log "Uruchamiam wykrywacz w nowej wersji ($(Get-AppVersion))…" 'Cyan'
     $a = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"' + $PSCommandPath + '"'), '-WaitStart', '2')
@@ -2097,6 +2122,12 @@ function Invoke-Request($ctx) {
                 if (Test-Live) { Send-Json $ctx @{ ok = $false; error = 'trwa transmisja albo nagrywanie – uruchomię się ponownie po zakończeniu' }; $script:RestartPending = $true; return }
                 Send-Json $ctx @{ ok = $true }; Log 'Panel: uruchamiam GameRadar ponownie' 'Cyan'; $script:RestartPending = $true
             }
+            '/shutdown' {
+                # «zamykamy budę»: OBS zamyka się normalnie (jak krzyżykiem), potem GameRadar; transmisję kończy wcześniej strona
+                Send-Json $ctx @{ ok = $true }
+                Log 'Zamykam OBS i GameRadar (polecenie ze strony)…' 'Yellow'
+                $script:ShutdownAt = Get-Date
+            }
             '/folder/open' {
                 # folder z instalacją Vincent-Media w Eksploratorze (tam są pliki nakładek, GameRadar i dziennik)
                 try { Start-Process explorer.exe -ArgumentList ('"' + (Split-Path $AppDir -Parent) + '"'); Send-Json $ctx @{ ok = $true } } catch { Send-Json $ctx @{ ok = $false; error = $_.Exception.Message } }
@@ -2326,6 +2357,7 @@ try {
             $next = [DateTime]::Now.AddSeconds($Interval)
         }
         try { Update-Updater } catch { Log "Aktualizacja: $($_.Exception.Message)" 'DarkYellow' }
+        if ($script:ShutdownAt) { Stop-Everything }
         if ($script:RestartPending -and -not (Test-Live)) { Restart-Detector }   # restart (nowa wersja) nigdy w trakcie transmisji/nagrywania
         try { Update-Archive } catch {}
         try { Update-Relay } catch { $script:RelayTask = $null; $script:RelayNext = (Get-Date).AddSeconds(30) }
