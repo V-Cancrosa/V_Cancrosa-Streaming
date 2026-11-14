@@ -160,6 +160,18 @@ Nazwy z tego pliku mają pierwszeństwo przed bazą Discorda, więc możesz w ni
 Jeśli wpiszesz ręcznie tę samą nazwę co wykryta gra, Twój podtytuł i okładka mają pierwszeństwo.
 Licznik czasu przy wykrytej grze liczy od uruchomienia gry, przy wpisanej ręcznie – od chwili jej ustawienia.
 
+## Co nowego w 1.24
+
+- **Głosowanie: postać kontra gra** – przycisk *Głosowanie ⚔* w scenach „Przed streamem”. Panel sam tworzy scenę `VM · Głosowanie`, startuje głosowanie i ją włącza.
+  - Na ekranie linia przesuwa się najpierw po elementach motywu postaci, potem gry: kolory, czcionka, emblemat, cząsteczki, napis, głos.
+  - Czat pisze **1** albo **2** (albo nazwę), a wskazówka jedzie w lewo lub w prawo.
+  - Koniec po 5 minutach albo wcześniej, jeśli po minucie wszystkie głosy (co najmniej 5) są po jednej stronie.
+  - Wygrywa postać → sam motyw postaci. Wygrywa gra → motyw gry.
+- **Przed streamem tylko postać** – przygotowania, „stream za…”, „zaraz zaczynamy” i spóźnienie zawsze w motywie postaci. Przy starcie OBS postać jest losowana, ale od razu można ją zmienić.
+- **Motyw Townscaper** – pastelowe miasteczko na wodzie z paletą dachów, kołyszącymi się domkami i własnymi tekstami alertów.
+- **Słownik czatu:** polskie (i angielskie) przekleństwa z odmianą, np. kurwa, pierdolić, jebać, chuj, pizda. Twitch na przekleństwa pozwala, więc domyślnie są zamieniane na głupio-mądre zamienniki: „kurza twarz”, „pieprzyć to sianem”, „impulsator kinetyczny z naprowadzaniem trzonkowym”. Można też zakryć albo zostawić. Doszły wyzwiska, które Twitch zakazuje jako obelgi („simp”, „incel”), oraz „dziwka”. Obelgi rasowe i homofobiczne są nadal zawsze zakryte.
+- **Cenzura ekranu** domyślnie włączona (skanuj każde okno, ramki skanera). Długa lista programów skanowanych w pierwszej kolejności. Objaśnienia są zwinięte.
+
 ## Co nowego w 1.23
 
 - **Kto prowadzi:** przy każdym starcie OBS panel pyta, która postać prowadzi stream (portrety, nie lista). W *Wyglądzie* zmienisz ją tak samo.

@@ -327,3 +327,28 @@
 .theme-g-vn { --scene-bg: #0a0f1c; --scene-font: 'Nunito', sans-serif; }
 .theme-g-mk { --scene-bg: #1d1d1d; --scene-font: 'Inter', sans-serif; }
 .reduced-motion .vn-next, .reduced-motion .mk-spin, .reduced-motion.theme-g-vn #card::after { animation: none !important; }
+
+/* ============================================================ TOWNSCAPER – miasteczko na wodzie, pastelowa paleta */
+.tw-bob { transform-origin: 55px 84px; animation: tw-bob 4.5s ease-in-out infinite; }
+@keyframes tw-bob { 0%, 100% { transform: translateY(0) rotate(-1.5deg); } 50% { transform: translateY(-3px) rotate(1.5deg); } }
+.tw-wave { animation: tw-wave 3s linear infinite; } @keyframes tw-wave { to { transform: translateX(-20px); } }
+.theme-g-tsc #card {
+  font-family: 'Fredoka', 'Nunito', sans-serif; color: #3b4a52;
+  padding: 18px 44px 22px 16px; gap: 16px;
+  background: linear-gradient(180deg, #fbf8f1 0%, #f4efe4 62%, #bfe8e2 62%, #8fd2c8 100%);
+  border: 3px solid #3b4a52; border-radius: 18px;
+  box-shadow: 0 10px 0 -2px #4fb3a8, 0 16px 30px rgba(30,70,80,.35);
+}
+.theme-g-tsc #card::before { /* paleta kolorów z gry – rząd dachów */
+  content: ""; position: absolute; left: 18px; right: 18px; top: -9px; height: 14px; border-radius: 4px 4px 0 0;
+  background: linear-gradient(90deg, #e05a4f 0 9%, #f0a04b 9% 18%, #f4d35e 18% 27%, #b8d86b 27% 36%, #6cc18e 36% 45%, #4fb3a8 45% 54%, #5ab8d8 54% 63%, #6a8fd8 63% 72%, #9b7bd0 72% 81%, #d98bb5 81% 90%, #e8d6b8 90% 100%);
+  border: 2px solid #3b4a52; border-bottom: 0;
+}
+.theme-g-tsc #icon { border: 3px solid #3b4a52; border-radius: 14px; background: #4fb3a8; box-shadow: 0 4px 0 #3b4a52; }
+.theme-g-tsc #mono { font-family: 'Fredoka', sans-serif; color: #fff; }
+.theme-g-tsc #name { font-family: 'Fredoka', 'Nunito', sans-serif; font-weight: 700; font-size: 40px; color: #3b4a52; }
+.theme-g-tsc #label { font-weight: 700; font-size: 13px; letter-spacing: .2em; color: #e05a4f; }
+.theme-g-tsc #label .dot { background: #4fb3a8; box-shadow: none; }
+.theme-g-tsc #meta { color: #4f6a73; font-weight: 600; font-size: 16px; }
+.theme-g-tsc #timer { background: #4fb3a8; color: #fff; padding: 0 9px; border-radius: 999px; }
+.theme-g-tsc #emblem { width: 96px; height: 88px; right: -34px; top: -60px; }

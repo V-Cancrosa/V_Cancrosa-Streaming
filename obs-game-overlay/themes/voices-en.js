@@ -250,6 +250,15 @@
       scenes: quick(['FIRST ROLL', 'The dice are rolling.'], ['AT THE INN', 'Turn on hold.'], ['GAME OVER', 'Crown or not – thanks for playing.'])
     },
     tal5: { follow: [['A NEW SEEKER', '{user} picks a character and heads for the Crown.']] },
+    tsc: {
+      follow: [['A new house on the water', '{user} places the first roof. The town grows.'], ['New neighbour', '{user} moves in – the gulls are already screaming.']],
+      sub: [['A bell tower', '{user} – sub! A bell appears on top.'], ['A colourful roof', 'Sub from {user} – another roof in their favourite colour.']],
+      resub: [['Local resident', 'Month {n} – {user} has their own little alley by now.']], gift: [['A new district', '{user} builds {n}× houses for everyone!']],
+      cheer: [['Bricks', 'Bits: {n} – {user} adds another floor.']], raid: [['A flotilla arrives!', '{user}\'s boats moor in the harbour!']],
+      redeem: [['A resident\'s wish', '{user}: {reward}']],
+      big: [['A CATHEDRAL FROM NOTHING', '{user} – a few clicks and a cathedral grew!'], ['A TOWN ON THE WAVES', '{user} builds a whole town. The gulls applaud.']],
+      scenes: quick(['SETTING SAIL', 'Calm water, blank sea – let\'s build.'], ['TEA BY THE HARBOUR', 'The town keeps growing on its own.'], ['LIGHTS IN THE WINDOWS', 'The town sleeps. Thank you!'])
+    },
     pal: {
       follow: [['New Pal caught!', '{user} joins the base.'], ['New companion', '{user} – first contact successful!']],
       sub: [['A rare Pal!', '{user} jumps into the party!'], ['Caught!', 'Sub from {user} – the sphere hit on the first try.']],

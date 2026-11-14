@@ -135,7 +135,7 @@
   function allowed(ev) {
     if (ev && ev.hidden) return false;      // polecenie pilota z czatu (!vm …) – nie na ekran
     const w = ev && ev.type === 'chat' ? words(ev) : null;
-    if (w && window.VMWords.settings().mode === 'hide') return false;
+    if (w && w.level !== 'swear' && window.VMWords.settings().mode === 'hide') return false;   // przekleństwa nie ukrywają całej wiadomości
     if (!ev.flag || ev.flag.level !== 'suspect') return true;
     try { const s = window.VMClient ? window.VMClient.settings() : {}; return s.botHide === false; } catch (e) { return true; }
   }
@@ -203,6 +203,6 @@
     return { dir, side: ok.includes(st.chatSide) ? st.chatSide : (dir === 'h' ? 'bottom' : 'right') };
   }
   // sceny, które mają własny czat (ramka, rozmowa, ekrany przerw) – nakładka „Teraz gram” wtedy go nie dubluje
-  const OWN_CHAT_SCENE = /^VM · (Gra – w ramce|Rozmowa|Przygotowania|Stream za|Zaraz zaczynamy|Spóźnienie|Przerwa|Koniec)/;
+  const OWN_CHAT_SCENE = /^VM · (Głosowanie|Gra – w ramce|Rozmowa|Przygotowania|Stream za|Zaraz zaczynamy|Spóźnienie|Przerwa|Koniec)/;
   window.OverlayChat = { mount, styles: STYLES, allowed, skinOf, setSkin, layoutOf, OWN_CHAT_SCENE };
 })();

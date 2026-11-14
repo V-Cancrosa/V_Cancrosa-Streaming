@@ -11,7 +11,7 @@
   Ustawienia (panel → Czat → Słowa zakazane): wordFilter 'mask'|'hide'|'off', wordSoft true/false, wordExtra, wordAllow.
 */
 (function () {
-  const RAW = [["^a+[vl]+[td]+[td]+(r+e+|n+u*|h+u*|n+m+|r+e+m+|r+e+f+|n+f+|h+m+|e+|r+g+|y+r+g+|r+e+v+a+b+)f*$", "hard", "race"], ["^a+[vl]+[td]+(y+r+g+|a+b+t+|e+|n+)f*$", "hard", "race"], ["^a+[vl]+[td]+r+e+f*$", "soft", "race"], ["^x*a+r+r+[td]+(e+b+j*|r+e+|n+)f*$", "hard", "race"], ["^a+[vl]+o+o+n+f*$", "soft", "race"], ["^a+r+t+e+b+(r+)?f*$", "soft", "race"], ["^(w+v+t+n+o+b+b+|c+b+e+p+u+z+b+a+x+r+l+|m+v+c+c+r+e+u+r+n+q+|t+b+y+y+v+j+b+t+|w+h+a+t+y+r+o+h+a+a+l+)f*$", "hard", "race"], ["^p+b+b+a+f*$", "hard", "race"], ["^(x+l*v+x+r+|p+u+v+a+x+|f+c+v+p+x*|t+b+b+x+|j+r+g+o+n+p+x+|o+r+n+a+r+e+|g+b+j+r+y+u+r+n+q+|e+n+t+u+r+n+q+|c+n+x+v+|f+n+a+q+a+v+t+t+r+e+|p+u+v+a+n+z+n+a+)f*$", "hard", "race"], ["^s+n+t+(t+(b+g+|v+g+|r+g+|l+)|b+g+|f+|m+)?f*$", "hard", "lgbt"], ["^g+e+n+a+a+(l+|v+r+)f*$", "hard", "lgbt"], ["^(q+l+x+r+|f+u+r+z+n+y+r+|y+n+q+l+o+b+l+)f*$", "soft", "lgbt"], ["^e+r+g+n+e+q+(f+|r+q+|n+g+v+b+a+)?$", "soft", "ableism"], ["^p+m+n+e+a+h+p+u+(l|n|h|b|r|r+z|n+z+v|b+j|b+j+v)?$", "hard", "race"], ["^p+v+n+c+(n+g+(l|n|r|v|r+t+b|l+z)|n+x+(v|n|b+j|b+z)?)$", "hard", "race"], ["^(z+h+e+m+l+a+(n|l|b+j|r+z|v+r|x+n|x+v|b+j+v)?)$", "soft", "race"], ["^(c+r+q+n+y+(l|n|h|r|b+j|x+v|r+x|m+v+r)?|c+r+q+m+v+b+|p+v+b+g+(n|l|b|r|n+z+v)|p+j+r+y+(r|n|h|v|r+z)?)$", "soft", "lgbt"], ["F:a+[vl]+[td]+[td]+(r+e+|n+)", "hard", "race"], ["F:s+n+t+t+b+g+", "hard", "lgbt"], ["F:p+m+n+e+a+h+p+u+", "hard", "race"]];
+  const RAW = [["^a+[vl]+[td]+[td]+(r+e+|n+u*|h+u*|n+m+|r+e+m+|r+e+f+|n+f+|h+m+|e+|r+g+|y+r+g+|r+e+v+a+b+)f*$", "hard", "race"], ["^a+[vl]+[td]+(y+r+g+|a+b+t+|e+|n+)f*$", "hard", "race"], ["^a+[vl]+[td]+r+e+f*$", "soft", "race"], ["^x*a+r+r+[td]+(e+b+j*|r+e+|n+)f*$", "hard", "race"], ["^a+[vl]+o+o+n+f*$", "soft", "race"], ["^a+r+t+e+b+(r+)?f*$", "soft", "race"], ["^(w+v+t+n+o+b+b+|c+b+e+p+u+z+b+a+x+r+l+|m+v+c+c+r+e+u+r+n+q+|t+b+y+y+v+j+b+t+|w+h+a+t+y+r+o+h+a+a+l+)f*$", "hard", "race"], ["^p+b+b+a+f*$", "hard", "race"], ["^(x+l*v+x+r+|p+u+v+a+x+|f+c+v+p+x*|t+b+b+x+|j+r+g+o+n+p+x+|o+r+n+a+r+e+|g+b+j+r+y+u+r+n+q+|e+n+t+u+r+n+q+|c+n+x+v+|f+n+a+q+a+v+t+t+r+e+|p+u+v+a+n+z+n+a+)f*$", "hard", "race"], ["^s+n+t+(t+(b+g+|v+g+|r+g+|l+)|b+g+|f+|m+)?f*$", "hard", "lgbt"], ["^g+e+n+a+a+(l+|v+r+)f*$", "hard", "lgbt"], ["^(q+l+x+r+|f+u+r+z+n+y+r+|y+n+q+l+o+b+l+)f*$", "soft", "lgbt"], ["^e+r+g+n+e+q+(f+|r+q+|n+g+v+b+a+)?$", "soft", "ableism"], ["^p+m+n+e+a+h+p+u+(l|n|h|b|r|r+z|n+z+v|b+j|b+j+v)?$", "hard", "race"], ["^p+v+n+c+(n+g+(l|n|r|v|r+t+b|l+z)|n+x+(v|n|b+j|b+z)?)$", "hard", "race"], ["^(z+h+e+m+l+a+(n|l|b+j|r+z|v+r|x+n|x+v|b+j+v)?)$", "soft", "race"], ["^(c+r+q+n+y+(l|n|h|r|b+j|x+v|r+x|m+v+r)?|c+r+q+m+v+b+|p+v+b+g+(n|l|b|r|n+z+v)|p+j+r+y+(r|n|h|v|r+z)?)$", "soft", "lgbt"], ["F:a+[vl]+[td]+[td]+(r+e+|n+)", "hard", "race"], ["F:s+n+t+t+b+g+", "hard", "lgbt"], ["F:p+m+n+e+a+h+p+u+", "hard", "race"], ["^(f|jl|mn|cb|b|cemr|ebm|an|jf|bq)?xhej\\j*$", "swear", "kurw"], ["^\\j{0,6}cvreq[bn]y\\j*$", "swear", "pierdol"], ["^\\j{0,6}wro\\j*$", "swear", "jeb"], ["^\\j{0,4}p?uhw\\j*$", "swear", "chuj"], ["^\\j{0,4}cvmq\\j*$", "swear", "pizda"], ["^pvc(n|l|r|vr|b|xn|xv|xr|xb|fxb|fxn|nzv)$", "swear", "cipa"], ["^(xhgnf|svhg)\\j{0,4}$", "swear", "kutas"], ["^(s+h+p+x+\\j*|z+b+g+u+r+e+s+h+p+x+\\j*|f+u+v+g+(f|gl|urnq)?|o+h+y+y+f+u+v+g+)$", "swear", "en"], ["^(qmvjx\\j*|xherjx\\j*|o+v+g+p+u+(r+f)?|j+u+b+e+r+f*|p+h+a+g+f*|f+y+h+g+f*)$", "insult", "dziwka"], ["^(fvzc|fvzcl|fvzcvr|fvzcn|fvzcf|vapry|vapryr|vapryn|vapryh|vapryf)$", "insult", "simp"]];
   const rot = s => s.replace(/[a-z]/gi, c => { const b = c <= 'Z' ? 65 : 97; return String.fromCharCode((c.charCodeAt(0) - b + 13) % 26 + b); });
   const PATS = RAW.map(([p, level, cat]) => { const d = rot(p), sub = d.startsWith('F:'); return { re: new RegExp(sub ? d.slice(2) : d), sub, level, cat }; });
   // „F:” po ROT13 = „S:” (fragment dłuższego słowa); wyjątki dla zwykłych słów, które zawierają fragment
@@ -70,21 +70,43 @@
     }
     return out;
   }
-  function cfgOf(s = settings()) { return { allow: list(s.wordAllow), extra: list(s.wordExtra), soft: s.wordSoft !== false, mode: s.wordFilter || 'mask' }; }
+  // swear: 'funny' (głupio-mądry zamiennik, domyślnie) | 'mask' (▇▇▇) | 'off' (zostaw – Twitch na przekleństwa pozwala)
+  function cfgOf(s = settings()) { return { allow: list(s.wordAllow), extra: list(s.wordExtra), soft: s.wordSoft !== false, mode: s.wordFilter || 'mask', swear: ['funny', 'mask', 'off'].includes(s.wordSwear) ? s.wordSwear : 'funny', screenSwear: !!s.censorSwear }; }
+  const want = (h, cfg) => h.level === 'hard' || ((h.level === 'soft' || h.level === 'insult') && cfg.soft) || (h.level === 'swear' && cfg.swear !== 'off');
+  const rank = { hard: 3, soft: 2, insult: 2, swear: 1 };
+  // głupio-mądre zamienniki przekleństw (ten sam wyraz → zawsze ten sam zamiennik)
+  const EUPH = {
+    kurw: ['kurczę blade', 'kurka wodna', 'kurza twarz', 'kurtyna opadła'], pierdol: ['pierniczyć', 'pierdzielić', 'pieprzyć to sianem'],
+    jeb: ['o jejku', 'jeny kochane', 'jeżyku zielony'], chuj: ['chrzan', 'kij od szczotki', 'chochla'], pizda: ['pierożek', 'piżama w paski'],
+    cipa: ['ciepła klucha'], kutas: ['kaktus', 'kalafior'], en: ['fudge', 'darn', 'shoot', 'heck'],
+    dziwka: ['osoba z bujnym życiem towarzyskim'], simp: ['zagorzały kibic'],
+    _: ['impulsator kinetyczny z naprowadzaniem trzonkowym', 'motyla noga', 'jasny gwint', 'do kroćset', 'a niech to gęś kopnie', 'stokrotka']
+  };
+  const euph = (cat, tok) => { const l = EUPH[cat] || EUPH._; let h = 0; for (const c of tok) h = (h * 31 + c.charCodeAt(0)) >>> 0; return l[h % l.length]; };
   const BLOCK = n => '▇'.repeat(Math.max(3, Math.min(6, n)));
 
   function check(text, s) {
     const cfg = cfgOf(s), src = String(text || '');
     const toks = [], re = /\S+/g; let m;
     while ((m = re.exec(src))) toks.push({ raw: m[0], at: m.index, n: norm(m[0]) });
-    const hits = scanTokens(toks.map(t => t.n), cfg, toks.map(t => t.raw)).filter(h => h.level === 'hard' || cfg.soft);
+    const hits = scanTokens(toks.map(t => t.n), cfg, toks.map(t => t.raw)).filter(h => want(h, cfg));
     if (!hits.length) return { level: null, hits: [], masked: src };
-    const cover = new Set(); hits.forEach(h => { for (let i = h.i0; i <= h.i1; i++) cover.add(i); });
+    const cover = new Map(); hits.forEach(h => { for (let i = h.i0; i <= h.i1; i++) cover.set(i, i === h.i0 ? h : null); });
     let masked = '', pos = 0;
-    toks.forEach((t, i) => { masked += src.slice(pos, t.at) + (cover.has(i) ? BLOCK(t.raw.length) : t.raw); pos = t.at + t.raw.length; });
+    toks.forEach((t, i) => {
+      let rep = t.raw;
+      if (cover.has(i)) {
+        const h = cover.get(i);
+        if (!h) rep = '';    // dalsza część rozbitego słowa – zamiennik już stoi
+        else if (h.level === 'swear' && cfg.swear === 'funny') rep = euph(h.cat, toks.slice(h.i0, h.i1 + 1).map(x => x.n).join('')) + (t.raw.match(/[!?.,…]+$/) || [''])[0];
+        else rep = BLOCK(t.raw.length);
+      }
+      masked += src.slice(pos, t.at) + rep; pos = t.at + t.raw.length;
+    });
+    masked = masked.replace(/ {2,}/g, ' ');
     masked += src.slice(pos);
     return {
-      level: hits.some(h => h.level === 'hard') ? 'hard' : 'soft',
+      level: hits.reduce((a, h) => (rank[h.level] > rank[a] ? h.level : a), 'swear'),
       hits: hits.map(h => ({ text: toks.slice(h.i0, h.i1 + 1).map(t => t.raw).join(' '), level: h.level, cat: h.cat })),
       masked
     };
@@ -103,10 +125,11 @@
     const out = [];
     for (const l of ls || []) {
       const ws = l.words || []; if (!ws.length) continue;
-      const hits = scanTokens(ws.map(w => norm(w.t)), cfg, ws.map(w => w.t)).filter(h => h.level === 'hard' || cfg.soft);
+      // ekran: obelgi i wyzwiska zawsze; przekleństwa tylko, gdy włączone (Twitch na nie pozwala)
+      const hits = scanTokens(ws.map(w => norm(w.t)), cfg, ws.map(w => w.t)).filter(h => h.level === 'hard' || ((h.level === 'soft' || h.level === 'insult') && cfg.soft) || (h.level === 'swear' && cfg.screenSwear));
       for (const h of hits) for (let i = h.i0; i <= h.i1; i++) out.push({ ...ws[i], level: h.level });
     }
     return out;
   }
-  window.VMWords = { check, maskName, lines, norm, settings: cfgOf };
+  window.VMWords = { check, maskName, lines, norm, settings: cfgOf, euph };
 })();

@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>VM · Głosowanie</title>
+<!--
+  Scena „VM · Głosowanie” (przed „W trakcie”): postać kontra gra/program.
+  1) linia przesuwa się po elementach motywu postaci, potem po elementach motywu gry,
+  2) czat głosuje (1 / 2 albo nazwa) – wskazówka jedzie w lewo albo w prawo,
+  3) koniec: po czasie albo gdy po minucie wszystkie głosy są po jednej stronie. Wynik ustawia panel w OBS.
+  Głosy liczy wykrywacz (/vote). ?a=myr&b=tw&demo=1 – podgląd bez wykrywacza.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="themes/fonts.css">
+<link rel="stylesheet" href="themes/games.css">
+<link rel="stylesheet" href="themes/fursona.css">
+<link rel="stylesheet" href="themes/library.css">
+<script src="version.js"></script>
+<script src="themes/games.js"></script>
+<script src="themes/fursona.js"></script>
+<script src="themes/library.js"></script>
+<script src="themes/fusion.js"></script>
+<script src="themes/voices.js"></script>
+<script src="themes/voices-games.js"></script>
+<script src="themes/voices-en.js"></script>
+<script src="themes/i18n.js"></script>
+<style>
+  :root { --a1: #ff2e88; --a2: #26c6e0; --b1: #4fb3a8; --b2: #e05a4f; --pa: 50%; }
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #0b0d18; color: #fff; font-family: 'Inter', system-ui, sans-serif; }
+  #bg { position: absolute; inset: 0; background: linear-gradient(100deg, color-mix(in srgb, var(--a1) 38%, #0b0d18) 0%, #0b0d18 42%, #0b0d18 58%, color-mix(in srgb, var(--b1) 38%, #0b0d18) 100%); }
+  #bg::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(115deg, rgba(255,255,255,.035) 0 2px, transparent 2px 22px); }
+  header { position: absolute; left: 0; right: 0; top: 34px; text-align: center; }
+  header h1 { margin: 0; font: 900 64px/1 'Anton', 'Inter', sans-serif; letter-spacing: .04em; text-transform: uppercase; text-shadow: 0 4px 0 rgba(0,0,0,.35); }
+  header h1 i { font-style: normal; color: #ffd84a; padding: 0 22px; }
+  header p { margin: 12px 0 0; font: 600 24px/1.3 'Inter', sans-serif; color: rgba(255,255,255,.85); }
+  header p b { padding: 2px 12px; border-radius: 8px; background: rgba(0,0,0,.35); }
+  #clock { position: absolute; right: 60px; top: 46px; font: 800 44px/1 'Space Mono', monospace; font-variant-numeric: tabular-nums; }
+  .side { position: absolute; top: 200px; width: 470px; height: 640px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; transition: opacity .8s, filter .8s, transform .8s; }
+  #sideA { left: 50px; } #sideB { right: 50px; }
+  .hero { position: relative; width: 420px; height: 470px; display: grid; place-items: end center; }
+  .hero img { max-width: 100%; max-height: 100%; object-fit: contain; filter: drop-shadow(0 20px 30px rgba(0,0,0,.5)); }
+  .hero img.cover { width: 330px; height: 440px; object-fit: cover; border-radius: 14px; border: 6px solid rgba(255,255,255,.9); }
+  .hero .emb { width: 330px; height: 330px; } .hero .emb svg { width: 100%; height: 100%; overflow: visible; } .hero .emb > div, .hero .emb > svg { position: static !important; transform: none !important; width: 100% !important; height: 100% !important; }
+  .plate { margin-top: 18px; padding: 12px 30px; border-radius: 12px; font: 900 40px/1 'Anton', 'Inter', sans-serif; text-transform: uppercase; letter-spacing: .03em; box-shadow: 0 6px 0 rgba(0,0,0,.35); max-width: 460px; text-align: center; }
+  #sideA .plate { background: var(--a1); color: var(--onA, #fff); } #sideB .plate { background: var(--b1); color: var(--onB, #fff); }
+  .key { margin-top: 10px; font: 800 22px/1 'Inter', sans-serif; opacity: .85; }
+  /* tabela elementów */
+  #rows { position: absolute; left: 560px; width: 800px; top: 210px; }
+  .row { display: grid; grid-template-columns: 290px 220px 290px; height: 92px; margin-bottom: 8px; align-items: stretch; }
+  .cell { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 0 14px; background: rgba(255,255,255,.06); opacity: .18; transition: opacity .4s, background .4s, transform .4s; overflow: hidden; }
+  .cell.l { border-radius: 12px 0 0 12px; } .cell.r { border-radius: 0 12px 12px 0; }
+  .cell.on { opacity: 1; }
+  .cell.l.on { background: color-mix(in srgb, var(--a1) 32%, rgba(10,12,22,.9)); box-shadow: inset 4px 0 0 var(--a1); }
+  .cell.r.on { background: color-mix(in srgb, var(--b1) 32%, rgba(10,12,22,.9)); box-shadow: inset -4px 0 0 var(--b1); }
+  .lbl { display: grid; place-items: center; background: #f4f4f8; color: #14162a; font: 900 22px/1 'Anton', 'Inter', sans-serif; text-transform: uppercase; letter-spacing: .06em; }
+  .sw { width: 46px; height: 46px; border-radius: 50%; border: 3px solid rgba(255,255,255,.85); }
+  .font { font-size: 40px; line-height: 1; white-space: nowrap; }
+  .mini { width: 70px; height: 70px; } .mini svg { width: 100%; height: 100%; overflow: visible; } .mini > div, .mini > svg { position: static !important; transform: none !important; width: 100% !important; height: 100% !important; }
+  .mini img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+  .pt { width: 12px; height: 12px; border-radius: 50%; animation: fl 2.4s ease-in-out infinite; }
+  .pt.star { clip-path: polygon(50% 0, 61% 38%, 100% 38%, 68% 60%, 79% 100%, 50% 76%, 21% 100%, 32% 60%, 0 38%, 39% 38%); border-radius: 0; width: 16px; height: 16px; }
+  .pt.rect { border-radius: 2px; width: 8px; height: 16px; }
+  @keyframes fl { 50% { transform: translateY(-10px); } }
+  .say { font-size: 17px; line-height: 1.25; font-style: italic; text-align: center; }
+  .tag { font-size: 18px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; text-align: center; }
+  /* linia skanująca */
+  #scan { position: absolute; height: 4px; width: 290px; border-radius: 4px; background: #fff; box-shadow: 0 0 18px #fff, 0 0 40px var(--sc, #fff); opacity: 0; transition: top .55s cubic-bezier(.5,0,.3,1), left .7s cubic-bezier(.5,0,.3,1), opacity .3s; }
+  /* przeciąganie liny */
+  #tug { position: absolute; left: 560px; width: 800px; top: 900px; height: 54px; border-radius: 30px; overflow: visible; opacity: 0; transition: opacity .6s; }
+  #tug .bar { position: absolute; inset: 0; border-radius: 30px; overflow: hidden; background: linear-gradient(90deg, var(--a1) 0 var(--pa), var(--b1) var(--pa) 100%); transition: background .1s; box-shadow: inset 0 0 0 4px rgba(255,255,255,.85); }
+  #needle { position: absolute; top: -26px; bottom: -26px; width: 10px; margin-left: -5px; left: var(--pa); background: #fff; border-radius: 6px; box-shadow: 0 0 20px #fff; transition: left 1.2s cubic-bezier(.3,1.4,.4,1); }
+  #needle::before { content: "▼"; position: absolute; top: -34px; left: 50%; transform: translateX(-50%); font-size: 30px; color: #ffd84a; }
+  #tug .ends { position: absolute; top: 66px; left: 0; right: 0; display: flex; justify-content: space-between; font: 800 22px/1 'Inter', sans-serif; opacity: .85; }
+  .show #tug { opacity: 1; }
+  /* wynik */
+  #win { position: absolute; left: 50%; top: 520px; transform: translate(-50%, -50%) scale(.4); opacity: 0; padding: 26px 60px; border-radius: 18px; background: #ffd84a; color: #14162a;
+    font: 900 70px/1 'Anton', 'Inter', sans-serif; text-transform: uppercase; box-shadow: 0 12px 0 rgba(0,0,0,.35), 0 0 80px rgba(255,216,74,.6); transition: all .7s cubic-bezier(.2,1.4,.3,1); text-align: center; z-index: 5; }
+  #win small { display: block; font: 700 24px/1.3 'Inter', sans-serif; text-transform: none; margin-top: 10px; }
+  .won #win { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  .won-a #sideB, .won-b #sideA { opacity: .25; filter: grayscale(.8); transform: scale(.92); }
+  .won-a #sideA, .won-b #sideB { transform: scale(1.06); }
+  .won #rows { opacity: .25; transition: opacity .8s; }
+  /* sondy do odczytu czcionek motywów (niewidoczne) */
+  #probes { position: absolute; left: -5000px; top: 0; }
+</style>
+</head>
+<body>
+<div id="bg"></div>
+<header><h1><span id="hA">Postać</span><i>VS</i><span id="hB">Gra</span></h1><p id="how">Kto dziś prowadzi stream? Pisz na czacie: <b>1</b> albo <b>2</b></p></header>
+<div id="clock"></div>
+<div class="side" id="sideA"><div class="hero" id="heroA"></div><div class="plate" id="nameA"></div><div class="key">pisz <b>1</b></div></div>
+<div class="side" id="sideB"><div class="hero" id="heroB"></div><div class="plate" id="nameB"></div><div class="key">pisz <b>2</b></div></div>
+<div id="rows"></div>
+<div id="scan"></div>
+<div id="tug"><div class="bar"></div><div id="needle"></div><div class="ends"><span id="tA"></span><span id="tB"></span></div></div>
+<div id="win"></div>
+<div id="probes"></div>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const q = new URLSearchParams(location.search);
+  const read = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } };
+  const S = () => read('obsGameOverlay.v1') || {};
+  const GT = window.OverlayGameThemes, VO = window.OverlayVoices;
+  const en = window.VMi18n && VMi18n.lang() === 'en';
+  const hub = () => (window.vmHub ? window.vmHub(S().localUrl) : 'http://localhost:7777');
+  const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const IMG = { vince: 'themes/fursona/vince.webp', chip: 'themes/fursona/chip.webp', ragnar: 'themes/fursona/ragnar.webp', toro: 'themes/fursona/toro.webp' };
+  const BIG = { vince: 'themes/fursona/vince-philosopher.webp', chip: 'themes/fursona/chip-polaroid.webp', ragnar: 'themes/fursona/ragnar-full.webp', toro: 'themes/fursona/toro-full.webp' };
+
+  // --- kto z kim: postać z ustawień, gra/program z wykrywacza albo z listy ---
+  function sides() {
+    const s = S(), det = read('obsGameOverlay.detected') || {};
+    const pid = q.get('a') || (String(s.theme || '').startsWith('g-') ? s.theme.slice(2) : 'vince');
+    const A = GT.byId(pid) || GT.byId('vince');
+    const gname = q.get('bname') || (s.mode === 'manual' && s.game) || (det.local && det.local.game && det.local.game.name) || s.game || (en ? 'Game' : 'Gra');
+    let B = q.get('b') ? GT.byId(q.get('b')) : (GT.themeFor && GT.themeFor(s, gname) !== 'none' && GT.themeFor(s, gname)) || GT.find(gname);
+    const steam = s.mode === 'manual' ? s.gameSteam : det.local && det.local.game && det.local.game.steam;
+    if (!B) { // program / gra bez własnego motywu: kolory z nazwy
+      let h = 0; for (const c of gname) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+      B = { id: '', name: gname, accent: [`hsl(${h % 360} 70% 55%)`, `hsl(${(h + 140) % 360} 70% 60%)`], emblem: '', fx: { shape: 'dot', colors: ['#fff', `hsl(${h % 360} 70% 70%)`] }, label: en ? 'Now playing' : 'Teraz gram' };
+    }
+    return { A, B, bName: gname, steam, gameId: s.mode === 'manual' ? s.gameId : '' };
+  }
+  // czcionka i kolory motywu odczytane z jego CSS (sonda w niewidocznym miejscu)
+  function probe(id) {
+    if (!id) return { font: "'Inter', sans-serif", name: '#fff', label: '#ddd' };
+    const box = document.createElement('div'); box.className = `theme-g-${id} game-theme f-theme`;
+    box.innerHTML = '<div id="card"><div id="label">x</div><div id="name">x</div></div>';
+    $('probes').appendChild(box);
+    const n = box.querySelector('#name'), l = box.querySelector('#label'), c = box.querySelector('#card');
+    const cs = getComputedStyle(n);
+    const r = { font: cs.fontFamily, weight: cs.fontWeight, name: cs.color, label: getComputedStyle(l).color, labelFont: getComputedStyle(l).fontFamily, card: getComputedStyle(c).backgroundColor };
+    box.remove(); return r;
+  }
+  const lum = c => { const m = String(c).match(/#?([0-9a-f]{6})/i); if (!m) return 0.3; const v = parseInt(m[1], 16); return (0.2126 * (v >> 16 & 255) + 0.7152 * (v >> 8 & 255) + 0.0722 * (v & 255)) / 255; };
+  const sample = (vi, kind) => { try { const v = VO.pickMix(vi, kind, { user: en ? 'Viewer' : 'Widz', n: 3 }, 2); return v ? v.line || v.label : ''; } catch { return ''; } };
+  const parts = (fx) => { const f = fx || { shape: 'dot', colors: ['#fff'] }; return Array.from({ length: 7 }, (_, i) => `<i class="pt ${f.shape === 'star' ? 'star' : f.shape === 'rect' ? 'rect' : ''}" style="background:${f.colors[i % f.colors.length]};animation-delay:${-i * .35}s"></i>`).join(''); };
+
+  let built = '';
+  function build() {
+    const { A, B, bName, steam, gameId } = sides();
+    const key = A.id + '|' + (B.id || B.name);
+    if (key === built) return; built = key;
+    const r = document.documentElement.style;
+    r.setProperty('--a1', A.accent[0]); r.setProperty('--a2', A.accent[1]); r.setProperty('--b1', B.accent[0]); r.setProperty('--b2', B.accent[1]);
+    r.setProperty('--onA', lum(A.accent[0]) > .55 ? '#14162a' : '#fff'); r.setProperty('--onB', lum(B.accent[0]) > .55 ? '#14162a' : '#fff');
+    $('hA').textContent = A.name; $('hB').textContent = bName; $('nameA').textContent = A.name; $('nameB').textContent = bName;
+    $('tA').textContent = '1 · ' + A.name; $('tB').textContent = bName + ' · 2';
+    $('how').innerHTML = (en ? 'Who leads today? Type in chat: ' : 'Kto dziś prowadzi stream? Pisz na czacie: ') + `<b>1</b> – ${esc(A.name)} &nbsp; <b>2</b> – ${esc(bName)}`;
+    // bohaterowie
+    $('heroA').innerHTML = BIG[A.id] || IMG[A.id] ? `<img src="${BIG[A.id] || IMG[A.id]}" alt="">` : `<div class="emb">${A.emblem || ''}</div>`;
+    const art = steam ? hub() + '/art?id=' + encodeURIComponent(steam) + '&k=cover' : gameId ? hub() + '/icon?id=' + encodeURIComponent(gameId) : '';
+    $('heroB').innerHTML = art ? `<img class="cover" src="${esc(art)}" alt="" onerror="this.outerHTML='<div class=\\'emb\\'>${(B.emblem || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;')}</div>'">` : `<div class="emb">${B.emblem || ''}</div>`;
+    // elementy motywów
+    const pa = probe(A.id), pb = probe(B.id);
+    const via = { personaId: A.id, gameId: '', mix: 0 }, vib = { personaId: '_', gameId: B.id, mix: 1 };
+    const L = en ? ['Colours', 'Font', 'Emblem', 'Particles', 'Label', 'Voice'] : ['Kolory', 'Czcionka', 'Emblemat', 'Cząsteczki', 'Napis', 'Głos'];
+    const cells = [
+      [`<i class="sw" style="background:${A.accent[0]}"></i><i class="sw" style="background:${A.accent[1]}"></i>`, `<i class="sw" style="background:${B.accent[0]}"></i><i class="sw" style="background:${B.accent[1]}"></i>`],
+      [`<span class="font" style="font-family:${pa.font};font-weight:${pa.weight};color:#fff">Aa Żż</span>`, `<span class="font" style="font-family:${pb.font};font-weight:${pb.weight};color:#fff">Aa Żż</span>`],
+      [`<div class="mini">${IMG[A.id] ? `<img src="${IMG[A.id]}" alt="">` : (A.emblem || '')}</div>`, `<div class="mini">${B.emblem || ''}</div>`],
+      [parts(A.fx || { shape: 'dot', colors: A.accent }), parts(B.fx)],
+      [`<span class="tag" style="font-family:${pa.labelFont}">${esc(A.label || 'Teraz gram')}</span>`, `<span class="tag" style="font-family:${pb.labelFont}">${esc((window.VMi18n ? VMi18n.label(B.label) : B.label) || (en ? 'Now playing' : 'Teraz gram'))}</span>`],
+      [`<span class="say">${esc(sample(via, 'follow'))}</span>`, `<span class="say">${esc(B.id ? sample(vib, 'follow') : (en ? 'No voice of its own – yet.' : 'Bez własnego głosu – na razie.'))}</span>`]
+    ];
+    $('rows').innerHTML = cells.map((c, i) => `<div class="row"><div class="cell l" data-i="${i}">${c[0]}</div><div class="lbl">${L[i]}</div><div class="cell r" data-i="${i}">${c[1]}</div></div>`).join('');
+  }
+
+  // --- przebieg: linia po elementach postaci, potem gry, potem głosowanie ---
+  let introFor = null;
+  function intro(id) {
+    if (introFor === id) return; introFor = id;
+    document.body.classList.remove('won', 'won-a', 'won-b', 'show');
+    document.querySelectorAll('.cell').forEach(c => c.classList.remove('on'));
+    const sc = $('scan'), rows = [...document.querySelectorAll('.row')], top0 = $('rows').offsetTop;
+    const pass = (side, left, color, t0) => rows.forEach((row, i) => setTimeout(() => {
+      sc.style.left = left + 'px'; sc.style.top = (top0 + row.offsetTop + row.offsetHeight / 2) + 'px'; sc.style.opacity = 1; sc.style.setProperty('--sc', color);
+      row.querySelector('.cell.' + side).classList.add('on');
+    }, t0 + i * 650));
+    const cs = getComputedStyle(document.documentElement);
+    pass('l', 560, cs.getPropertyValue('--a1'), 900);
+    pass('r', 1070, cs.getPropertyValue('--b1'), 900 + rows.length * 650 + 500);
+    setTimeout(() => { sc.style.opacity = 0; document.body.classList.add('show'); }, 900 + rows.length * 1300 + 900);
+  }
+  function showVotes(v) {
+    const t = (v.va || 0) + (v.vb || 0), pa = t ? (v.va / t) * 100 : 50;
+    document.documentElement.style.setProperty('--pa', pa.toFixed(1) + '%');
+    const sec = v.endsIn || 0;
+    $('clock').textContent = v.active ? `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}` : '';
+    if (!v.active && v.winner) {
+      const { A, bName } = sides(), name = v.winner === 'a' ? A.name : bName;
+      document.body.classList.add('show', 'won', 'won-' + v.winner);
+      $('win').innerHTML = esc((en ? 'Leading: ' : 'Prowadzi: ') + name) + `<small>${t} ${en ? 'votes' : t === 1 ? 'głos' : t % 10 >= 2 && t % 10 <= 4 && (t % 100 < 12 || t % 100 > 14) ? 'głosy' : 'głosów'}</small>`;
+    }
+  }
+  // --- dane: wykrywacz (/vote); ?demo=1 – symulacja ---
+  let demo = q.get('demo') === '1' ? { id: 1, active: true, va: 0, vb: 0, endsIn: 300, winner: '' } : null;
+  async function tick() {
+    build();
+    let v = null;
+    if (demo) {
+      if (demo.active) { demo.endsIn = Math.max(0, demo.endsIn - 1); if (Math.random() < .5) { if (Math.random() < .55) demo.va++; else demo.vb++; } if (demo.endsIn === 0 || q.get('end') === '1' && demo.va + demo.vb > 12) { demo.active = false; demo.winner = demo.va >= demo.vb ? 'a' : 'b'; } }
+      v = demo;
+    } else { try { v = await (await fetch(hub() + '/vote', { cache: 'no-store' })).json(); } catch { v = null; } }
+    if (v && (v.active || v.winner)) { intro(v.id); showVotes(v); }
+    else if (!v || (!v.active && !v.winner)) { intro('idle'); $('clock').textContent = ''; }
+  }
+  tick(); setInterval(tick, 1000);
+})();
+</script>
+</body>
+</html>

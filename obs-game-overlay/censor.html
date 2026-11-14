@@ -32,7 +32,7 @@
   const read = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } };
   const settings = () => read(KEY) || {};
   const hub = () => (window.vmHub ? window.vmHub(settings().localUrl) : 'http://localhost:7777');
-  const DEF_EXES = 'chrome.exe,msedge.exe,firefox.exe,opera.exe,brave.exe,vivaldi.exe,discord.exe';
+  const DEF_EXES = 'notepad.exe,winword.exe,wordpad.exe,excel.exe,powerpnt.exe,onenote.exe,opera.exe,chrome.exe,msedge.exe,firefox.exe,brave.exe,vivaldi.exe,arc.exe,discord.exe,telegram.exe,whatsapp.exe,signal.exe,slack.exe,ms-teams.exe,teams.exe,outlook.exe,olk.exe,thunderbird.exe,obsidian.exe,notion.exe,code.exe,notepad++.exe,sublime_text.exe,acrobat.exe,acrord32.exe,sumatrapdf.exe,steamwebhelper.exe,spotify.exe';
   if (q.get('debug') === '1') document.body.classList.add('debug');
   const st = document.getElementById('st');
 
@@ -69,17 +69,17 @@
   // prośba o skan co 4 s (wykrywacz sam przestaje, gdy prośby ustaną)
   async function ping() {
     const s = settings();
-    if (!s.censor || s.local === false) return;
+    if (s.censor === false || s.local === false) return;
     try {
       const m = read(MAP), it = m && (m.items || []).find(i => i.exe && i.kind !== 'monitor_capture');
-      const j = await (await fetch(hub() + '/censor/config?on=1&target=' + encodeURIComponent(it ? it.exe : '') + '&exes=' + encodeURIComponent(s.censorAll ? '' : (s.censorExes || DEF_EXES)), { cache: 'no-store' })).json();
+      const j = await (await fetch(hub() + '/censor/config?on=1&target=' + encodeURIComponent(it ? it.exe : '') + '&exes=' + encodeURIComponent(s.censorAll !== false ? '' : (s.censorExes || DEF_EXES)), { cache: 'no-store' })).json();
       st.textContent = 'OCR: ' + j.status + (j.fps ? ' · ' + j.fps + '/s' : '') + (j.error ? ' · ' + j.error : '');
     } catch { st.textContent = 'wykrywacz nie odpowiada'; }
   }
   ping(); setInterval(ping, 4000);
   let since = 0, busy = false;
   setInterval(async () => {
-    const s = settings(); if (!s.censor || busy || !window.VMWords) return;
+    const s = settings(); if (s.censor === false || busy || !window.VMWords) return;
     busy = true;
     try {
       const r = await (await fetch(hub() + '/censor?since=' + since, { cache: 'no-store' })).json();
@@ -87,7 +87,7 @@
         since = r.at;
         // podgląd skanera (panel → Cenzura ekranu → „pokaż, co widzi skaner”): każde odczytane słowo w ramce
         document.querySelectorAll('.dbg').forEach(e => e.remove());
-        if (s.censorDebug && !r.skip && r.lines) {
+        if (s.censorDebug !== false && !r.skip && r.lines) {
           const all = []; for (const l of r.lines) for (const w of l.words || []) all.push(w);
           const p = project(r, all);
           for (const b of p.out) { const d = document.createElement('div'); d.className = 'dbg'; Object.assign(d.style, { left: b.x + 'px', top: b.y + 'px', width: b.w + 'px', height: b.h + 'px' }); document.body.appendChild(d); }

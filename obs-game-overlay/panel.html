@@ -231,7 +231,7 @@
   </section>
   <section>
     <h2>Szybki test</h2>
-    <div class="bigbtns small"><button id="qtTheme" aria-pressed="false" title="Czat: tylko motyw postaci/gry">Czat: tylko motyw</button><button data-qt="follow">Follow</button><button data-qt="sub">Sub</button><button data-qt="raid">Raid</button><button data-qt="chat">Czat</button><button data-qt="bot">Bot</button></div>
+    <div class="bigbtns small"><button id="qtTheme" aria-pressed="false" title="Czat: tylko motyw postaci/gry">Czat: tylko motyw</button><button id="qtVote" title="dorzuca 6 testowych głosów do trwającego głosowania">Głosy (test)</button><button data-qt="follow">Follow</button><button data-qt="sub">Sub</button><button data-qt="raid">Raid</button><button data-qt="chat">Czat</button><button data-qt="bot">Bot</button></div>
   </section>
   </div>
   <div class="tab" data-tab="live">
@@ -528,6 +528,13 @@
         <option value="off">nic nie rób (niezalecane)</option>
       </select>
     </label>
+    <label>Przekleństwa na czacie (Twitch na nie pozwala)
+      <select id="wordSwear">
+        <option value="funny">zamień na głupio-mądre („kurza twarz”, „pieprzyć to sianem”, „impulsator kinetyczny…”)</option>
+        <option value="mask">zakryj ▇▇▇</option>
+        <option value="off">zostaw bez zmian</option>
+      </select>
+    </label>
     <label class="check"><input id="wordSoft" type="checkbox"> zakrywaj też słowa dwuznaczne (np. „pedał”, „murzyn”, „retarded”)</label>
     <label>Dodatkowe słowa do zakrywania (po przecinku)<input id="wordExtra" type="text" placeholder="np. przezwisko trolla"></label>
     <label>Zawsze pozwalaj (po przecinku)<input id="wordAllow" type="text" placeholder="np. słowo, które filtr myli"></label>
@@ -535,20 +542,25 @@
   </section>
   <section data-feature="local">
     <h2>Cenzura ekranu <span id="censorPill" class="pill off"></span></h2>
-    <p class="hint" style="margin:0">Gdy przeglądasz internet na wizji, wykrywacz co chwilę czyta tekst z okna na pierwszym planie (wbudowane rozpoznawanie tekstu Windows, bez internetu, nic nie zapisuje), a warstwa <b>VM · Cenzura</b> zasłania na scenie słowa z listy zakazanych – ten sam filtr co na czacie.</p>
-    <label class="check"><input id="censor" type="checkbox"> zasłaniaj zakazane słowa na ekranie</label>
-    <label>Skanowane programy (pliki .exe, po przecinku)<input id="censorExes" type="text" placeholder="chrome.exe, msedge.exe, firefox.exe, opera.exe, brave.exe, vivaldi.exe, discord.exe"></label>
-    <label class="check"><input id="censorDebug" type="checkbox"> pokaż, co widzi skaner (ramki wokół każdego odczytanego słowa – do sprawdzenia, czy zasłony trafiają; wyłącz przed streamem)</label>
-    <label class="check"><input id="censorAll" type="checkbox"> skanuj każde okno na pierwszym planie (też gry – więcej pracy dla procesora)</label>
-    <div class="row">
-      <button id="censorAdd" data-feature="obs">Dodaj warstwę do scen</button>
-      <button id="censorDelay" data-feature="obs">Opóźnij okna o 0,5 s</button>
+    <div class="checks chipset">
+      <label class="check" title="warstwa VM · Cenzura zasłania na scenie obelgi i wyzwiska odczytane z okna"><input id="censor" type="checkbox"> zasłaniaj na ekranie</label>
+      <label class="check" title="poza oknem, które przechwytuje OBS, także każde okno na pierwszym planie – programy z listy niżej mają pierwszeństwo"><input id="censorAll" type="checkbox"> skanuj każde okno</label>
+      <label class="check" title="niebieskie ramki wokół każdego odczytanego słowa – czy zasłony trafiają"><input id="censorDebug" type="checkbox"> ramki skanera</label>
+      <label class="check" title="Twitch na przekleństwa pozwala – domyślnie na ekranie zostają"><input id="censorSwear" type="checkbox"> też przekleństwa</label>
     </div>
-    <label data-feature="obs">Opóźnienie całego streama (od następnego startu)
-      <select id="streamDelay"><option value="0">bez opóźnienia</option><option value="5">5 s</option><option value="10">10 s</option><option value="20">20 s</option><option value="30">30 s</option></select>
-    </label>
     <div class="status" id="censorStatus"></div>
-    <p class="hint" style="margin:0"><b>Jak to działa w czasie:</b> rozpoznanie tekstu trwa ok. 0,2–0,4 s. „Opóźnij obraz okien” dodaje do przechwytywania okna/ekranu filtr <i>Opóźnienie renderowania</i> 0,5 s, więc zasłona pojawia się na streamie, zanim słowo w ogóle będzie widać. Opóźnienie całego streama tu nie pomaga (opóźnia też zasłonę), ale daje Ci czas, żeby w razie czego przełączyć na „Przerwę”, zanim widzowie coś zobaczą. Test: wpisz w przeglądarce słowo z listy (np. w pasku adresu) i patrz na podgląd OBS.</p>
+    <details>
+      <summary>Programy, opóźnienia, jak to działa</summary>
+      <label>Programy skanowane w pierwszej kolejności (pliki .exe)<input id="censorExes" type="text" placeholder="notepad.exe, winword.exe, wordpad.exe, excel.exe, powerpnt.exe, onenote.exe, opera.exe, chrome.exe, msedge.exe, firefox.exe, brave.exe, vivaldi.exe, arc.exe, discord.exe, telegram.exe, whatsapp.exe, signal.exe, slack.exe, ms-teams.exe, teams.exe, outlook.exe, olk.exe, thunderbird.exe, obsidian.exe, notion.exe, code.exe, notepad++.exe, sublime_text.exe, acrobat.exe, acrord32.exe, sumatrapdf.exe, steamwebhelper.exe, spotify.exe"></label>
+      <div class="row">
+        <button id="censorAdd" data-feature="obs">Dodaj warstwę do scen</button>
+        <button id="censorDelay" data-feature="obs">Opóźnij okna o 0,5 s</button>
+      </div>
+      <label data-feature="obs">Opóźnienie całego streama (od następnego startu)
+        <select id="streamDelay"><option value="0">bez opóźnienia</option><option value="5">5 s</option><option value="10">10 s</option><option value="20">20 s</option><option value="30">30 s</option></select>
+      </label>
+      <p class="hint" style="margin:0">Skaner czyta okno, które OBS przechwytuje (wbudowane rozpoznawanie tekstu Windows, nic nie zapisuje). Rozpoznanie trwa 0,2–0,4 s – „Opóźnij okna o 0,5 s” sprawia, że zasłona jest pierwsza. Opóźnienie całego streama daje czas na reakcję, ale zasłony nie przyspiesza.</p>
+    </details>
   </section>
   <section data-feature="local">
     <h2>Podejrzane konta <span id="flagPill" class="pill off"></span></h2>
@@ -1020,7 +1032,7 @@
   });
 
   // --- przejścia ---
-  const KIND_FOR_OBS = { 'VM · Gra – pełny ekran': 'game', 'VM · Gra – w ramce': 'game', 'VM · Rozmowa': 'talk', 'VM · Nakładki': 'game' };
+  const KIND_FOR_OBS = { 'VM · Głosowanie': 'start', 'VM · Gra – pełny ekran': 'game', 'VM · Gra – w ramce': 'game', 'VM · Rozmowa': 'talk', 'VM · Nakładki': 'game' };
   for (const [k, v] of Object.entries(OBS_SCENE_FOR)) if (!KIND_FOR_OBS[v]) KIND_FOR_OBS[v] = k;
   const isRemote = /^https?:$/.test(location.protocol) && location.pathname.indexOf('/ui/') === 0;
   function sendTransition(scene) {
@@ -1161,6 +1173,7 @@
   setTimeout(socPrev, 0);
   const themeOnlyUi = () => { $('themeOnly').checked = s.viewerStyles === false; $('qtTheme').setAttribute('aria-pressed', s.viewerStyles === false); };
   $('themeOnly').onchange = () => { s.viewerStyles = !$('themeOnly').checked; save(); themeOnlyUi(); };
+  $('qtVote').onclick = () => fetch(hubUrl() + '/vote/test?n=6&pa=' + Math.round(Math.random() * 100), { cache: 'no-store' }).catch(() => {});
   $('qtTheme').onclick = () => { s.viewerStyles = s.viewerStyles === false; save(); themeOnlyUi(); };
   setTimeout(themeOnlyUi, 0);
   for (const id of ['chatSkin', 'sceneChat']) { $(id).onchange = () => { s[id] = $(id).checked; save(); }; setTimeout(() => { $(id).checked = s[id] !== false; }, 0); }
@@ -1384,7 +1397,7 @@
   $('captureKind').onchange = () => { s.captureKind = $('captureKind').value; capLast = ''; save(); };
   // --- jedna lista scen: ekrany VM i sceny z OBS ---
   const SCENE_GROUPS = [
-    ['Przed streamem', [['s:prep', 'Przygotowania'], ['s:soon', 'Stream za…'], ['s:start', 'Zaraz zaczynamy'], ['s:late', 'Spóźnienie']]],
+    ['Przed streamem', [['s:prep', 'Przygotowania'], ['s:soon', 'Stream za…'], ['s:start', 'Zaraz zaczynamy'], ['s:late', 'Spóźnienie'], ['v:vote', 'Głosowanie ⚔']]],
     ['W trakcie', [['o:VM · Gra – pełny ekran', 'Gra'], ['o:VM · Gra – w ramce', 'Gra w ramce'], ['o:VM · Rozmowa', 'Rozmowa']]],
     ['Przerwa i koniec', [['s:brb', 'Przerwa'], ['s:brb-late', 'Przerwa się przedłuża'], ['s:end', 'Koniec + napisy']]]
   ];
@@ -1401,6 +1414,7 @@
     const b = e.target.closest('[data-go]'); if (!b) return;
     const [t, v] = [b.dataset.go.slice(0, 1), b.dataset.go.slice(2)];
     if (t === 's') { const btn = document.querySelector(`#sceneBtns button[data-s="${v}"]`); if (btn) btn.click(); setTimeout(markStartScenes, 900); return; }
+    if (t === 'v') { startVote(); return; }
     if (!obs) { $('capStatus').textContent = 'Brak połączenia z OBS.'; return; }
     goScene(KIND_FOR_OBS[v] || (v.includes('Rozmowa') ? 'talk' : 'game'), () => obs.setSceneCut(v).catch(() => {}));
   });
@@ -1534,6 +1548,8 @@
   function wordsUi() { $('wordFilter').value = s.wordFilter || 'mask'; $('wordSoft').checked = s.wordSoft !== false; $('wordExtra').value = s.wordExtra || ''; $('wordAllow').value = s.wordAllow || ''; }
   $('wordFilter').onchange = () => { s.wordFilter = $('wordFilter').value; save(); };
   $('wordSoft').onchange = () => { s.wordSoft = $('wordSoft').checked; save(); };
+  $('wordSwear').onchange = () => { s.wordSwear = $('wordSwear').value; save(); };
+  setTimeout(() => { $('wordSwear').value = s.wordSwear || 'funny'; }, 0);
   $('wordExtra').onchange = () => { s.wordExtra = $('wordExtra').value.trim(); save(); };
   $('wordAllow').onchange = () => { s.wordAllow = $('wordAllow').value.trim(); save(); };
   setTimeout(wordsUi, 0);
@@ -1550,7 +1566,7 @@
     const mode = s.wordFilter || 'mask';
     const shown = (w.level && mode === 'hide') || (flag && flag.level === 'suspect' && s.botHide !== false) ? 'ukryta na ekranie' : 'na ekranie: „' + (w.level && mode !== 'off' ? w.masked : text) + '”';
     const notes = [];
-    if (w.level) notes.push((w.level === 'hard' ? 'zakazane: ' : 'dwuznaczne: ') + w.hits.map(h => h.text).join(', '));
+    if (w.level) notes.push(({ hard: 'obelga: ', soft: 'dwuznaczne: ', insult: 'wyzwisko: ', swear: 'przekleństwo: ' }[w.level] || '') + w.hits.map(h => h.text).join(', '));
     if (nick !== user) notes.push('nick zakryty');
     if (flag) notes.push('bot? ' + flag.level + ' – ' + (flag.reasons || []).join(' · '));
     if (!notes.length) notes.push('czysto ✓');
@@ -1565,7 +1581,7 @@
 
   // --- cenzura ekranu: mapa położenia okien na scenie, warstwa, opóźnienia ---
   const CENSOR_NAME = 'VM · Cenzura', DELAY_NAME = 'VM · Opóźnienie (cenzura)', CAP_KINDS = ['window_capture', 'game_capture', 'monitor_capture'];
-  const DEF_EXES = 'chrome.exe, msedge.exe, firefox.exe, opera.exe, brave.exe, vivaldi.exe, discord.exe';
+  const DEF_EXES = 'notepad.exe, winword.exe, wordpad.exe, excel.exe, powerpnt.exe, onenote.exe, opera.exe, chrome.exe, msedge.exe, firefox.exe, brave.exe, vivaldi.exe, arc.exe, discord.exe, telegram.exe, whatsapp.exe, signal.exe, slack.exe, ms-teams.exe, teams.exe, outlook.exe, olk.exe, thunderbird.exe, obsidian.exe, notion.exe, code.exe, notepad++.exe, sublime_text.exe, acrobat.exe, acrord32.exe, sumatrapdf.exe, steamwebhelper.exe, spotify.exe';
   const winExe = spec => { const p = String(spec || '').split(':'); return (p[2] || '').replace(/#3A/g, ':').replace(/#22/g, '#').toLowerCase(); };
   function itemRect(t) {
     const cl = t.cropLeft || 0, cr = t.cropRight || 0, ct = t.cropTop || 0, cb = t.cropBottom || 0;
@@ -1595,11 +1611,11 @@
   }
   let censorBusy = false;
   async function censorTick() {
-    pill('censorPill', !!s.censor, 'WŁ.', 'WYŁ.');
-    if (!s.censor || isRemote) return;
+    pill('censorPill', s.censor !== false, 'WŁ.', 'WYŁ.');
+    if (s.censor === false || isRemote) return;
     // cel skanu: okno, które OBS przechwytuje w bieżącej scenie (najwyżej położone przechwytywanie okna/gry)
     let target = ''; try { const m = JSON.parse(localStorage.getItem('obsGameOverlay.censorMap') || 'null'); const it = m && (m.items || []).find(i => i.exe && i.kind !== 'monitor_capture'); target = it ? it.exe : ''; } catch {}
-    try { const j = await (await fetch(hubUrl() + '/censor/config?on=1&target=' + encodeURIComponent(target) + '&exes=' + encodeURIComponent(s.censorAll ? '' : (s.censorExes || DEF_EXES).replace(/\s/g, '')), { cache: 'no-store' })).json();
+    try { const j = await (await fetch(hubUrl() + '/censor/config?on=1&target=' + encodeURIComponent(target) + '&exes=' + encodeURIComponent(s.censorAll !== false ? '' : (s.censorExes || DEF_EXES).replace(/\s/g, '')), { cache: 'no-store' })).json();
       $('censorStatus').textContent = 'Rozpoznawanie tekstu: ' + j.status + (j.fps ? ` (${j.fps} skanów/s)` : '') + (j.lang ? ' · język ' + j.lang : '') + (j.error ? ' · ' + j.error : ''); }
     catch { $('censorStatus').textContent = 'Wykrywacz nie odpowiada – cenzura ekranu nie działa.'; }
     if (!obs || censorBusy) return;
@@ -1638,10 +1654,13 @@
   }
   $('censorAdd').onclick = censorAddLayer;
   $('censor').onchange = () => { s.censor = $('censor').checked; save(); if (s.censor && obs) censorAddLayer(); censorTick(); };
+  // cenzura domyślnie włączona: przy pierwszym połączeniu z OBS warstwa trafia do scen sama
+  let censorAutoAdded = false;
+  setInterval(() => { if (!censorAutoAdded && obs && s.censor !== false && $('obsPill').classList.contains('on') && /^file:/.test(location.protocol)) { censorAutoAdded = true; censorAddLayer(); } }, 5000);
   $('censorExes').onchange = () => { s.censorExes = $('censorExes').value.trim(); save(); };
   $('censorAll').onchange = () => { s.censorAll = $('censorAll').checked; save(); };
   $('censorDebug').onchange = () => { s.censorDebug = $('censorDebug').checked; save(); };
-  setTimeout(() => { $('censorDebug').checked = !!s.censorDebug; }, 0);
+  setTimeout(() => { $('censorDebug').checked = s.censorDebug !== false; }, 0);
   $('censorDelay').onclick = async () => {
     const st = $('censorStatus'); if (!obs) { st.textContent = 'Brak połączenia z OBS.'; return; }
     try {
@@ -1674,7 +1693,8 @@
       $('streamDelay').value = [...$('streamDelay').options].some(o => o.value === v) ? v : '0';
     } catch {}
   }
-  setTimeout(() => { $('censor').checked = !!s.censor; $('censorExes').value = s.censorExes || ''; $('censorAll').checked = !!s.censorAll; }, 0);
+  setTimeout(() => { $('censor').checked = s.censor !== false; $('censorExes').value = s.censorExes || ''; $('censorAll').checked = s.censorAll !== false; $('censorSwear').checked = !!s.censorSwear; }, 0);
+  $('censorSwear').onchange = () => { s.censorSwear = $('censorSwear').checked; save(); };
 
 
   // --- autotest: co działa samo, jest sprawdzane co kilka sekund i chowane; widać tylko to, co wymaga uwagi ---
@@ -1750,11 +1770,11 @@
           c.mic = dup ? { ok: false, msg: `mikrofon może być podwójnie: „${MIC_NAME}” i ${[sp.mic1, ...micInputs.map(i => i.inputName)].filter(n => n && n !== MIC_NAME).join(', ')} – Napraw usuwa „${MIC_NAME}”`, fix: 'micdup' }
             : has ? { ok: true } : { ok: false, msg: 'OBS nie ma mikrofonu' };
         } catch { c.mic = { ok: false, msg: 'nie mogę sprawdzić' }; }
-        if (s.censor) {
+        if (s.censor !== false) {
           try {
             const inputs = (await obs.call('GetInputList')).inputs || [];
             const layer = inputs.some(i => i.inputName === CENSOR_NAME);
-            const j = s.local ? await (await fetch(hubUrl() + '/censor/config?on=1&exes=' + encodeURIComponent(s.censorAll ? '' : (s.censorExes || DEF_EXES).replace(/\s/g, '')), { cache: 'no-store' })).json() : null;
+            const j = s.local ? await (await fetch(hubUrl() + '/censor/config?on=1&exes=' + encodeURIComponent(s.censorAll !== false ? '' : (s.censorExes || DEF_EXES).replace(/\s/g, '')), { cache: 'no-store' })).json() : null;
             c.censor = !layer ? { ok: false, msg: 'brak warstwy „' + CENSOR_NAME + '” w scenach' } : j && /błąd|brak/.test(j.status) ? { ok: false, msg: j.error || j.status } : { ok: true, msg: j ? j.status : '' };
           } catch { c.censor = { ok: false, msg: 'nie mogę sprawdzić' }; }
         }
@@ -1817,7 +1837,13 @@
   setTimeout(() => {
     renderHosts();
     let asked = false; try { asked = !!sessionStorage.getItem('vm.hostPicked'); } catch {}
-    if (!asked && !isRemote && /^file:/.test(location.protocol)) $('hostPick').hidden = false;
+    if (!asked && !isRemote && /^file:/.test(location.protocol)) {
+      // każde uruchomienie OBS: postać losowana (inna niż ostatnio), ale można ją od razu zmienić
+      const list = hosts().filter(t => 'g-' + t.id !== s.theme), pick = list[Math.floor(Math.random() * list.length)];
+      if (pick) { const sel = $('persona'); sel.value = pick.id; sel.dispatchEvent(new Event('change')); renderHosts(); }
+      document.querySelector('#hostPick h2').textContent = pick ? `Wylosowano: ${pick.name} – zostaje czy zmieniamy?` : 'Kto dziś prowadzi stream?';
+      $('hostPick').hidden = false;
+    }
   }, 0);
   // pozycja karty: siatka 3×2 zamiast listy
   const POS = [['tl', '↖'], ['tc', '↑'], ['tr', '↗'], ['bl', '↙'], ['bc', '↓'], ['br', '↘']];
@@ -1894,6 +1920,50 @@
     } catch {}
   }
   setInterval(pollControl, 1500);
+
+
+  // --- głosowanie: postać kontra gra/program (scena „VM · Głosowanie”, głosy liczy wykrywacz z czatu) ---
+  const VOTE_SCENE = 'VM · Głosowanie';
+  async function ensureVoteScene() {
+    if (!obs) throw new Error('brak połączenia z OBS');
+    if (obsSceneList.includes(VOTE_SCENE)) return;
+    if (!/^file:/.test(location.protocol)) throw new Error('scenę doda panel w OBS');
+    await obs.call('CreateScene', { sceneName: VOTE_SCENE });
+    const vs = await obs.call('GetVideoSettings');
+    const url = new URL('vote.html', location.href).href;
+    const id = (await obs.call('CreateInput', { sceneName: VOTE_SCENE, inputName: 'VM · Głosowanie (ekran)', inputKind: 'browser_source', inputSettings: { url, width: 1920, height: 1080, is_local_file: false } })).sceneItemId;
+    await obs.call('SetSceneItemTransform', { sceneName: VOTE_SCENE, sceneItemId: id, sceneItemTransform: { boundsType: 'OBS_BOUNDS_STRETCH', boundsWidth: vs.baseWidth, boundsHeight: vs.baseHeight, positionX: 0, positionY: 0 } });
+    // alerty i przejścia także na tej scenie
+    const inputs = ((await obs.call('GetInputList')).inputs || []).map(i => i.inputName);
+    for (const n of ['VM · Alerty', 'VM · Przejścia']) if (inputs.includes(n)) { try { await obs.call('CreateSceneItem', { sceneName: VOTE_SCENE, sourceName: n }); } catch {} }
+  }
+  let voteId = null;
+  async function startVote() {
+    const st = $('capStatus');
+    const persona = window.OverlayGameThemes && String(s.theme || '').startsWith('g-') ? window.OverlayGameThemes.byId(s.theme.slice(2)) : null;
+    const det = load(DETECTED_KEY, null) || {};
+    const game = (s.mode === 'manual' && s.game) || (det.local && det.local.game && det.local.game.name) || s.game || '';
+    if (!persona || !game) { st.textContent = 'Do głosowania potrzebna jest postać i gra/program (wybierz z listy „Co dziś?”).'; return; }
+    try {
+      await ensureVoteScene();
+      const j = await (await fetch(hubUrl() + '/vote/start?a=' + encodeURIComponent(persona.name) + '&b=' + encodeURIComponent(game) + '&sec=' + (+s.voteSec || 300), { cache: 'no-store' })).json();
+      voteId = j.id;
+      goScene('start', () => obs.setSceneCut(VOTE_SCENE).catch(() => {}));
+      st.textContent = `Głosowanie: ${persona.name} kontra ${game} – czat pisze 1 albo 2.`;
+    } catch (e) { st.textContent = 'Głosowanie: ' + e.message; }
+  }
+  // wynik: wygrywa postać → sam motyw postaci; wygrywa gra → motyw gry
+  setInterval(async () => {
+    if (voteId == null || !s.local) return;
+    try {
+      const v = await (await fetch(hubUrl() + '/vote', { cache: 'no-store' })).json();
+      if (v.id === voteId && !v.active && v.winner) {
+        voteId = null;
+        s.gameMode = v.winner === 'a' ? 'off' : 'game'; s.gameThemes = v.winner !== 'a'; save();
+        $('capStatus').textContent = `Wynik głosowania: prowadzi ${v.winner === 'a' ? v.a : v.b} (${v.va}:${v.vb}). Motyw ustawiony.`;
+      }
+    } catch {}
+  }, 2000);
 
   // --- czat na ekranie, moderacja, statystyki, nagrywanie ---
   document.querySelectorAll('[data-ct]').forEach(b => b.onclick = () => runTest(b.dataset.ct, 0));

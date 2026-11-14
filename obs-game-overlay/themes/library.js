@@ -27,6 +27,24 @@
       variants: { tal4: { label: 'TALISMAN · 4. EDYCJA' }, tal5: { label: 'TALISMAN · 5. EDYCJA', accent: ['#d9a441', '#2f5d8a'] } }
     },
     {
+      id: 'tsc', name: 'Townscaper', match: ['townscaper'], label: 'MIASTECZKO NA WODZIE',
+      accent: ['#4fb3a8', '#e05a4f'],
+      // domki z kolorowymi dachami na wodzie – kołyszą się jak w grze
+      emblem: svg(110, 100, `
+        <ellipse cx="55" cy="88" rx="46" ry="8" fill="#9fdcd4" opacity=".75"/>
+        <path d="M14 88 q10 -5 20 0 t20 0 t20 0 t20 0" fill="none" stroke="#e8fbf7" stroke-width="2.4" stroke-linecap="round" class="tw-wave"/>
+        <g class="tw-bob">
+          <rect x="30" y="44" width="22" height="40" rx="2" fill="#f4efe4" stroke="#3b4a52" stroke-width="2.5"/>
+          <path d="M26 46 L41 28 L56 46 Z" fill="#e05a4f" stroke="#3b4a52" stroke-width="2.5" stroke-linejoin="round"/>
+          <rect x="52" y="56" width="26" height="28" rx="2" fill="#f4d35e" stroke="#3b4a52" stroke-width="2.5"/>
+          <path d="M49 58 L65 44 L81 58 Z" fill="#6a8fd8" stroke="#3b4a52" stroke-width="2.5" stroke-linejoin="round"/>
+          <rect x="36" y="54" width="6" height="8" rx="1" fill="#5ab8d8"/><rect x="36" y="68" width="6" height="8" rx="1" fill="#5ab8d8"/>
+          <rect x="60" y="64" width="6" height="7" rx="1" fill="#3b4a52" opacity=".55"/>
+          <path d="M44 20 v-8 l8 3 l-8 3" fill="#f0a04b" stroke="#3b4a52" stroke-width="1.6" stroke-linejoin="round"/>
+        </g>`),
+      fx: { shape: 'dot', dir: 'up', count: 16, colors: ['#ffffff', '#cfeff0', '#9fdcd4'], size: [1.5, 4], speed: [4, 9], twinkle: true }
+    },
+    {
       id: 'pal', name: 'Palworld', match: ['palworld'],
       accent: ['#2fa8ff', '#7ed957'],
       // okrągły, puchaty stworek, który podskakuje

@@ -184,6 +184,7 @@
   if (G.hk && !G.hk.scenes) G.hk.scenes = quick(['WĘDRÓWKA', 'Królestwo czeka w ciszy.'], ['ŁAWKA', 'Odpoczynek na ławce. Zaraz w drogę.'], ['KONIEC PIEŚNI', 'Nić się nie urwała. Dziękuję.']);
   if (G.wf && !G.wf.scenes) G.wf.scenes = quick(['WYLOT Z ORBITERA', 'Tenno, misja przydzielona.'], ['ORBITER', 'Przerwa na pokładzie.'], ['POWRÓT NA ORBITER', 'Misja zakończona. Dzięki, Tenno.']);
   if (G.tal && !G.tal.scenes) G.tal.scenes = quick(['PIERWSZY RZUT', 'Kości poszły w ruch.'], ['POSTÓJ W GOSPODZIE', 'Tura zawieszona.'], ['KONIEC GRY', 'Korona zdobyta albo nie – dzięki za grę.']);
+  if (G.tsc && !G.tsc.scenes) G.tsc.scenes = quick(['WYPŁYWAMY', 'Spokojna woda, puste morze – budujemy.'], ['HERBATA W PORCIE', 'Miasteczko rośnie samo.'], ['ŚWIATŁA W OKNACH', 'Miasteczko zasypia. Dzięki!']);
   if (G.pal && !G.pal.scenes) G.pal.scenes = quick(['WYPRAWA!', 'Pale gotowe do drogi.'], ['W BAZIE', 'Pale pracują, ja odpoczywam.'], ['DO JUTRA!', 'Pale idą spać. Dzięki!']);
   if (G.dl && !G.dl.scenes) G.dl.scenes = quick(['MECZ', 'Linie ustawione. Patron patrzy.'], ['ZA ZAMKIEM', 'Przerwa w Wydziale.'], ['ZAMEK ZAMKNIĘTY', 'Dzięki, agenci.']);
   if (G.cs && !G.cs.scenes) G.cs.scenes = quick(['ROZGRZEWKA', 'Kupujemy i ruszamy.'], ['TAKTYCZNA PRZERWA', 'Pauza techniczna.'], ['GG', 'Dzięki za mecz!']);

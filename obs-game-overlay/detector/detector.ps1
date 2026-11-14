@@ -796,7 +796,36 @@ function Invoke-ChatCommand($login, $user, [string]$text) {
     }
     return $null
 }
+# ---------------------------------------------------------------- głosowanie na czacie: postać kontra gra (scena «VM · Głosowanie»)
+# Widzowie piszą 1 / 2 (albo nazwę). Jeden głos na osobę – można zmienić zdanie. Koniec: czas minął albo
+# po minucie wszystkie głosy (min. 5) są po jednej stronie.
+$script:Vote = [pscustomobject]@{ active = $false; a = ''; b = ''; votes = @{}; started = [DateTime]::MinValue; ends = [DateTime]::MinValue; winner = ''; id = 0 }
+function Get-VoteStatus {
+    $v = $script:Vote; $va = @($v.votes.Values | Where-Object { $_ -eq 'a' }).Count; $vb = @($v.votes.Values | Where-Object { $_ -eq 'b' }).Count
+    if ($v.active) {
+        $done = (Get-Date) -ge $v.ends
+        if (-not $done -and ($va + $vb) -ge 5 -and ($va -eq 0 -or $vb -eq 0) -and ((Get-Date) - $v.started).TotalSeconds -ge 60) { $done = $true }
+        if ($done) {
+            $v.active = $false; $v.winner = if ($va -gt $vb) { 'a' } elseif ($vb -gt $va) { 'b' } else { 'a' }   # remis – zostaje postać
+            Log "Głosowanie: wygrywa $(if ($v.winner -eq 'a') { $v.a } else { $v.b }) ($va : $vb)" 'Cyan'
+            Add-Event ([pscustomobject]@{ type = 'vote'; state = 'end'; winner = $v.winner; a = $v.a; b = $v.b; va = $va; vb = $vb })
+        }
+    }
+    return [pscustomobject]@{ id = $v.id; active = $v.active; a = $v.a; b = $v.b; va = $va; vb = $vb; winner = $v.winner
+        endsIn = [int][Math]::Max(0, ($v.ends - (Get-Date)).TotalSeconds) }
+}
+function Add-Vote([string]$login, [string]$text) {
+    $v = $script:Vote; if (-not $v.active) { return }
+    $t = (Remove-Diacritics $text).ToLowerInvariant().Trim()
+    $na = (Remove-Diacritics $v.a).ToLowerInvariant(); $nb = (Remove-Diacritics $v.b).ToLowerInvariant()
+    $pick = ''
+    if ($t -match '^\W*!?(vote\s*)?(1|a)\W*$' -or ($na -and $t -eq $na) -or $t -match '^!?(postac|persona)\W*$') { $pick = 'a' }
+    elseif ($t -match '^\W*!?(vote\s*)?(2|b)\W*$' -or ($nb -and $t -eq $nb) -or $t -match '^!?(gra|program|game)\W*$') { $pick = 'b' }
+    if ($pick) { $v.votes[$login] = $pick }
+}
+
 function New-ChatEvent($login, $user, [string]$color, [string]$text, $fragments, $badges, [bool]$test = $false, [string]$userId = '', [double]$fakeAge = -2) {
+    try { Add-Vote $login $text } catch {}
     # pilot przez czat Twitcha: «!vm przerwa», «!vm scena Moja scena», «!vm gra Townscaper» – tylko z konta streamera
     # (działa z aplikacji Twitch na telefonie przez internet, bez Wi-Fi i bez otwierania portów); panel w OBS wykonuje polecenie
     if ($text -match '^\s*!vm\s+(.+)$' -and (@($badges) -contains 'broadcaster')) {
@@ -1753,6 +1782,21 @@ function Invoke-Request($ctx) {
             }
             '/update/status' { Send-Json $ctx (Get-UpdateStatus) }
             '/update/check' { Invoke-UpdateCheck; Send-Json $ctx (Get-UpdateStatus) }
+            '/vote' { Send-Json $ctx (Get-VoteStatus) }
+            '/vote/start' {
+                $v = $script:Vote
+                $v.a = ([string]$q['a']).Trim(); $v.b = ([string]$q['b']).Trim(); $v.votes = @{}; $v.winner = ''; $v.id++
+                $sec = 300; [void][int]::TryParse([string]$q['sec'], [ref]$sec); $sec = [Math]::Max(30, [Math]::Min(1800, $sec))
+                $v.started = Get-Date; $v.ends = $v.started.AddSeconds($sec); $v.active = $true
+                Log "Głosowanie: $($v.a) kontra $($v.b) – $sec s" 'Cyan'
+                Send-Json $ctx (Get-VoteStatus)
+            }
+            '/vote/stop' { $script:Vote.ends = Get-Date; Send-Json $ctx (Get-VoteStatus) }
+            '/vote/test' {
+                # testowe głosy (panel → przycisk testu): kilka losowych widzów
+                $n = 0; foreach ($i in 1..[Math]::Max(1, [Math]::Min(30, [int]$q['n']))) { $script:Vote.votes["test$(Get-Random -Maximum 100000)"] = $(if ((Get-Random -Maximum 100) -lt [int]$q['pa']) { 'a' } else { 'b' }); $n++ }
+                Send-Json $ctx (Get-VoteStatus)
+            }
             '/live' {
                 $script:Live.stream = ([string]$q['stream']) -eq '1'; $script:Live.rec = ([string]$q['rec']) -eq '1'
                 $script:Live.until = (Get-Date).AddSeconds(30)

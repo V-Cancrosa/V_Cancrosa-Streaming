@@ -269,7 +269,9 @@
   BGFX.attach($('bgfx'));
   let themeFor = null, themeId = 'neon', lastFx = null, voiceVI = null;
   function applyStyle(kind) {
-    const fusion = GT.fromActive ? GT.fromActive(read(ACTIVE_KEY, null), settings, p.has('theme') ? settings.theme : null) : { cls: settings.theme || 'neon', def: null, game: null };
+    // przed streamem (przygotowania, stream za…, zaraz zaczynamy, spóźnienie) – sam motyw postaci, gra dopiero „w trakcie”
+    const preStream = ['prep', 'soon', 'start', 'late'].includes(kind);
+    const fusion = GT.fromActive ? GT.fromActive(read(ACTIVE_KEY, null), settings, preStream || p.has('theme') ? (settings.theme || 'neon') : null) : { cls: settings.theme || 'neon', def: null, game: null };
     const { cls, def, game } = fusion;
     shownFusion = fusion;
     if (window.OverlayChat) window.OverlayChat.setSkin($('schat'), fusion, settings.chatSkin !== false);

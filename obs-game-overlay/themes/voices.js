@@ -346,6 +346,14 @@
       redeem: [['Karta zdarzenia', '{user} odkrywa: {reward}']],
       big: [['KORONA WŁADZY', '{user} dociera do środka planszy. Legendarne!'], ['WIELKIE ZAKLĘCIE', '{user} rzuca kośćmi – same szóstki!']]
     },
+    tsc: {
+      follow: [['Nowy dom na wodzie', '{user} stawia pierwszy dach. Miasteczko rośnie.'], ['Nowy sąsiad', '{user} wprowadza się – mewy już krzyczą.']],
+      sub: [['Wieża z dzwonnicą', '{user} – sub! Na szczycie wyrasta dzwon.'], ['Kolorowy dach', 'Sub od {user} – kolejny dach w ulubionym kolorze.']],
+      resub: [['Stały mieszkaniec', 'Miesiąc {n}. – {user} ma już własny zaułek.']], gift: [['Nowa dzielnica', '{user} buduje {n}× domków dla wszystkich!']],
+      cheer: [['Cegiełki', 'Bitsy: {n} – {user} dokłada piętro.']], raid: [['Flotylla przypływa!', 'Łodzie {user} cumują w porcie!']],
+      redeem: [['Życzenie mieszkańca', '{user}: {reward}']],
+      big: [['KATEDRA Z NICZEGO', '{user} – z kilku kliknięć wyrosła katedra!'], ['MIASTO NA FALACH', '{user} buduje całe miasto. Mewy biją brawo.']]
+    },
     pal: {
       follow: [['Nowy Pal schwytany!', '{user} dołącza do bazy.'], ['Nowy towarzysz', '{user} – pierwszy kontakt udany!']],
       sub: [['Rzadki Pal!', '{user} wskakuje do drużyny!'], ['Złapany!', 'Sub od {user} – kula trafiła za pierwszym razem.']],
