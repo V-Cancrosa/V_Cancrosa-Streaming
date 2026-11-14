@@ -12,6 +12,7 @@
     ['layouts.html', '✥', 'Ułożenie scen'],
     ['creator.html', '✦', 'Kreator stron'],
     ['settings.html', '⚙', 'Wszystkie ustawienia'],
+    ['pilot.html', '🎛', 'Pilot (telefon)'],
   ];
   const here = location.pathname.split('/').pop() || 'index.html';
   const $ = id => document.getElementById(id);
@@ -29,7 +30,7 @@
     const nav = document.querySelector('.nav'); if (!nav) return;
     nav.innerHTML = `<div class="brand">Vincent-Media<small>stream · ${esc(window.VM_VERSION || '')}</small></div>` +
       NAV.map(([href, ic, name]) => `<a href="${href}"${href === here ? ' aria-current="page"' : ''}><i>${ic}</i>${name}</a>`).join('') +
-      `<div class="stat"><span><i class="dot" id="stDet"></i>Wykrywacz <b id="stDetT">…</b></span><span><i class="dot" id="stSync"></i>Połączenie z OBS <b id="stSyncT">…</b></span></div>`;
+      `<div class="stat"><span><i class="dot" id="stDet"></i>GameRadar <b id="stDetT">…</b></span><span><i class="dot" id="stSync"></i>Połączenie z OBS <b id="stSyncT">…</b></span></div>`;
   }
   async function ping() {
     let ok = false;

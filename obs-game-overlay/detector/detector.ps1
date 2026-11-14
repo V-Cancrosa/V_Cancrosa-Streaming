@@ -1636,6 +1636,45 @@ if (-not $script:RemoteKey) {
 }
 $script:LanMode = $false
 
+# ---------------------------------------------------------------- pilot z telefonu przez przekaźnik (ntfy.sh)
+# Telefon (strona pilota na GitHub Pages) wysyła polecenie na prywatny temat ntfy.sh, a GameRadar je odbiera
+# i wykonuje jak «!vm …» z czatu. Bez Wi-Fi, bez otwierania portów i bez pisania na czacie. Temat = długi losowy klucz
+# (kto go nie zna, nie wyśle polecenia); «Nowy klucz» w panelu unieważnia stary link. Włączane z panelu.
+$RelayFile = Join-Path $DataDir 'relay.json'
+$script:Relay = @{ on = $false; topic = ''; since = '' }
+try { $rj = (Get-Content $RelayFile -Raw -Encoding UTF8) | ConvertFrom-Json; $script:Relay = @{ on = [bool]$rj.on; topic = [string]$rj.topic; since = '' } } catch {}
+$script:RelayTask = $null; $script:RelayNext = [DateTime]::MinValue; $script:RelayHttp = $null; $script:RelayLast = ''
+function Save-Relay { [IO.File]::WriteAllText($RelayFile, (@{ on = $script:Relay.on; topic = $script:Relay.topic } | ConvertTo-Json), $Utf8NoBom) }
+function New-RelayTopic {
+    $kc = 'abcdefghijkmnpqrstuvwxyz23456789'.ToCharArray()
+    $script:Relay.topic = 'vm-' + (-join (1..28 | ForEach-Object { $kc[(Get-Random -Maximum $kc.Length)] })); $script:Relay.since = ''; Save-Relay
+}
+function Update-Relay {
+    if (-not $script:Relay.on -or -not $script:Relay.topic) { return }
+    if (-not $script:RelayHttp) { Add-Type -AssemblyName System.Net.Http; $script:RelayHttp = New-Object Net.Http.HttpClient; $script:RelayHttp.Timeout = [TimeSpan]::FromSeconds(10) }
+    if ($script:RelayTask) {
+        if (-not $script:RelayTask.IsCompleted) { return }
+        $t = $script:RelayTask; $script:RelayTask = $null; $script:RelayNext = (Get-Date).AddSeconds(2)
+        if ($t.IsFaulted) { $script:RelayNext = (Get-Date).AddSeconds(15); return }
+        foreach ($line in ($t.Result -split "`n")) {
+            if (-not $line.Trim()) { continue }
+            try { $m = $line | ConvertFrom-Json } catch { continue }
+            if ($m.id) { $script:Relay.since = [string]$m.id }
+            if ($m.event -ne 'message' -or -not $m.message) { continue }
+            $c = ([string]$m.message).Trim() -replace '^!vm\s+', ''
+            if ($c.Length -gt 120) { continue }
+            Add-Event ([pscustomobject]@{ type = 'control'; cmd = $c; user = 'pilot' })
+            $script:RelayLast = "$c ($(Get-Date -Format 'HH:mm:ss'))"
+            Log "Pilot z telefonu: $c" 'Cyan'
+        }
+        return
+    }
+    if ((Get-Date) -lt $script:RelayNext) { return }
+    # pierwszy raz: tylko nowe polecenia (od teraz), potem od ostatniego id
+    $since = if ($script:Relay.since) { $script:Relay.since } else { [string][DateTimeOffset]::UtcNow.ToUnixTimeSeconds() }
+    $script:RelayTask = $script:RelayHttp.GetStringAsync("https://ntfy.sh/$($script:Relay.topic)/json?poll=1&since=$since")
+}
+
 # wspólny magazyn stron z Kreatora i stanów (strona na GitHub Pages w zwykłej przeglądarce ↔ OBS); wartości trzymamy jako tekst JSON
 $KvFile = Join-Path $DataDir 'kv.json'
 $KvKeys = @('obsGameOverlay.pages', 'obsGameOverlay.pageState', 'obsGameOverlay.pageVis')
@@ -1920,6 +1959,12 @@ function Invoke-Request($ctx) {
                     $b = $Utf8NoBom.GetBytes($raw); $res.ContentLength64 = $b.Length; $res.OutputStream.Write($b, 0, $b.Length); $res.OutputStream.Close()
                 }
             }
+            '/relay' {
+                if ($q['on'] -eq '1') { if (-not $script:Relay.topic) { New-RelayTopic }; $script:Relay.on = $true; Save-Relay; Log 'Pilot z telefonu (przekaźnik): włączony' 'Cyan' }
+                if ($q['on'] -eq '0') { $script:Relay.on = $false; Save-Relay; Log 'Pilot z telefonu (przekaźnik): wyłączony' }
+                if ($q['new'] -eq '1') { New-RelayTopic; Log 'Pilot z telefonu: nowy klucz – stary link przestał działać' 'Cyan' }
+                Send-Json $ctx ([pscustomobject]@{ ok = $true; on = $script:Relay.on; topic = $(if ($script:Relay.on) { $script:Relay.topic } else { '' }); last = $script:RelayLast })
+            }
             '/kv' {
                 if ($req.HttpMethod -eq 'POST') {
                     $body = Read-Body $req
@@ -2004,6 +2049,10 @@ function Invoke-Request($ctx) {
                 [IO.File]::WriteAllText($UpdateCfg, (@{ auto = $script:UP.auto } | ConvertTo-Json), $Utf8NoBom)
                 Log ("Automatyczne aktualizacje: " + $(if ($script:UP.auto) { 'włączone' } else { 'wyłączone' }))
                 Send-Json $ctx (Get-UpdateStatus)
+            }
+            '/folder/open' {
+                # folder z instalacją Vincent-Media w Eksploratorze (tam są pliki nakładek, GameRadar i dziennik)
+                try { Start-Process explorer.exe -ArgumentList ('"' + (Split-Path $AppDir -Parent) + '"'); Send-Json $ctx @{ ok = $true } } catch { Send-Json $ctx @{ ok = $false; error = $_.Exception.Message } }
             }
             '/log/open' {
                 # pełny dziennik w Notatniku (folder i plik zakładamy, jeśli ich nie ma)
@@ -2228,6 +2277,7 @@ try {
         try { Update-Updater } catch { Log "Aktualizacja: $($_.Exception.Message)" 'DarkYellow' }
         if ($script:RestartPending -and -not (Test-Live)) { Restart-Detector }   # restart (nowa wersja) nigdy w trakcie transmisji/nagrywania
         try { Update-Archive } catch {}
+        try { Update-Relay } catch { $script:RelayTask = $null; $script:RelayNext = (Get-Date).AddSeconds(30) }
         try { Update-Twitch } catch { Log "Twitch: $($_.Exception.Message)" 'Red'; Stop-TwitchSocket; $script:TW.reconnectAt = (Get-Date).AddSeconds(20) }
         if ($task.Wait(200)) {
             Invoke-Request $task.Result

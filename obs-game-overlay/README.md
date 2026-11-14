@@ -88,6 +88,30 @@ Instalator można uruchomić ponownie, np. po zmianie kolekcji scen. Nie tworzy 
 
 Usuń sceny `VM · …` i dok w OBS, folder `%LOCALAPPDATA%\Vincent-Media`, folder *Vincent-Media* w menu Start i skrót *Vincent-Media wykrywacz* w autostarcie (`Win+R` → `shell:startup`).
 
+## Pilot z telefonu (przekaźnik)
+
+Więcej → **Pilot z telefonu** → **Włącz pilota**. Panel pokaże kod QR. Skanujesz go telefonem i dostajesz stronę `site/pilot.html` z dużymi przyciskami:
+- start streamu: Dalej, Przygotowania, Zaraz zaczynamy, Spóźnienie, Głosowanie;
+- w trakcie: Gra, Ramka, Rozmowa;
+- przerwa i koniec;
+- karta „Teraz gram”: ukryj, pokaż, auto;
+- wybór gry i sceny, test alertu.
+
+Klucz zostaje zapamiętany w telefonie.
+
+Jak to działa: telefon wysyła polecenie na prywatny temat darmowego przekaźnika **ntfy.sh**. GameRadar na komputerze co 2 sekundy je odbiera i wykonuje tak samo jak `!vm …` z czatu, a panel w OBS przełącza sceny. Nie potrzeba Wi-Fi ani otwierania portów, nic nie pojawia się na czacie. Temat to długi losowy klucz. **↻ Nowy klucz** unieważnia stary link, a **Wyłącz** zatrzymuje odbieranie. Przez czat Twitcha (`!vm …`) dalej też działa.
+
+Polecenia wykonuje panel w doku OBS. Kopia panelu w serwisie (Wszystkie ustawienia) ich nie wykonuje, żeby nic nie poszło dwa razy.
+
+## GameRadar i porządki w „Więcej”
+
+Wykrywacz gier nazywa się w panelu **GameRadar**. W „Więcej” zostało to, co potrzebne:
+- Wykrywanie gier, GameRadar, OBS, Twitch;
+- GameRadar – podgląd na żywo (z przyciskami: dziennik, pobierz, **📂 Otwórz folder Vincent-Media**);
+- Pilot z telefonu, Wersja.
+
+Zniknęły sekcje „Link bez panelu”, „Funkcje” (Twitch i OBS są zawsze włączone), „Discord (Lanyard)” i „Źródła w OBS”. Adresy widoków do OBS są w serwisie na stronie Start.
+
 ## Zaufany korytarz: kto może rozmawiać z wykrywaczem
 
 Wykrywacz zna hasło do OBS WebSocket i steruje czatem. Dlatego **nie odpowiada każdej stronie z internetu**, tylko tym, którym ufa:

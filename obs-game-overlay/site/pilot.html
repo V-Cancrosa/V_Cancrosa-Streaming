@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e0f13">
+<title>Pilot · Vincent-Media</title>
+<link rel="stylesheet" href="../themes/fonts.css">
+<style>
+  /*
+    Pilot z telefonu: przyciski wysyłają polecenie na prywatny temat przekaźnika ntfy.sh (klucz w adresie po #t=),
+    GameRadar na komputerze je odbiera i wykonuje jak «!vm …» z czatu. Klucz zostaje w tym telefonie (pamięć przeglądarki).
+  */
+  :root { --bg: #0e0f13; --panel: #171920; --line: #2a2d38; --ink: #e9eaf0; --dim: #9ea1ad; --acc: #7c5cff; --ok: #3ddc84; --bad: #ff4d5e; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.4 Inter, system-ui, sans-serif; }
+  body { padding: max(14px, env(safe-area-inset-top)) 14px max(20px, env(safe-area-inset-bottom)); max-width: 620px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 4px 0 2px; } .sub { color: var(--dim); font-size: 13px; margin: 0 0 14px; }
+  h2 { font-size: 11.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--dim); margin: 18px 0 8px; }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .grid.three { grid-template-columns: repeat(3, 1fr); }
+  button { font: 600 15px Inter, sans-serif; color: #fff; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 10px; min-height: 58px; transition: transform 120ms cubic-bezier(.22,1,.36,1), background .2s; }
+  button:active { transform: scale(.97); }
+  button.big { grid-column: 1 / -1; background: var(--acc); border-color: var(--acc); font-size: 17px; min-height: 66px; }
+  button.red { border-color: #e91916; } button.sent { background: color-mix(in srgb, var(--ok) 35%, var(--panel)); }
+  .row { display: flex; gap: 8px; } .row input { flex: 1; min-width: 0; font: 15px Inter, sans-serif; color: #fff; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+  .row button { min-height: 0; padding: 12px 16px; }
+  #status { position: sticky; top: 0; z-index: 2; margin: 0 -14px 10px; padding: 8px 14px; background: var(--bg); font-size: 13px; color: var(--dim); }
+  #status b { color: var(--ink); }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--dim); margin-right: 6px; } .dot.ok { background: var(--ok); } .dot.bad { background: var(--bad); }
+  .nokey { padding: 18px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); }
+  .log { font: 12.5px 'Space Mono', monospace; color: var(--dim); margin-top: 16px; white-space: pre-line; }
+</style>
+</head>
+<body>
+<h1>🎛 Pilot streama</h1>
+<p class="sub">Vincent-Media · przyciski działają na OBS na Twoim komputerze</p>
+<div id="status"><span class="dot" id="dot"></span><span id="st">…</span></div>
+<div id="app"></div>
+<div class="log" id="log"></div>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  // klucz: z adresu (#t=…) albo zapamiętany na tym telefonie
+  let topic = '';
+  const m = location.hash.match(/t=([\w-]{10,64})/);
+  try { if (m) { localStorage.setItem('vm.pilotTopic', m[1]); history.replaceState(null, '', location.pathname); } topic = localStorage.getItem('vm.pilotTopic') || ''; } catch { topic = m ? m[1] : ''; }
+  if (!topic) {
+    $('app').innerHTML = '<div class="nokey"><b>Brak klucza pilota.</b><br><br>W panelu w OBS: Więcej → Pilot z telefonu → Włącz pilota, potem zeskanuj kod QR telefonem.</div>';
+    $('st').textContent = 'nieskonfigurowany'; return;
+  }
+  const B = (cmd, label, cls = '') => `<button data-c="${cmd}" class="${cls}">${label}</button>`;
+  $('app').innerHTML = `
+    <h2>Start streamu</h2><div class="grid">${B('dalej', 'Dalej ▶ (następny krok)', 'big')}${B('przygotowania', 'Przygotowania')}${B('start', 'Zaraz zaczynamy')}${B('spoznienie', 'Spóźnienie')}${B('glosowanie', 'Głosowanie')}</div>
+    <h2>W trakcie</h2><div class="grid three">${B('gra', '🎮 Gra')}${B('ramka', '▣ Ramka')}${B('rozmowa', '💬 Rozmowa')}</div>
+    <h2>Przerwa i koniec</h2><div class="grid">${B('przerwa', '⏸ Przerwa', 'red')}${B('koniec', '■ Koniec', 'red')}</div>
+    <h2>Karta „Teraz gram”</h2><div class="grid three">${B('ukryj', 'Ukryj')}${B('pokaz', 'Pokaż')}${B('auto', '↺ Auto')}</div>
+    <h2>Gra z listy</h2><div class="row"><input id="game" placeholder="np. Townscaper" autocomplete="off"><button id="gameGo">Ustaw</button></div>
+    <h2>Scena OBS</h2><div class="row"><input id="scene" placeholder="nazwa sceny" autocomplete="off"><button id="sceneGo">Przełącz</button></div>
+    <h2>Test</h2><div class="grid">${B('test', '🔔 Testowy alert')}</div>`;
+  const log = [];
+  function note(t) { log.unshift(new Date().toLocaleTimeString('pl-PL') + '  ' + t); $('log').textContent = log.slice(0, 6).join('\n'); }
+  function state(ok, t) { $('dot').className = 'dot ' + (ok ? 'ok' : 'bad'); $('st').innerHTML = t; }
+  async function send(cmd, btn) {
+    try {
+      const r = await fetch('https://ntfy.sh/' + topic, { method: 'POST', body: cmd });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      state(true, 'Wysłano: <b>' + cmd.replace(/[<>&]/g, '') + '</b> – OBS wykona za chwilę');
+      note('→ ' + cmd);
+      if (btn) { btn.classList.add('sent'); setTimeout(() => btn.classList.remove('sent'), 900); }
+      if (navigator.vibrate) navigator.vibrate(30);
+    } catch (e) { state(false, 'Nie wysłano (' + e.message + ') – sprawdź internet'); }
+  }
+  $('app').addEventListener('click', e => { const b = e.target.closest('[data-c]'); if (b) send(b.dataset.c, b); });
+  $('gameGo').onclick = () => { const v = $('game').value.trim(); if (v) send('gra ' + v, $('gameGo')); };
+  $('sceneGo').onclick = () => { const v = $('scene').value.trim(); if (v) send('scena ' + v, $('sceneGo')); };
+  state(true, 'Gotowy – klucz zapamiętany na tym telefonie');
+})();
+</script>
+</body>
+</html>

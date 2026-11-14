@@ -136,7 +136,7 @@
   .row { display: flex; gap: 8px; align-items: end; }
   .row > * { flex: 1; min-width: 0; }
   .row > .auto { flex: none; }
-  input[type=text], input[type=url], input[type=search], select {
+  input[type=text], input[type=url], input[type=search], input[type=password], input[type=number], input[type=datetime-local], select {
     width: 100%; background: #14161b; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; font: inherit;
   }
   input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
@@ -683,7 +683,7 @@
     </label>
   </section>
   <section data-feature="local">
-    <h2>Lokalny wykrywacz <span id="lcPill" class="pill off">WYŁ.</span></h2>
+    <h2>GameRadar <span id="lcPill" class="pill off">WYŁ.</span></h2>
     <label class="check"><input id="local" type="checkbox"> używaj wykrywacza z tego komputera</label>
     <div class="status" id="lcStatus"></div>
     <div class="row" id="lcIgnoreRow" hidden>
@@ -736,7 +736,7 @@
     </div>
     <div class="row" id="twOnline" hidden><button id="twLogout" class="auto">Wyloguj</button></div>
   </section>
-  <section data-feature="discord">
+  <section data-feature="discord" hidden data-gone="1">
     <h2>Discord (Lanyard) <span id="dcPill" class="pill off">WYŁ.</span></h2>
     <label>Twoje Discord User ID
       <input id="discordId" type="text" inputmode="numeric" placeholder="np. 123456789012345678">
@@ -747,7 +747,7 @@
   <p class="hint" id="connEmpty" hidden>Wszystkie połączenia są wyłączone. Włączysz je w zakładce „Ustawienia”.</p>
   </div>
   <div class="tab" data-tab="set">
-  <section>
+  <section hidden data-gone="1">
     <h2>Źródła w OBS</h2>
     <p class="hint" style="margin:0">Instalator dodaje je sam. Ręcznie: <i>Źródło przeglądarki</i>, bez „Plik lokalny”, 1920×1080, adres <code>file:///…/obs-game-overlay/</code> + plik:</p>
     <ul class="hint" style="margin:0;padding-left:18px">
@@ -761,16 +761,25 @@
   </section>
 
   <section data-feature="local">
-    <h2>Wykrywacz – podgląd na żywo <span id="logPill" class="pill off"></span></h2>
-    <div class="term" id="detLog"><span class="tdim">Łączę z wykrywaczem…</span></div>
-    <p class="hint" style="margin:0">Wykrywacz działa w tle, bez okna PowerShella – tu widać wszystko, co robi. Pełny dziennik zapisuje się sam (folder zakłada się sam).</p>
-    <div class="row" style="gap:6px"><button id="logOpen">📄 Otwórz pełny dziennik</button><button id="logSave">⬇ Pobierz dziennik</button></div>
+    <h2>GameRadar – podgląd na żywo <span id="logPill" class="pill off"></span></h2>
+    <div class="term" id="detLog"><span class="tdim">Łączę z GameRadarem…</span></div>
+    <p class="hint" style="margin:0">GameRadar (wykrywacz gier) działa w tle, bez okna PowerShella – tu widać wszystko, co robi. Pełny dziennik zapisuje się sam.</p>
+    <div class="row" style="gap:6px;flex-wrap:wrap"><button id="logOpen">📄 Otwórz pełny dziennik</button><button id="logSave">⬇ Pobierz dziennik</button><button id="dirOpen">📂 Otwórz folder Vincent-Media</button></div>
   </section>
 
-  <section data-feature="twitch">
-    <h2>Pilot z telefonu – przez czat Twitcha</h2>
-    <p class="hint" style="margin:0">Bez Wi‑Fi i bez otwierania portów: napisz na swoim czacie (np. z aplikacji Twitch na telefonie) – działa tylko z Twojego konta, a polecenie nie pojawia się na ekranie.</p>
+  <section>
+    <h2>Pilot z telefonu <span id="rlPill" class="pill off">WYŁ.</span></h2>
+    <p class="hint" style="margin:0">Na telefonie otwierasz stronę pilota i klikasz – GameRadar na komputerze odbiera polecenie przez przekaźnik, a OBS je wykonuje. Bez Wi‑Fi, bez portów i bez pisania na czacie.</p>
+    <div class="row" style="gap:6px"><button class="primary" id="rlOn">Włącz pilota</button><button id="rlOff" hidden>Wyłącz</button><button id="rlNew" hidden title="Stary link przestanie działać">↻ Nowy klucz</button></div>
+    <div id="rlBox" class="stack" hidden style="display:flex;flex-direction:column;gap:8px">
+      <div id="rlQr" style="background:#fff;padding:10px;border-radius:8px;align-self:flex-start;line-height:0"></div>
+      <div class="row" style="gap:6px"><input id="rlUrl" type="text" readonly style="flex:1"><button id="rlCopy">⧉</button></div>
+      <p class="hint" style="margin:0">Link zawiera klucz – nie pokazuj go na streamie. Polecenia idą przez darmowy przekaźnik ntfy.sh pod tym losowym kluczem.</p>
+    </div>
+    <div class="status" id="rlStatus"></div>
+    <details><summary class="hint">Albo przez czat Twitcha (!vm …)</summary>
     <div class="term small"><span>!vm przerwa · !vm start · !vm koniec · !vm przygotowania · !vm spoznienie</span><span>!vm gra · !vm ramka · !vm rozmowa</span><span>!vm scena &lt;nazwa sceny OBS&gt;</span><span>!vm gra &lt;nazwa gry z listy&gt; · !vm auto</span><span>!vm ukryj · !vm pokaz · !vm test</span><span>!vm dalej – następny krok startu streamu</span></div>
+    </details>
     <div class="status" id="ctlStatus"></div>
   </section>
 
@@ -786,7 +795,7 @@
     </div>
   </section>
 
-  <section>
+  <section hidden data-gone="1">
     <h2>Funkcje</h2>
     <p class="hint" style="margin:0">Włącz tylko to, czego używasz – wyłączone funkcje znikają z panelu.</p>
     <label class="check"><input id="featLocal" type="checkbox"> wykrywanie gry przez wykrywacz na komputerze</label>
@@ -805,7 +814,7 @@
     <div class="term small" id="upTimer">—</div>
     <p class="hint" id="bpInfo" style="margin:4px 0 0"></p>
   </section>
-  <section>
+  <section hidden data-gone="1">
     <h2>Link bez panelu</h2>
     <details>
       <summary>Link bez panelu (statyczny)</summary>
@@ -1006,6 +1015,27 @@
   document.querySelector('.tabs button[data-tab="make"]').addEventListener('click', () => setTimeout(() => renderPages(true), 60));
   window.addEventListener('storage', e => { if (e.key === PAGES_KEY) renderPages(); });
   setInterval(() => renderPages(), 3000);
+  $('dirOpen').onclick = async () => { const b = $('dirOpen'); try { const j = await (await fetch(hubUrl() + '/folder/open', { cache: 'no-store' })).json(); b.textContent = j.ok ? '✓ otwarte' : '✗ ' + (j.error || j.msg || ''); } catch { b.textContent = '✗ GameRadar nie odpowiada'; } setTimeout(() => b.textContent = '📂 Otwórz folder Vincent-Media', 3000); };
+  // pilot z telefonu przez przekaźnik: GameRadar trzyma losowy klucz (temat ntfy.sh), strona pilota na GitHub Pages wysyła na niego polecenia
+  const PILOT_PAGE = 'https://v-cancrosa.github.io/Vincent-Media/obs-game-overlay/site/pilot.html';
+  let rlShown = '';
+  async function relay(q) {
+    try {
+      const j = await (await fetch(hubUrl() + '/relay' + (q ? '?' + q : ''), { cache: 'no-store' })).json();
+      pill('rlPill', j.on, 'WŁ.', 'WYŁ.');
+      $('rlOn').hidden = j.on; $('rlOff').hidden = !j.on; $('rlNew').hidden = !j.on; $('rlBox').hidden = !j.on;
+      $('rlStatus').textContent = j.on ? (j.last ? 'Ostatnie polecenie z telefonu: ' + j.last : 'Czekam na polecenia z telefonu.') : '';
+      const url = j.on && j.topic ? (/github\.io$/.test(location.hostname) ? new URL('site/pilot.html', location.href).href : PILOT_PAGE) + '#t=' + j.topic : '';
+      if (url && url !== rlShown) {
+        rlShown = url; $('rlUrl').value = url; $('rlQr').textContent = '';
+        try { await loadQr(); new window.QRCode($('rlQr'), { text: url, width: 180, height: 180, correctLevel: window.QRCode.CorrectLevel.M }); } catch { $('rlQr').hidden = true; }
+      }
+    } catch { $('rlStatus').textContent = 'GameRadar nie odpowiada – pilot działa, gdy GameRadar jest uruchomiony.'; }
+  }
+  $('rlOn').onclick = () => relay('on=1'); $('rlOff').onclick = () => relay('on=0');
+  $('rlNew').onclick = () => { if (confirm('Nowy klucz: stary link na telefonie przestanie działać. Dalej?')) relay('new=1'); };
+  $('rlCopy').onclick = async () => { try { await navigator.clipboard.writeText($('rlUrl').value); } catch { $('rlUrl').select(); document.execCommand('copy'); } vmPulse($('rlCopy')); };
+  setTimeout(() => relay(''), 1500); setInterval(() => { if (!document.querySelector('.tab[data-tab="more"]').hidden) relay(''); }, 5000);
   $('logOpen').onclick = async () => { const b = $('logOpen'); try { const j = await (await fetch(hubUrl() + '/log/open', { cache: 'no-store' })).json(); b.textContent = j.ok ? '✓ otwarte w Notatniku' : '✗ ' + (j.error || j.msg || 'nie udało się'); } catch { b.textContent = '✗ wykrywacz nie odpowiada'; } vmPulse(b); setTimeout(() => b.textContent = '📄 Otwórz pełny dziennik', 3000); };
   $('logSave').onclick = async () => { try { const t = await (await fetch(hubUrl() + '/log/file', { cache: 'no-store' })).text(); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([t], { type: 'text/plain' })); a.download = 'detector.log'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); } catch { $('logSave').textContent = '✗ wykrywacz nie odpowiada'; } };
   $('toggleBtn').onclick = () => { s.visible = !s.visible; save(); };
@@ -1544,7 +1574,7 @@
   const PILL_KEY = { lcPill: 'det', obsPill: 'obs', twPill: 'twitch' };
   function startStatus() {
     const box = $('stStatus'); if (!box) return;
-    box.innerHTML = [['lcPill', 'Wykrywacz'], ['obsPill', 'OBS'], ['twPill', 'Twitch']].map(([id, n]) => {
+    box.innerHTML = [['lcPill', 'GameRadar'], ['obsPill', 'OBS'], ['twPill', 'Twitch']].map(([id, n]) => {
       const p = $(id); const on = p && p.classList.contains('on'), off = /WYŁ/.test(p ? p.textContent : '');
       if (on) everOk[PILL_KEY[id]] = 1;
       const wait = !on && !off && booting(PILL_KEY[id]);
@@ -1979,7 +2009,7 @@
 
 
   // --- autotest: co działa samo, jest sprawdzane co kilka sekund i chowane; widać tylko to, co wymaga uwagi ---
-  const CHECK_NAMES = { pages: 'Nakładki w OBS pokazują to, co ustawione', det: 'Wykrywacz działa', ver: 'Wykrywacz w tej samej wersji co panel', lib: 'Lista gier i programów', obs: 'Połączenie z OBS', scenes: 'Sceny VM w OBS',
+  const CHECK_NAMES = { pages: 'Nakładki w OBS pokazują to, co ustawione', det: 'GameRadar działa', ver: 'GameRadar w tej samej wersji co panel', lib: 'Lista gier i programów', obs: 'Połączenie z OBS', scenes: 'Sceny VM w OBS',
     cap: 'Przechwytywanie uruchomionej gry', mic: 'Mikrofon w OBS', censor: 'Cenzura ekranu', twitch: 'Twitch' };
   let checks = {}, checksOpen = false, testBusy = false;
   // odśwież wszystkie źródła przeglądarki VM w OBS (bez pamięci podręcznej) – nowa wersja i świeży stan
@@ -2100,7 +2130,7 @@
     const h = $('stHealth');
     h.className = 'health ' + (bad.length ? 'bad' : wait.length ? 'wait' : 'ok');
     if (!bad.length && wait.length) {
-      const SHORT = { det: 'Wykrywacz', obs: 'OBS', twitch: 'Twitch' };
+      const SHORT = { det: 'GameRadar', obs: 'OBS', twitch: 'Twitch' };
       h.textContent = `⏳ Łączę: ${wait.map(([k]) => SHORT[k] || CHECK_NAMES[k]).join(', ')} · ${okN} już działa ${checksOpen ? '▴' : '▾'}`;
     } else
     h.textContent = bad.length ? `⚠ ${bad.length === 1 ? CHECK_NAMES[bad[0][0]] + ': ' + (bad[0][1].msg || 'nie działa') : bad.length + ' rzeczy wymaga uwagi'} ${checksOpen ? '▴' : '▾'}` : `✓ Wszystko działa samo · ${okN} ${okN === 1 ? 'sprawdzenie' : okN % 10 >= 2 && okN % 10 <= 4 && (okN % 100 < 12 || okN % 100 > 14) ? 'sprawdzenia' : 'sprawdzeń'} ${checksOpen ? '▴' : '▾'}`;
@@ -2214,6 +2244,7 @@
       s.game = it ? prettyName(it.name) : arg; s.gameSteam = it && it.steam || ''; s.gameId = it ? it.id : ''; s.gameKind = it ? it.kind || '' : ''; s.gameExe = it ? it.exe || '' : ''; capLast = ''; s.mode = 'manual'; s.since = Date.now(); s.visible = true; save(); return say('gra: ' + s.game);
     }
     if (k === 'auto') { s.mode = 'auto'; save(); return say('wykrywanie automatyczne'); }
+    if (k === 'glosowanie' || k === 'vote') { flowGo('vote'); return say('głosowanie'); }
     if (k === 'dalej' || k === 'next') { $('flowNext').click(); return say('następny krok startu'); }
     if (k === 'ukryj' || k === 'pokaz') { s.visible = k === 'pokaz'; save(); return say(k === 'pokaz' ? 'karta widoczna' : 'karta ukryta'); }
     if (k === 'test') { runTest('follow', 0); return say('test alertu'); }
@@ -2222,7 +2253,8 @@
     say('nie znam tego polecenia');
   }
   async function pollControl() {
-    if (!s.local || isRemote || feats().twitch === false) return;
+    // polecenia wykonuje jeden panel – ten w doku OBS, nie kopia osadzona w serwisie (inaczej „dalej” poszłoby dwa razy)
+    if (!s.local || isRemote || feats().twitch === false || window.top !== window) return;
     try {
       const j = await (await fetch(hubUrl() + '/events' + (ctlLast != null ? '?after=' + ctlLast : ''), { cache: 'no-store' })).json();
       if (ctlLast != null) for (const ev of arr(j.events)) if (ev && ev.type === 'control') runControl(ev.cmd);
@@ -2552,7 +2584,8 @@
   }
 
   // --- funkcje: wyłączone znikają z panelu ---
-  const feats = () => ({ ...DEFAULTS.features, ...(s.features || {}) });
+  // Twitch i OBS są zawsze włączone (sekcja „Funkcje” zniknęła), Discord/Lanyard – wyłączony na stałe
+  const feats = () => ({ ...DEFAULTS.features, ...(s.features || {}), twitch: true, obs: true, discord: false });
   $('featLocal').onchange = () => { s.local = $('featLocal').checked; save(); };
   $('featTwitch').onchange = () => { s.features = { ...feats(), twitch: $('featTwitch').checked }; save(); };
   $('featDiscord').onchange = () => { s.features = { ...feats(), discord: $('featDiscord').checked }; save(); };
