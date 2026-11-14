@@ -92,6 +92,9 @@
   html[data-bp="lg"] .tab[data-tab="more"] > section, html[data-bp="xl"] .tab[data-tab="more"] > section { break-inside: avoid; margin: 0 0 10px; display: flex; flex-direction: column; }
   html[data-bp="lg"] .tab[data-tab="more"] > section.shut > :not(h2), html[data-bp="xl"] .tab[data-tab="more"] > section.shut > :not(h2) { display: revert !important; }
   html[data-bp="lg"] .tab[data-tab="more"] > section.shut > [hidden], html[data-bp="xl"] .tab[data-tab="more"] > section.shut > [hidden] { display: none !important; }
+  .tidy { display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: 10px; border: 1px solid var(--warn); background: color-mix(in srgb, var(--warn) 10%, #14161b); }
+  /* tryb pilota (to okno, np. dok w OBS): tylko Start i Sterowanie – konfiguracja jest w serwisie w przeglądarce */
+  body.compact .tabs button[data-tab="look"], body.compact .tabs button[data-tab="chat"], body.compact .tabs button[data-tab="make"], body.compact .tabs button[data-tab="more"] { display: none; }
   .layedit { padding: 0; z-index: 60; } .layclose { position: absolute; right: 10px; top: 10px; z-index: 2; } .layedit iframe { width: 100%; height: 100%; border: 0; }
   .hostpick { position: fixed; inset: 0; z-index: 50; background: rgba(8,9,12,.92); display: grid; place-items: center; padding: 14px; }
   .hostbox { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 12px; } .hostbox h2 { text-align: center; font-size: 15px; color: #fff; letter-spacing: .06em; }
@@ -301,6 +304,9 @@
     <div class="row"><button class="primary" id="flowNext">Dalej ▶</button></div>
     <div id="stScenes"></div>
     <p class="hint" style="margin:0">Jedyne miejsce do zmiany scen: ekrany VM i Twoje sceny z OBS (z przejściem). Odliczanie i napisy ekranów – Sterowanie → Ekrany.</p>
+    <div class="tidy" id="tidyBox" hidden><b>🧹 W OBS są stare sceny VM</b><span class="hint" id="tidyList"></span><button class="primary" id="tidyBtn">Uporządkuj OBS – zostaw jedną scenę „VM · Stream”</button></div>
+    <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:4px"><label class="check" style="margin:0"><input id="compact" type="checkbox"> to okno jako pilot (tylko Start i Sterowanie)</label></div>
+    <p class="hint" id="compactHint" hidden style="margin:0">Ustawiasz w przeglądarce: <a href="https://v-cancrosa.github.io/Vincent-Media/" target="_blank">v-cancrosa.github.io/Vincent-Media</a> – zmiany przychodzą tu same.</p>
   </section>
   <section>
     <h2>Szybki test</h2>
@@ -1033,6 +1039,42 @@
   document.querySelector('.tabs button[data-tab="make"]').addEventListener('click', () => setTimeout(() => renderPages(true), 60));
   window.addEventListener('storage', e => { if (e.key === PAGES_KEY) renderPages(); });
   setInterval(() => renderPages(), 3000);
+  // --- porządek w OBS: jedna scena „VM · Stream”, stare sceny VM i nieużywane źródła VM do kosza (po potwierdzeniu) ---
+  const OLD_VM = n => /^VM · /.test(n) && n !== STREAM_SCENE && n !== 'VM · Nakładki';
+  function tidyCheck() {
+    const old = obsSceneList.filter(OLD_VM);
+    $('tidyBox').hidden = !obs || !old.length || s.oneScene === false;
+    $('tidyList').textContent = old.length ? 'Do usunięcia: ' + old.map(n => n.replace(/^VM · /, '')).join(', ') + '. Twoje własne sceny zostają.' : '';
+  }
+  setInterval(tidyCheck, 3000);
+  $('tidyBtn').onclick = async () => {
+    const old = obsSceneList.filter(OLD_VM); if (!obs || !old.length) return;
+    if (!confirm('Uporządkować OBS?\n\nZostanie jedna scena „VM · Stream” (ekrany, gra, ramka, rozmowa i przerwy zmieniają się w jej środku).\nUsunę sceny: ' + old.join(', ') + '\noraz źródła VM, których już nic nie używa.\n\nTwoje sceny i źródła zostają.')) return;
+    const b = $('tidyBtn'); b.disabled = true; b.textContent = 'Porządkuję…';
+    try {
+      await ensureStreamScene();
+      // w „VM · Stream” komplet: gra, ekran, alerty, przejścia, mikrofon, cenzura
+      const inputs = ((await obs.call('GetInputList')).inputs || []).map(i => i.inputName);
+      const have = ((await obs.call('GetSceneItemList', { sceneName: STREAM_SCENE })).sceneItems || []).map(i => i.sourceName);
+      for (const n of [CAP_NAME, 'VM · Scena', 'VM · Alerty', 'VM · Cenzura', 'VM · Przejścia', 'VM · Mikrofon']) if (inputs.includes(n) && !have.includes(n)) { try { const id = (await obs.call('CreateSceneItem', { sceneName: STREAM_SCENE, sourceName: n })).sceneItemId; if (n === CAP_NAME) await obs.call('SetSceneItemIndex', { sceneName: STREAM_SCENE, sceneItemId: id, sceneItemIndex: 0 }); } catch {} }
+      if (obsRaw !== STREAM_SCENE) { await obs.call('SetCurrentProgramScene', { sceneName: STREAM_SCENE }); obsRaw = STREAM_SCENE; }
+      s.stage = s.stage || 'game'; save();
+      let gone = 0;
+      for (const n of old) { try { await obs.call('RemoveScene', { sceneName: n }); gone++; } catch {} }
+      // źródła VM, których nie ma w żadnej scenie (dawne ekrany i układy)
+      const scenes = ((await obs.call('GetSceneList')).scenes || []).map(x => x.sceneName), used = new Set(scenes);
+      for (const sc of scenes) for (const it of ((await obs.call('GetSceneItemList', { sceneName: sc })).sceneItems || [])) used.add(it.sourceName);
+      let src = 0;
+      for (const n of ((await obs.call('GetInputList')).inputs || []).map(i => i.inputName)) if (/^VM · /.test(n) && !used.has(n)) { try { await obs.call('RemoveInput', { inputName: n }); src++; } catch {} }
+      b.textContent = `✓ Gotowe: usunięto ${gone} scen i ${src} źródeł`; vmPulse(b);
+      placeStreamCapture(); capLast = '';
+    } catch (e) { b.textContent = 'OBS odmówił: ' + e.message; }
+    setTimeout(() => { b.disabled = false; b.textContent = 'Uporządkuj OBS – zostaw jedną scenę „VM · Stream”'; tidyCheck(); }, 5000);
+  };
+  // tryb pilota – zapamiętany w tym oknie (dok w OBS ma swój, przeglądarka swój)
+  const setCompact = on => { document.body.classList.toggle('compact', on); $('compact').checked = on; $('compactHint').hidden = !on; if (on && !['start', 'live'].includes((document.querySelector('.tab:not([hidden])') || {}).dataset?.tab)) setTimeout(() => showTab('start'), 0); setTimeout(() => { markTab(); tabArrows(); }, 50); };
+  $('compact').onchange = () => { try { localStorage.setItem('vm.panelCompact', $('compact').checked ? '1' : '0'); } catch {} setCompact($('compact').checked); };
+  setTimeout(() => { let on = false; try { on = localStorage.getItem('vm.panelCompact') === '1'; } catch {} setCompact(on); }, 0);
   // start streamu: GameRadar → OBS
   async function launch(q) {
     try {

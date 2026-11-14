@@ -88,6 +88,17 @@ Instalator można uruchomić ponownie, np. po zmianie kolekcji scen. Nie tworzy 
 
 Usuń sceny `VM · …` i dok w OBS, folder `%LOCALAPPDATA%\Vincent-Media`, folder *Vincent-Media* w menu Start i skrót *Vincent-Media wykrywacz* w autostarcie (`Win+R` → `shell:startup`).
 
+## Porządek: OBS i panel
+
+**OBS – jedna scena.** Instalator zakłada tylko `VM · Stream` (cały stream) i `VM · Nakładki` (karta z alertami do Twoich własnych scen). Jeśli w OBS zostały stare sceny VM (Gra – pełny ekran, Gra – w ramce, Przerwa, Rozmowa, Start streamu, Głosowanie, Koniec…), na karcie Start pojawi się **🧹 Uporządkuj OBS**. Po potwierdzeniu panel:
+1. dokłada do `VM · Stream` komplet: przechwytywanie gry na dole, ekran, alerty, cenzurę, przejścia i mikrofon;
+2. przełącza OBS na `VM · Stream`;
+3. usuwa stare sceny VM oraz źródła VM, których nic już nie używa.
+
+Twoje własne sceny i źródła zostają.
+
+**Panel – tryb pilota.** Na karcie Start, pod scenami, jest przełącznik **„to okno jako pilot (tylko Start i Sterowanie)”**. Zaznacz go w doku OBS: zostają tam tylko rzeczy do prowadzenia streamu, a całą konfigurację robisz w serwisie w przeglądarce (https://v-cancrosa.github.io/Vincent-Media/). Zmiany przychodzą do OBS same. Przełącznik zapamiętuje się osobno w każdym oknie.
+
 ## Start streamu jednym kliknięciem
 
 **Start streamu** to skrót w Menu Start → Vincent-Media. Na pulpicie tworzysz go przyciskiem w panelu: Więcej → GameRadar → *Skrót „Start streamu” na pulpicie*. Skrót uruchamia GameRadar w tle, bez okna, a zaraz po nim OBS. Gdy GameRadar już działa, włącza tylko OBS.
