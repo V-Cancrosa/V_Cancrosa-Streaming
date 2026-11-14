@@ -27,7 +27,11 @@
   .cz.big::before, .cz.big::after { content: ""; position: absolute; top: -13px; width: 20px; height: 18px; background: var(--f1);
     clip-path: polygon(50% 0, 100% 100%, 0 100%); background: linear-gradient(180deg, var(--f1) 45%, #ffb3c1 46%); }
   .cz.big::before { left: 14%; transform: rotate(-14deg); } .cz.big::after { right: 14%; transform: rotate(14deg); }
-  .cz svg { height: 78%; max-height: 34px; width: auto; filter: drop-shadow(0 1px 0 rgba(0,0,0,.25)); }
+  .cz svg { height: 78%; max-height: 34px; width: auto; filter: drop-shadow(0 1px 0 rgba(0,0,0,.25)); flex: none; }
+  /* zamiennik (furry żart) na naklejce: łapka + delikatne słowo; naklejka może być trochę szersza niż zakryte słowo */
+  .cz.rep { display: flex; gap: .3em; padding: 0 .45em; white-space: nowrap; justify-content: center; align-items: center; width: auto !important; min-width: var(--w);
+    color: var(--pad); font: 800 var(--fs, 16px)/1 'Baloo 2', 'Nunito', 'Inter', sans-serif; text-shadow: 0 1px 0 rgba(0,0,0,.35); }
+  .cz.rep svg { height: .95em; }
   .cz.soft { --f1: #c9a6e0; --f2: #7a5aa0; }
   .dbg { position: absolute; border: 1px solid rgba(0,225,255,.75); border-radius: 2px; pointer-events: none; }
   .dbg.area { border: 2px dashed rgba(255,200,0,.8); }
@@ -73,9 +77,12 @@
         o = { el: document.createElement('div') };
         o.el.className = 'cz' + (b.level === 'soft' ? ' soft' : '') + (b.h >= 18 ? ' big' : '');
         o.el.style.setProperty('--tilt', ((Math.random() * 6) - 3).toFixed(1) + 'deg');
-        o.el.innerHTML = PAW; document.body.appendChild(o.el); boxes.set(k, o);
+        if (b.rep) { o.el.classList.add('rep'); o.el.innerHTML = PAW + '<span></span>'; o.el.lastChild.textContent = b.rep; }
+        else o.el.innerHTML = PAW;
+        document.body.appendChild(o.el); boxes.set(k, o);
       }
       Object.assign(o.el.style, { left: b.x - 4 + 'px', top: b.y - 3 + 'px', width: b.w + 8 + 'px', height: b.h + 6 + 'px' });
+      if (b.rep) { o.el.style.setProperty('--w', b.w + 8 + 'px'); o.el.style.setProperty('--fs', Math.max(11, Math.min(30, b.h * 0.72)).toFixed(0) + 'px'); }
       o.until = now + hold;
     }
   }
@@ -96,7 +103,7 @@
       .filter(b => b.x + b.w > it.rect.x * kx && b.y + b.h > it.rect.y * ky && b.x < (it.rect.x + it.rect.w) * kx && b.y < (it.rect.y + it.rect.h) * ky), why: '' };
   }
 
-  if (q.get('test') === '1') { show([{ x: 300, y: 300, w: 140, h: 34, t: 'a' }, { x: 900, y: 520, w: 220, h: 40, t: 'b', level: 'soft' }]); setInterval(() => show([{ x: 300, y: 300, w: 140, h: 34, t: 'a' }]), 1000); return; }
+  if (q.get('test') === '1') { const T = [{ x: 300, y: 300, w: 140, h: 34, t: 'a', rep: window.VMWords ? VMWords.furry('hard', '', 'abc', settings().lang) : '' }, { x: 900, y: 520, w: 220, h: 40, t: 'b', level: 'soft', rep: window.VMWords ? VMWords.furry('soft', '', 'xyz', settings().lang) : '' }, { x: 600, y: 700, w: 90, h: 26, t: 'c', level: 'swear', rep: window.VMWords ? VMWords.furry('swear', 'kurw', 'kurwa', settings().lang) : '' }]; show(T); setInterval(() => show(T), 1000); return; }
 
   // prośba o skan co 4 s (wykrywacz sam przestaje, gdy prośby ustaną)
   async function ping() {

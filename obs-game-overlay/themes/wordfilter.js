@@ -71,7 +71,8 @@
     return out;
   }
   // swear: 'funny' (głupio-mądry zamiennik, domyślnie) | 'mask' (▇▇▇) | 'off' (zostaw – Twitch na przekleństwa pozwala)
-  function cfgOf(s = settings()) { return { allow: list(s.wordAllow), extra: list(s.wordExtra), soft: s.wordSoft !== false, mode: s.wordFilter || 'mask', swear: ['funny', 'mask', 'off'].includes(s.wordSwear) ? s.wordSwear : 'funny', screenSwear: !!s.censorSwear }; }
+  function cfgOf(s = settings()) { return { allow: list(s.wordAllow), extra: list(s.wordExtra), soft: s.wordSoft !== false, mode: s.wordFilter || 'mask', swear: ['funny', 'mask', 'off'].includes(s.wordSwear) ? s.wordSwear : 'funny', screenSwear: !!s.censorSwear,
+    style: s.wordStyle === 'classic' ? 'classic' : 'furry', lang: s.lang === 'en' ? 'en' : 'pl' }; }
   const want = (h, cfg) => h.level === 'hard' || ((h.level === 'soft' || h.level === 'insult') && cfg.soft) || (h.level === 'swear' && cfg.swear !== 'off');
   const rank = { hard: 3, soft: 2, insult: 2, swear: 1 };
   // głupio-mądre zamienniki przekleństw (ten sam wyraz → zawsze ten sam zamiennik)
@@ -82,7 +83,37 @@
     dziwka: ['osoba z bujnym życiem towarzyskim'], simp: ['zagorzały kibic'],
     _: ['impulsator kinetyczny z naprowadzaniem trzonkowym', 'motyla noga', 'jasny gwint', 'do kroćset', 'a niech to gęś kopnie', 'stokrotka']
   };
-  const euph = (cat, tok) => { const l = EUPH[cat] || EUPH._; let h = 0; for (const c of tok) h = (h * 31 + c.charCodeAt(0)) >>> 0; return l[h % l.length]; };
+  // furry: delikatny zamiennik z futrzanym żartem (domyślnie) – po polsku albo po angielsku, wg języka streama
+  const FURRY = {
+    pl: {
+      hard: ['pluszak', '*boop w nosek*', 'kłębek futra', 'puchatek', 'uwu', 'futrzasty kolega'],
+      insult: ['pluszak', 'futrzak', 'puchatek', 'zagorzały głaskacz', 'mięciutki'],
+      soft: ['futrzak', 'pluszak', 'puchatek'],
+      swear: ['jasna łapka', 'psia kość', 'futro mać', 'na ogon lisa', 'mrrr', 'kłębek sierści', 'pieprzyć to sierścią', 'o łapki moje', 'awuuu', '*merda ogonkiem*'],
+      cat: { kurw: ['jasna łapka', 'kurza łapka', 'futro mać'], pierdol: ['pieprzyć to sierścią', 'czesać to pod włos'], jeb: ['o łapki moje', 'mrrr'], chuj: ['szczotka do futra', 'kłębek sierści'] }
+    },
+    en: {
+      hard: ['floof', '*boops snoot*', 'fluffball', 'uwu', 'snuggle buddy'],
+      insult: ['floof', 'fluffball', 'snuggle buddy', 'good boi'],
+      soft: ['floof', 'fluffball'],
+      swear: ['fluff', 'oh my paws', 'heckin', 'woof', 'mrrp', 'fluffin', 'awoo', '*wags tail*'],
+      cat: { en: ['fluff', 'heckin', 'oh my paws'] }
+    }
+  };
+  const hashPick = (l, tok) => { let h = 0; for (const c of tok) h = (h * 31 + c.charCodeAt(0)) >>> 0; return l[h % l.length]; };
+  const euph = (cat, tok) => hashPick(EUPH[cat] || EUPH._, tok);
+  function furry(level, cat, tok, lang) {
+    const F = FURRY[lang === 'en' || cat === 'en' ? 'en' : 'pl'];   // angielskie przekleństwo → angielski żart
+    return hashPick((level === 'swear' && F.cat[cat]) || F[level] || F.swear, tok);
+  }
+  // zamiennik dla trafienia: furry (domyślnie) / klasyczny (głupio-mądry dla przekleństw, ▇ dla reszty) / ▇
+  function replacement(h, tok, raw, cfg) {
+    if (h.level === 'swear') {
+      if (cfg.swear === 'mask') return BLOCK(raw.length);
+      return cfg.style === 'classic' ? euph(h.cat, tok) : furry('swear', h.cat, tok, cfg.lang);
+    }
+    return cfg.style === 'classic' ? BLOCK(raw.length) : furry(h.level, h.cat, tok, cfg.lang);
+  }
   const BLOCK = n => '▇'.repeat(Math.max(3, Math.min(6, n)));
 
   function check(text, s) {
@@ -98,8 +129,7 @@
       if (cover.has(i)) {
         const h = cover.get(i);
         if (!h) rep = '';    // dalsza część rozbitego słowa – zamiennik już stoi
-        else if (h.level === 'swear' && cfg.swear === 'funny') rep = euph(h.cat, toks.slice(h.i0, h.i1 + 1).map(x => x.n).join('')) + (t.raw.match(/[!?.,…]+$/) || [''])[0];
-        else rep = BLOCK(t.raw.length);
+        else rep = replacement(h, toks.slice(h.i0, h.i1 + 1).map(x => x.n).join(''), toks.slice(h.i0, h.i1 + 1).map(x => x.raw).join(' '), cfg) + (t.raw.match(/[!?.,…]+$/) || [''])[0];
       }
       masked += src.slice(pos, t.at) + rep; pos = t.at + t.raw.length;
     });
@@ -127,9 +157,10 @@
       const ws = l.words || []; if (!ws.length) continue;
       // ekran: obelgi i wyzwiska zawsze; przekleństwa tylko, gdy włączone (Twitch na nie pozwala)
       const hits = scanTokens(ws.map(w => norm(w.t)), cfg, ws.map(w => w.t)).filter(h => h.level === 'hard' || ((h.level === 'soft' || h.level === 'insult') && cfg.soft) || (h.level === 'swear' && cfg.screenSwear));
-      for (const h of hits) for (let i = h.i0; i <= h.i1; i++) out.push({ ...ws[i], level: h.level });
+      // pierwsze słowo trafienia niesie zamiennik (furry żart) – naklejka na ekranie go pokazuje
+      for (const h of hits) { const tok = ws.slice(h.i0, h.i1 + 1).map(w => norm(w.t)).join(''); const rep = cfg.style === 'classic' ? '' : furry(h.level, h.cat, tok, cfg.lang); for (let i = h.i0; i <= h.i1; i++) out.push({ ...ws[i], level: h.level, rep: i === h.i0 ? rep : '' }); }
     }
     return out;
   }
-  window.VMWords = { check, maskName, lines, norm, settings: cfgOf, euph };
+  window.VMWords = { check, maskName, lines, norm, settings: cfgOf, euph, furry };
 })();

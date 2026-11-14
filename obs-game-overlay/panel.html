@@ -528,9 +528,15 @@
         <option value="off">nic nie rób (niezalecane)</option>
       </select>
     </label>
+    <label>Zamiast zakazanego słowa
+      <select id="wordStyle">
+        <option value="furry">furry żart – „pluszak”, „*boop w nosek*”, „jasna łapka” / „floof”, „oh my paws” (wg języka streama)</option>
+        <option value="classic">klasycznie – obelgi ▇▇▇, przekleństwa głupio-mądrze („kurza twarz”, „impulsator kinetyczny…”)</option>
+      </select>
+    </label>
     <label>Przekleństwa na czacie (Twitch na nie pozwala)
       <select id="wordSwear">
-        <option value="funny">zamień na głupio-mądre („kurza twarz”, „pieprzyć to sianem”, „impulsator kinetyczny…”)</option>
+        <option value="funny">zamień (furry albo klasycznie – jak wyżej)</option>
         <option value="mask">zakryj ▇▇▇</option>
         <option value="off">zostaw bez zmian</option>
       </select>
@@ -1549,6 +1555,8 @@
   $('wordFilter').onchange = () => { s.wordFilter = $('wordFilter').value; save(); };
   $('wordSoft').onchange = () => { s.wordSoft = $('wordSoft').checked; save(); };
   $('wordSwear').onchange = () => { s.wordSwear = $('wordSwear').value; save(); };
+  $('wordStyle').onchange = () => { s.wordStyle = $('wordStyle').value; save(); };
+  setTimeout(() => { $('wordStyle').value = s.wordStyle === 'classic' ? 'classic' : 'furry'; }, 0);
   setTimeout(() => { $('wordSwear').value = s.wordSwear || 'funny'; }, 0);
   $('wordExtra').onchange = () => { s.wordExtra = $('wordExtra').value.trim(); save(); };
   $('wordAllow').onchange = () => { s.wordAllow = $('wordAllow').value.trim(); save(); };
