@@ -223,6 +223,6 @@
     return { dir, side: ok.includes(st.chatSide) ? st.chatSide : (dir === 'h' ? 'bottom' : 'right') };
   }
   // sceny, które mają własny czat (ramka, rozmowa, ekrany przerw) – nakładka „Teraz gram” wtedy go nie dubluje
-  const OWN_CHAT_SCENE = /^VM · (Głosowanie|Gra – w ramce|Rozmowa|Przygotowania|Stream za|Zaraz zaczynamy|Spóźnienie|Przerwa|Koniec)/;
+  const OWN_CHAT_SCENE = /^VM · (Start streamu|Głosowanie|Gra – w ramce|Rozmowa|Przygotowania|Stream za|Zaraz zaczynamy|Spóźnienie|Przerwa|Koniec)/;
   window.OverlayChat = { mount, styles: STYLES, allowed, skinOf, setSkin, layoutOf, OWN_CHAT_SCENE };
 })();

@@ -1051,7 +1051,7 @@
   });
 
   // --- przejścia ---
-  const KIND_FOR_OBS = { 'VM · Głosowanie': 'start', 'VM · Gra – pełny ekran': 'game', 'VM · Gra – w ramce': 'game', 'VM · Rozmowa': 'talk', 'VM · Nakładki': 'game' };
+  const KIND_FOR_OBS = { 'VM · Start streamu': 'start', 'VM · Głosowanie': 'start', 'VM · Gra – pełny ekran': 'game', 'VM · Gra – w ramce': 'game', 'VM · Rozmowa': 'talk', 'VM · Nakładki': 'game' };
   for (const [k, v] of Object.entries(OBS_SCENE_FOR)) if (!KIND_FOR_OBS[v]) KIND_FOR_OBS[v] = k;
   const isRemote = /^https?:$/.test(location.protocol) && location.pathname.indexOf('/ui/') === 0;
   function sendTransition(scene) {
@@ -1417,7 +1417,7 @@
   $('captureKind').onchange = () => { s.captureKind = $('captureKind').value; capLast = ''; save(); };
   // --- jedna lista scen: ekrany VM i sceny z OBS ---
   const SCENE_GROUPS = [
-    ['Przed streamem', [['s:prep', 'Przygotowania'], ['s:soon', 'Stream za…'], ['s:start', 'Zaraz zaczynamy'], ['s:late', 'Spóźnienie'], ['v:vote', 'Głosowanie ⚔']]],
+    ['Przed streamem – jedna scena, etapy wyżej', [['f:start', 'Start streamu ▶']]],
     ['W trakcie', [['o:VM · Gra – pełny ekran', 'Gra'], ['o:VM · Gra – w ramce', 'Gra w ramce'], ['o:VM · Rozmowa', 'Rozmowa']]],
     ['Przerwa i koniec', [['s:brb', 'Przerwa'], ['s:brb-late', 'Przerwa się przedłuża'], ['s:end', 'Koniec + napisy']]]
   ];
@@ -1435,6 +1435,7 @@
     const [t, v] = [b.dataset.go.slice(0, 1), b.dataset.go.slice(2)];
     if (t === 's') { const btn = document.querySelector(`#sceneBtns button[data-s="${v}"]`); if (btn) btn.click(); setTimeout(markStartScenes, 900); return; }
     if (t === 'v') { startVote(); return; }
+    if (t === 'f') { flowGo(flowNow() === 'game' ? 'prep' : flowNow()); return; }
     if (!obs) { $('capStatus').textContent = 'Brak połączenia z OBS.'; return; }
     goScene(KIND_FOR_OBS[v] || (v.includes('Rozmowa') ? 'talk' : 'game'), () => obs.setSceneCut(v).catch(() => {}));
   });
@@ -1819,6 +1820,13 @@
     }
     if (feat.twitch !== false && !/WYŁ/.test($('twPill').textContent)) c.twitch = $('twPill').classList.contains('on') ? { ok: true } : { ok: false, msg: $('twPill').textContent || 'brak połączenia' };
     checks = c; testBusy = false; renderChecks();
+    // lista kontrolna na ekranie przygotowań (scenes.html) – prawdziwe wyniki zamiast udawanego odhaczania
+    try {
+      let audio = false; if (obs && c.obs && c.obs.ok) { try { const sp = await obs.call('GetSpecialInputs'); audio = !!(sp.desktop1 || sp.desktop2); } catch {} }
+      const det = load(DETECTED_KEY, null) || {};
+      localStorage.setItem('obsGameOverlay.ready', JSON.stringify({ at: Date.now(), scene: !!(c.obs && c.obs.ok && c.scenes && c.scenes.ok), audio, mic: !!(c.mic && c.mic.ok),
+        chat: !!(c.twitch && c.twitch.ok), alerts: !!(c.pages && c.pages.ok !== false && c.obs && c.obs.ok), game: !!((s.mode === 'manual' && s.game) || (det.local && det.local.game) || s.game) }));
+    } catch {}
   }
   function renderChecks() {
     const list = Object.entries(checks), bad = list.filter(([, v]) => v.ok === false), okN = list.filter(([, v]) => v.ok === true).length;
@@ -1963,17 +1971,17 @@
     for (const n of ['VM · Alerty', 'VM · Przejścia']) if (inputs.includes(n)) { try { await obs.call('CreateSceneItem', { sceneName: VOTE_SCENE, sourceName: n }); } catch {} }
   }
   let voteId = null;
-  async function startVote() {
+  async function startVote(inFlow) {
     const st = $('capStatus');
     const persona = window.OverlayGameThemes && String(s.theme || '').startsWith('g-') ? window.OverlayGameThemes.byId(s.theme.slice(2)) : null;
     const det = load(DETECTED_KEY, null) || {};
     const game = (s.mode === 'manual' && s.game) || (det.local && det.local.game && det.local.game.name) || s.game || '';
     if (!persona || !game) { st.textContent = 'Do głosowania potrzebna jest postać i gra/program (wybierz z listy „Co dziś?”).'; return; }
     try {
-      await ensureVoteScene();
+      if (!inFlow) await ensureVoteScene();
       const j = await (await fetch(hubUrl() + '/vote/start?a=' + encodeURIComponent(persona.name) + '&b=' + encodeURIComponent(game) + '&sec=' + (+s.voteSec || 300), { cache: 'no-store' })).json();
       voteId = j.id;
-      goScene('start', () => obs.setSceneCut(VOTE_SCENE).catch(() => {}));
+      if (!inFlow) goScene('start', () => obs.setSceneCut(VOTE_SCENE).catch(() => {}));
       st.textContent = `Głosowanie: ${persona.name} kontra ${game} – czat pisze 1 albo 2.`;
     } catch (e) { st.textContent = 'Głosowanie: ' + e.message; }
   }
@@ -1987,7 +1995,7 @@
         s.gameMode = v.winner === 'a' ? 'off' : 'game'; s.gameThemes = v.winner !== 'a'; save();
         $('capStatus').textContent = `Wynik głosowania: prowadzi ${v.winner === 'a' ? v.a : v.b} (${v.va}:${v.vb}). Motyw ustawiony – za chwilę gra.`;
         // ciąg startu: po 8 s pokazywania wyniku – na grę
-        if (s.flowAuto !== false) setTimeout(() => { if (obsCurrent === VOTE_SCENE) flowGo('game'); }, 8000);
+        if (s.flowAuto !== false) setTimeout(() => { if (obsCurrent === VOTE_SCENE || obsCurrent === FLOW_SCENE) flowGo('game'); }, 8000);
       }
     } catch {}
   }, 2000);
@@ -2012,20 +2020,36 @@
   // Start transmisji w OBS sam przechodzi dalej, koniec odliczania zmienia ekran w „Spóźnienie”,
   // „Dalej” (albo !vm dalej) uruchamia głosowanie, a jego wynik sam przełącza na grę.
   const FLOW = [['prep', 'Przygotowania'], ['soon', 'Stream za…'], ['start', 'Zaraz zaczynamy'], ['vote', 'Głosowanie'], ['game', 'Gra']];
+  // jedna scena w OBS na cały start: ekran (scenes.html bez ?scene=) przechodzi przez etapy sam
+  const FLOW_SCENE = 'VM · Start streamu';
+  async function ensureFlowScene() {
+    if (!obs) return false;
+    if (obsSceneList.includes(FLOW_SCENE)) return true;
+    if (!/^file:/.test(location.protocol)) return false;
+    await obs.call('CreateScene', { sceneName: FLOW_SCENE });
+    const vs = await obs.call('GetVideoSettings');
+    const id = (await obs.call('CreateInput', { sceneName: FLOW_SCENE, inputName: 'VM · Ekran startu', inputKind: 'browser_source', inputSettings: { url: new URL('scenes.html', location.href).href, width: 1920, height: 1080, is_local_file: false } })).sceneItemId;
+    await obs.call('SetSceneItemTransform', { sceneName: FLOW_SCENE, sceneItemId: id, sceneItemTransform: { boundsType: 'OBS_BOUNDS_STRETCH', boundsWidth: vs.baseWidth, boundsHeight: vs.baseHeight, positionX: 0, positionY: 0 } });
+    const inputs = ((await obs.call('GetInputList')).inputs || []).map(x => x.inputName);
+    for (const n of ['VM · Alerty', 'VM · Przejścia', 'VM · Mikrofon']) if (inputs.includes(n)) { try { await obs.call('CreateSceneItem', { sceneName: FLOW_SCENE, sourceName: n }); } catch {} }
+    return true;
+  }
   function flowNow() {
-    if (obsCurrent === VOTE_SCENE || (voteId != null)) return 'vote';
-    if (/^VM · (Gra|Rozmowa)/.test(obsCurrent) || (obsCurrent && obsCurrent.indexOf('VM · ') !== 0)) return 'game';
+    if (obsCurrent === VOTE_SCENE) return 'vote';
+    const pre = !obsCurrent || obsCurrent === FLOW_SCENE || /^VM · (Przygotowania|Stream za|Zaraz zaczynamy|Spóźnienie)/.test(obsCurrent);
+    if (!pre) return 'game';
     const k = s.scene === 'late' ? 'start' : s.scene;
-    return ['prep', 'soon', 'start'].includes(k) ? k : 'prep';
+    return ['prep', 'soon', 'start', 'vote'].includes(k) ? k : 'prep';
   }
   const late = () => s.scene === 'late' || (s.scene === 'start' && s.sceneUntil && s.sceneUntil < Date.now());
   function renderFlow() {
     const now = flowNow(), idx = FLOW.findIndex(f => f[0] === now);
-    $('flow').innerHTML = FLOW.map(([k, n], i) => `<span class="${i < idx ? 'done' : i === idx ? 'now' : ''}">${esc(n)}</span>` + (k === 'start' ? `<i>→</i><span class="branch ${late() ? 'now' : ''}">spóźnienie?</span>` : '') + (i < FLOW.length - 1 ? '<i>→</i>' : '')).join('');
+    $('flow').innerHTML = FLOW.map(([k, n], i) => `<span data-step="${k}" class="${i < idx ? 'done' : i === idx ? 'now' : ''}" title="przejdź do tego etapu">${esc(n)}</span>` + (k === 'start' ? `<i>→</i><span class="branch ${late() ? 'now' : ''}">spóźnienie?</span>` : '') + (i < FLOW.length - 1 ? '<i>→</i>' : '')).join('');
     const nx = flowNextStep(now);
     $('flowNext').textContent = nx ? `Dalej: ${nx[1]} ▶` : 'Stream trwa – sceny niżej';
     $('flowNext').disabled = !nx;
   }
+  $('flow').addEventListener('click', e => { const b = e.target.closest('[data-step]'); if (b) flowGo(b.dataset.step); });
   function flowNextStep(now) {
     if (now === 'prep') return s.sceneAt && s.sceneAt > Date.now() ? FLOW[1] : FLOW[2];
     if (now === 'soon') return FLOW[2];
@@ -2033,15 +2057,20 @@
     if (now === 'vote') return FLOW[4];
     return null;
   }
-  function flowGo(step) {
-    const scr = k => { const b = document.querySelector(`#sceneBtns button[data-s="${k}"]`); if (b) b.click(); };
-    if (step === 'soon') scr('soon');
-    else if (step === 'start') { if (!(s.sceneUntil > Date.now())) { const m = parseFloat(String($('sceneMin').value).replace(',', '.')) || 5; s.sceneUntil = Date.now() + Math.round(m * 60000); save(); } scr('start'); }
-    else if (step === 'vote') {
+  async function flowGo(step) {
+    if (step === 'game') { const sc = 'VM · Gra – pełny ekran'; if (obs) goScene('game', () => obs.setSceneCut(sc).catch(() => {})); setTimeout(renderFlow, 1200); return; }
+    if (step === 'vote') {
       const persona = String(s.theme || '').startsWith('g-'), det = load(DETECTED_KEY, null) || {};
       const game = (s.mode === 'manual' && s.game) || (det.local && det.local.game && det.local.game.name) || s.game;
-      if (persona && game && feats().twitch !== false) startVote(); else flowGo('game');   // bez gry albo bez Twitcha – od razu gra
-    } else if (step === 'game') { const sc = 'VM · Gra – pełny ekran'; if (obs) goScene('game', () => obs.setSceneCut(sc).catch(() => {})); }
+      if (!(persona && game && feats().twitch !== false)) return flowGo('game');   // bez gry albo bez Twitcha – od razu gra
+      await startVote(true);
+    }
+    if (step === 'start' && !(s.sceneUntil > Date.now())) { const m = parseFloat(String($('sceneMin').value).replace(',', '.')) || 5; s.sceneUntil = Date.now() + Math.round(m * 60000); }
+    // ekran zmienia się w tej samej scenie; na scenę „Start streamu” przechodzimy z przejściem tylko, gdy jesteśmy gdzie indziej
+    let ok = false; try { ok = await ensureFlowScene(); } catch {}
+    const apply = () => { s.scene = step; save(); };
+    if (ok && obsCurrent !== FLOW_SCENE) goScene(step === 'vote' ? 'start' : step, () => { apply(); obs.setSceneCut(FLOW_SCENE).catch(() => {}); });
+    else goScene(step === 'vote' ? 'start' : step, apply);
     setTimeout(renderFlow, 1200);
   }
   $('flowNext').onclick = () => { const nx = flowNextStep(flowNow()); if (nx) flowGo(nx[0]); };
@@ -2187,7 +2216,7 @@
 
   // --- podzakładki (zakładki w zakładkach) ---
   const SUBS = {
-    live: [['Gra', ['Gra']], ['Ekrany', ['Ekrany', 'Sceny OBS']], ['Alerty', ['Alerty']]],
+    live: [['Gra', ['Gra']], ['Ekrany', ['Ekrany – odliczanie i napisy', 'Sceny OBS']], ['Alerty', ['Alerty']]],
 
     chat: [['Na ekranie', ['Czat na ekranie']], ['Moderacja', ['Napisz na czat (test)', 'Słowa zakazane', 'Cenzura ekranu', 'Podejrzane konta']], ['Statystyki', ['Statystyki streamów']], ['Nagrywanie', ['Nagrywanie']]],
   };

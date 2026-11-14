@@ -168,7 +168,9 @@ Licznik czasu przy wykrytej grze liczy od uruchomienia gry, przy wpisanej ręczn
 - **Dalej** uruchamia głosowanie, a bez gry albo bez Twitcha od razu przechodzi do gry;
 - **wynik głosowania** ustawia motyw i po 8 sekundach przełącza na grę.
 
-Pojedyncze przyciski scen zostają do ręcznego przeskoku.
+Cały ciąg do gry dzieje się w **jednej scenie OBS `VM · Start streamu`** (panel tworzy ją sam: ekran startu, alerty, przejścia). Ekran w środku sam zmienia etap, więc w OBS nie trzeba przełączać pięciu scen. Kliknięcie etapu w łańcuchu przeskakuje do niego ręcznie.
+
+Lista kontrolna na ekranie przygotowań (Scena, Dźwięk, Mikrofon, Czat, Alerty, Gra) pokazuje prawdziwe wyniki szybkiego testu panelu, a nie odhacza punktów na czas.
 
 ## Fuzje szyte na miarę
 
