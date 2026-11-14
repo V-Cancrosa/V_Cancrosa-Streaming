@@ -13,14 +13,30 @@
 -->
 <style>
   html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
-  .cz { position: absolute; border-radius: 4px; background: repeating-linear-gradient(135deg, #111 0 8px, #1d1d22 8px 16px); box-shadow: 0 0 0 2px #e91916, 0 2px 8px rgba(0,0,0,.6); }
-  .cz.soft { box-shadow: 0 0 0 2px #e9a316, 0 2px 8px rgba(0,0,0,.6); }
+  /* furry cenzurka: puchata naklejka w kolorze prowadzącej postaci – futerko, uszka nad tekstem, odcisk łapki */
+  :root { --f1: #e3a43f; --f2: #8a5a2b; --pad: #fff3e6; }
+  .cz { position: absolute; border-radius: 40% 40% 14px 14px / 60% 60% 14px 14px; transform: rotate(var(--tilt, -2deg));
+    background:
+      radial-gradient(circle at 20% 30%, rgba(255,255,255,.28) 0 2px, transparent 3px) 0 0 / 9px 9px,
+      radial-gradient(circle at 70% 60%, rgba(0,0,0,.14) 0 2px, transparent 3px) 0 0 / 11px 11px,
+      linear-gradient(180deg, var(--f1), var(--f2));
+    box-shadow: 0 0 0 2px rgba(255,255,255,.85), 0 0 0 4px var(--f2), 0 4px 10px rgba(0,0,0,.45);
+    display: grid; place-items: center; animation: cz-in .25s cubic-bezier(.2,1.5,.4,1); }
+  @keyframes cz-in { from { transform: rotate(var(--tilt, -2deg)) scale(.4); } }
+  /* uszka (tylko na większych zasłonach) */
+  .cz.big::before, .cz.big::after { content: ""; position: absolute; top: -13px; width: 20px; height: 18px; background: var(--f1);
+    clip-path: polygon(50% 0, 100% 100%, 0 100%); background: linear-gradient(180deg, var(--f1) 45%, #ffb3c1 46%); }
+  .cz.big::before { left: 14%; transform: rotate(-14deg); } .cz.big::after { right: 14%; transform: rotate(14deg); }
+  .cz svg { height: 78%; max-height: 34px; width: auto; filter: drop-shadow(0 1px 0 rgba(0,0,0,.25)); }
+  .cz.soft { --f1: #c9a6e0; --f2: #7a5aa0; }
   .dbg { position: absolute; border: 1px solid rgba(0,225,255,.75); border-radius: 2px; pointer-events: none; }
   .dbg.area { border: 2px dashed rgba(255,200,0,.8); }
   #st { position: absolute; right: 8px; top: 8px; font: 600 14px/1.2 system-ui, sans-serif; color: #fff; background: rgba(0,0,0,.6); padding: 4px 8px; border-radius: 6px; display: none; }
   .debug #st { display: block; }
 </style>
 <script src="version.js"></script>
+<script src="themes/games.js"></script>
+<script src="themes/fursona.js"></script>
 <script src="themes/wordfilter.js"></script>
 </head>
 <body>
@@ -37,12 +53,28 @@
   const st = document.getElementById('st');
 
   const boxes = new Map();       // klucz → { el, until }
+  // odcisk łapki (poduszka + cztery palce)
+  const PAW = '<svg viewBox="0 0 40 36" aria-hidden="true"><g fill="var(--pad)"><ellipse cx="20" cy="25" rx="10" ry="8.5"/><ellipse cx="7" cy="14" rx="4" ry="5" transform="rotate(-18 7 14)"/><ellipse cx="15" cy="7" rx="4" ry="5.2"/><ellipse cx="25" cy="7" rx="4" ry="5.2"/><ellipse cx="33" cy="14" rx="4" ry="5" transform="rotate(18 33 14)"/></g></svg>';
+  // kolory futerka: prowadząca postać (motyw w ustawieniach)
+  function furColors() {
+    try {
+      const s = settings(), GT = window.OverlayGameThemes, t = String(s.theme || '');
+      const d = GT && t.startsWith('g-') ? GT.byId(t.slice(2)) : null;
+      if (d && d.accent) { const r = document.documentElement.style; r.setProperty('--f1', d.accent[0]); r.setProperty('--f2', 'color-mix(in srgb, ' + d.accent[0] + ' 55%, #2a1a10)'); }
+    } catch {}
+  }
+  furColors(); setInterval(furColors, 5000);
   function show(list) {
     const hold = (+settings().censorHold || 1500), now = performance.now();
     for (const b of list) {
       const k = Math.round(b.x / 12) + ':' + Math.round(b.y / 12) + ':' + b.t;
       let o = boxes.get(k);
-      if (!o) { o = { el: document.createElement('div') }; o.el.className = 'cz' + (b.level === 'soft' ? ' soft' : ''); document.body.appendChild(o.el); boxes.set(k, o); }
+      if (!o) {
+        o = { el: document.createElement('div') };
+        o.el.className = 'cz' + (b.level === 'soft' ? ' soft' : '') + (b.h >= 18 ? ' big' : '');
+        o.el.style.setProperty('--tilt', ((Math.random() * 6) - 3).toFixed(1) + 'deg');
+        o.el.innerHTML = PAW; document.body.appendChild(o.el); boxes.set(k, o);
+      }
       Object.assign(o.el.style, { left: b.x - 4 + 'px', top: b.y - 3 + 'px', width: b.w + 8 + 'px', height: b.h + 6 + 'px' });
       o.until = now + hold;
     }
