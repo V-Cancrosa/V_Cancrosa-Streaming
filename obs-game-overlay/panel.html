@@ -18,6 +18,10 @@
   .pv-toggle { padding: 8px 10px; font-size: 12px; }
   .tabs button { padding: 8px 4px; font-size: 12px; }
   .tabs button[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .tabs { position: relative; } .tabs button { position: relative; z-index: 1; }
+  .tabs.marked button[data-tab] { background: transparent; }
+  .tabs.marked button[data-tab]:hover { background: rgba(255,255,255,.06); }
+  .tabs.marked button[aria-selected="true"] { background: transparent; border-color: transparent; }
   .tab { display: flex; flex-direction: column; gap: 10px; }
   .preview-sec { padding: 6px; }
   .fastchip { position: absolute; right: 6px; top: 6px; z-index: 3; padding: 4px 8px; font-size: 11px; border-radius: 999px; background: rgba(20,22,27,.85); }
@@ -158,6 +162,7 @@
   details summary { cursor: pointer; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .12em; }
   details[open] summary { margin-bottom: 8px; }
 </style>
+<link rel="stylesheet" href="themes/motion.css">
 <script src="version.js"></script>
 <script src="themes/games.js"></script>
 <script src="themes/fursona.js"></script>
@@ -191,11 +196,12 @@
     <button role="tab" data-tab="look">Wygląd</button>
     <button role="tab" data-tab="chat">Czat</button>
     <button role="tab" data-tab="more">Więcej</button>
+    <i class="vm-mark" id="tabMark" aria-hidden="true"></i>
     <button class="pv-toggle" id="pvToggle" title="Zwiń / rozwiń podgląd" aria-pressed="true">▴</button>
   </nav>
   </div>
-  <div class="hostpick layedit" id="layEdit" hidden><iframe id="layEditFrame" title="Edytor ułożenia"></iframe></div>
-  <div class="hostpick" id="hostPick" hidden>
+  <div class="hostpick layedit vm-modal" id="layEdit" hidden><iframe id="layEditFrame" title="Edytor ułożenia"></iframe></div>
+  <div class="hostpick vm-modal" id="hostPick" hidden>
     <div class="hostbox"><h2>Kto dziś prowadzi stream?</h2><div class="hostgrid big" id="hostGrid"></div>
     <button class="auto" id="hostKeep">Zostaw: <b id="hostCur"></b></button></div>
   </div>
@@ -779,6 +785,16 @@
   let history = load(HISTORY_KEY, []);
   let bc = null; try { bc = new BroadcastChannel('obsGameOverlay'); } catch {}
 
+  // ruch (themes/motion.css): wejście z rozłożeniem co 30 ms, puls potwierdzenia, wspólny znacznik zakładki
+  function vmEnter(el) { [...el.children].forEach((c, i) => c.style.setProperty('--i', i)); el.classList.remove('vm-enter'); void el.offsetWidth; el.classList.add('vm-enter'); }
+  function vmPulse(el) { el.classList.remove('vm-pulse'); void el.offsetWidth; el.classList.add('vm-pulse'); el.addEventListener('animationend', () => el.classList.remove('vm-pulse'), { once: true }); }
+  function markTab() {
+    const m = document.getElementById('tabMark'), b = document.querySelector('.tabs button[aria-selected="true"]'); if (!m || !b) return;
+    m.style.width = b.offsetWidth + 'px'; m.style.height = b.offsetHeight + 'px'; m.style.transform = `translate(${b.offsetLeft}px, ${b.offsetTop}px)`;
+    m.parentElement.classList.add('marked');
+  }
+  window.addEventListener('resize', () => markTab());
+  if (new URLSearchParams(location.search).get('slow') === '1') document.documentElement.style.setProperty('--k', 4);
   function save() {
     try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {}
     if (bc) bc.postMessage('update');
@@ -1042,7 +1058,7 @@
   $('copyBtn').onclick = async () => {
     $('staticUrl').select();
     try { await navigator.clipboard.writeText($('staticUrl').value); } catch { document.execCommand('copy'); }
-    $('copyBtn').textContent = 'Skopiowano ✓'; setTimeout(() => $('copyBtn').textContent = 'Kopiuj', 1500);
+    vmPulse($('copyBtn')); $('copyBtn').textContent = 'Skopiowano ✓'; setTimeout(() => $('copyBtn').textContent = 'Kopiuj', 1500);
   };
 
   // --- ekrany przerw ---
@@ -2283,8 +2299,12 @@
   })();
   const TAB_KEY = 'obsGameOverlay.panelTab';
   function showTab(name) {
+    const was = (document.querySelector('.tab:not([hidden])') || {}).dataset;
     for (const b of document.querySelectorAll('.tabs button[data-tab]')) b.setAttribute('aria-selected', b.dataset.tab === name);
     for (const t of document.querySelectorAll('.tab')) t.hidden = t.dataset.tab !== name;
+    markTab();
+    const t = document.querySelector(`.tab[data-tab="${name}"]`);
+    if (t && (!was || was.tab !== name)) vmEnter(t);
     try { localStorage.setItem(TAB_KEY, name); } catch {}
   }
   for (const b of document.querySelectorAll('.tabs button[data-tab]')) b.onclick = () => showTab(b.dataset.tab);
@@ -2302,7 +2322,7 @@
     for (const sec of document.querySelectorAll('.tab[data-tab="more"] > section')) {
       if (sec.classList.contains('acc')) continue;
       sec.classList.add('acc'); if (!ACC_OPEN.includes(h2name(sec))) sec.classList.add('shut');
-      const h = sec.querySelector(':scope > h2'); if (h) h.addEventListener('click', () => sec.classList.toggle('shut'));
+      const h = sec.querySelector(':scope > h2'); if (h) h.addEventListener('click', () => { sec.classList.toggle('shut'); if (!sec.classList.contains('shut')) vmEnter(sec); });
     }
   }
   function openGroup(title) {

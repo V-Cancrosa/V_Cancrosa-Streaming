@@ -43,6 +43,8 @@
   .pos-tr #wrap, .pos-br #wrap { --dir: 1; transform-origin: right center; }
   .pos-tc #wrap, .pos-bc #wrap { --dir: 0; transform-origin: center; }
   #wrap.show { opacity: 1; transform: translateX(0) scale(var(--scale)); }
+  /* chowanie karty: krócej i z ease-in (zasady ruchu, themes/motion.css) */
+  #wrap:not(.show) { transition: opacity .36s cubic-bezier(.55,0,1,.45), transform .44s cubic-bezier(.55,0,1,.45); }
   /* zostaw miejsce na emblemat wystający nad kartę */
   .game-theme.pos-tl #stage, .game-theme.pos-tc #stage, .game-theme.pos-tr #stage { padding-top: 50px; }
   .game-theme.pos-tl #stage, .game-theme.pos-bl #stage { padding-left: 40px; }

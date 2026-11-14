@@ -1,0 +1,49 @@
+/*
+  Zasady ruchu (panel, edytor, czat) – wg „20 UI Animation Rules”:
+    pen: web-strategist, https://codepen.io/web-strategist/pen/XJMOdGw (CodePen, licencja MIT)
+    artykuł: Pixic Studio, „UI animation best practices: 20 rules”, https://pixicstudio.medium.com/ui-animation-best-practices-20-rules-e855e845f7e5
+  Wzięte stąd: krzywe i czasy (wejście ease-out 250 ms, wyjście o 20% krótsze i ease-in, wciśnięcie 0,97,
+  rozkładanie list co 30 ms, okienka od skali 0,95, wspólny znacznik zakładki, puls potwierdzenia, ikony przez rozmycie).
+  --k = 4 → zwolnione tempo do podglądu (panel.html?slow=1, editor.html?slow=1).
+*/
+:root {
+  --k: 1;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in: cubic-bezier(0.55, 0, 1, 0.45);
+  --ease-io: cubic-bezier(0.65, 0, 0.35, 1);
+  --enter: calc(250ms * var(--k));
+  --exit: calc(var(--enter) * 0.8);
+  --press: calc(120ms * var(--k));
+  --pop: calc(150ms * var(--k));
+  --mv: calc(300ms * var(--k));
+  --stag: calc(30ms * var(--k));
+}
+@keyframes vm-in { from { opacity: 0; transform: translateY(8px); } }
+@keyframes vm-out { to { opacity: 0; transform: translateY(-8px); } }
+@keyframes vm-pop { from { opacity: 0; transform: scale(.95); } }
+@keyframes vm-pulse { 50% { transform: scale(1.06); } }
+
+/* wciśnięcie: 0,97 */
+button { transition: transform var(--press) var(--ease-out), background-color var(--mv) var(--ease-out), border-color var(--mv) var(--ease-out), color var(--mv) var(--ease-out); }
+button:active:not(:disabled) { transform: scale(.97); }
+
+/* potwierdzenie sukcesu */
+.vm-pulse { animation: vm-pulse calc(300ms * var(--k)) ease-in-out; }
+
+/* treść zakładki i grupy wchodzą z rozłożeniem co 30 ms */
+.vm-enter > * { animation: vm-in var(--enter) var(--ease-out) both; animation-delay: calc(min(var(--i, 0), 8) * var(--stag)); }
+
+/* okienka (modal) od skali 0,95 */
+.vm-modal:not([hidden]) > * { animation: vm-pop var(--enter) var(--ease-out) both; }
+
+/* wspólny znacznik wybranej zakładki – jeden element przesuwa się między przyciskami */
+.vm-mark { position: absolute; left: 0; top: 0; height: 0; border-radius: 6px; background: var(--accent); pointer-events: none; z-index: 0;
+  transition: transform var(--mv) var(--ease-io), width var(--mv) var(--ease-io), height var(--mv) var(--ease-io); }
+
+/* ikona przez skalę i rozmycie */
+.vm-swap { transition: opacity calc(200ms * var(--k)) ease, transform calc(200ms * var(--k)) ease, filter calc(200ms * var(--k)) ease; }
+.vm-swap.gone { opacity: 0; transform: scale(.25); filter: blur(4px); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0ms !important; transition-duration: .01ms !important; }
+}

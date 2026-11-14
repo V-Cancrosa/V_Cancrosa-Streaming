@@ -5,6 +5,7 @@
 <title>Edytor ułożenia</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="themes/fonts.css">
+<link rel="stylesheet" href="themes/motion.css">
 <script src="version.js"></script>
 <script src="themes/chat.js"></script>
 <script src="themes/layoutedit.js"></script>
@@ -37,6 +38,8 @@
   #prev2 { position: absolute; inset: 0; width: 1920px; height: 1080px; border: 0; pointer-events: none; background: transparent; }
   #prev { position: absolute; inset: 0; width: 1920px; height: 1080px; border: 0; pointer-events: none; }
   #boxes { position: absolute; inset: 0; }
+  .box.sel { transition: none; }
+  .h { transition: transform var(--press) var(--ease-out); } .h:hover { transform: scale(1.15); }
   .box { position: absolute; border: 4px dashed rgba(255,255,255,.55); background: rgba(124,92,255,.08); cursor: move; touch-action: none; }
   .box:hover { border-color: #fff; }
   .box.sel { border: 5px solid var(--acc); background: rgba(124,92,255,.16); z-index: 2; }
@@ -120,7 +123,7 @@
       try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {}
       if (bc) bc.postMessage('update');
       $('modeTag').textContent = 'własne ułożenie';
-      $('saved').classList.add('on'); clearTimeout(save.f); save.f = setTimeout(() => $('saved').classList.remove('on'), 1200);
+      $('saved').classList.add('on'); if (now) { const el = $('saved'); el.classList.remove('vm-pulse'); void el.offsetWidth; el.classList.add('vm-pulse'); } clearTimeout(save.f); save.f = setTimeout(() => $('saved').classList.remove('on'), 1200);
     };
     if (now) go(); else saveT = setTimeout(go, 120);
   }
@@ -197,7 +200,9 @@
     let r;
     if (!drag.h) {
       r = [snapMove(x + dx, w, 'x', g), snapMove(y + dy, h, 'y', g), w, h];
-      r[0] = clamp(r[0], -w + 60, 1920 - 60); r[1] = clamp(r[1], -h + 60, 1080 - 60);
+      // poza krawędzią ekranu element stawia opór (guma, stała 0,55) zamiast twardego stopu
+      const rb = (d, dim) => (1 - 1 / ((d * .55) / dim + 1)) * dim, band = (v, lo, hi) => v < lo ? lo - rb(lo - v, 220) : v > hi ? hi + rb(v - hi, 220) : v;
+      r[0] = band(r[0], 0, 1920 - w); r[1] = band(r[1], 0, 1080 - h);
     } else {
       const W = drag.h.includes('w'), N = drag.h.includes('n');
       let l = x, t = y, rr = x + w, bb = y + h;
