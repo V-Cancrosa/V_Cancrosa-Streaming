@@ -88,6 +88,17 @@ Instalator można uruchomić ponownie, np. po zmianie kolekcji scen. Nie tworzy 
 
 Usuń sceny `VM · …` i dok w OBS, folder `%LOCALAPPDATA%\Vincent-Media`, folder *Vincent-Media* w menu Start i skrót *Vincent-Media wykrywacz* w autostarcie (`Win+R` → `shell:startup`).
 
+## Zaufany korytarz: kto może rozmawiać z wykrywaczem
+
+Wykrywacz zna hasło do OBS WebSocket i steruje czatem. Dlatego **nie odpowiada każdej stronie z internetu**, tylko tym, którym ufa:
+- **Twoje GitHub Pages** (domyślnie `https://v-cancrosa.github.io`). Rozpoznaje je po adresie. Inne własne adresy dopisujesz po jednym w linijce do `detector\data\trusted-origins.txt`.
+- **Strony z dysku** (źródła w OBS, panel z pliku). Wykrywacz przy starcie zapisuje obok panelu plik `vm-key.js` z tajnym kluczem, a `version.js` dokleja go do zapytań. Strona z internetu nie ma dostępu do plików na Twoim dysku, więc nie podszyje się pod nakładkę. Plik nie trafia do repo (`.gitignore`).
+- **Strony samego wykrywacza** (`http://localhost:7777/ui/…`) i pilot z telefonu z kluczem pilota.
+
+Ikony, okładki gier i stan aktualizacji są dostępne dla wszystkich, bo nic nie zdradzają. Każda obca strona, która spróbuje się połączyć, trafia do dziennika jako „Zablokowano stronę spoza zaufanych: …” (zapis raz na każdy adres).
+
+Dziennik: Więcej → Wykrywacz → **📄 Otwórz pełny dziennik** (Notatnik; folder i plik zakładają się same) albo **⬇ Pobierz dziennik**.
+
 ## Z GitHub Pages zamiast z dysku
 
 Strony mogą iść prosto z repo: każdy push na `main` jest na streamie po kilku minutach i nic nie trzeba pobierać.
@@ -586,6 +597,8 @@ Po otwarciu OBS karta Start od razu pokazuje to, co już działa. Wykrywacz, OBS
 Soundtracki, artbooki, *Bonus Content*, DLC, season passy, serwery dedykowane, SDK, narzędzia do modów i biblioteki (Redistributable, Proton, Steamworks) nie trafiają na listę „Co dziś?”. Gra ze Steama musi mieć w swoim folderze plik `.exe`, więc np. ścieżka dźwiękowa w `steamapps\music` odpada sama.
 
 ## Panel w wąskim i szerokim doku
+
+W wąskim doku przy zakładkach pojawiają się strzałki ‹ ›: pokazują, że za krawędzią są kolejne zakładki, i przewijają pasek.
 
 Progi szerokości są w jednym miejscu: `themes/bp.js` ustawia `html[data-bp]` na `sm`, `md`, `lg` albo `xl`, a CSS panelu tylko z tego korzysta. Więcej → Wersja pokazuje na żywo szerokość panelu i aktywny próg.
 - **sm** (< 420 px): zakładki przewijają się w bok i nic się nie zgniata.

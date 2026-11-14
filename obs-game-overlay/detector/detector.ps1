@@ -1636,6 +1636,43 @@ if (-not $script:RemoteKey) {
 }
 $script:LanMode = $false
 
+# ---------------------------------------------------------------- zaufany korytarz: kto może rozmawiać z wykrywaczem
+# Wykrywacz zna hasło do OBS i steruje czatem – nie może odpowiadać każdej stronie z internetu.
+#  • Twoje GitHub Pages (i adresy dopisane w data\trusted-origins.txt) – po nagłówku Origin,
+#  • strony z dysku (OBS, panel z pliku) – po kluczu z ..\vm-key.js, który czyta tylko przeglądarka na tym komputerze,
+#  • strony samego wykrywacza (http://localhost:7777/ui/…, pilot z telefonu z kluczem pilota).
+$TrustedFile = Join-Path $DataDir 'trusted-origins.txt'
+if (-not (Test-Path $TrustedFile)) {
+    [IO.File]::WriteAllText($TrustedFile, "# Strony, które mogą rozmawiać z wykrywaczem (po jednej w linijce, np. https://twoje-konto.github.io)`r`nhttps://v-cancrosa.github.io`r`n", $Utf8NoBom)
+}
+$script:Trusted = @(Get-Content $TrustedFile -Encoding UTF8 -ErrorAction SilentlyContinue | ForEach-Object { $_.Trim().TrimEnd('/').ToLowerInvariant() } | Where-Object { $_ -and -not $_.StartsWith('#') })
+$LocalKeyFile = Join-Path $DataDir 'local-key.txt'
+$script:LocalKey = ''
+try { $script:LocalKey = ([string](Get-Content $LocalKeyFile -Raw -ErrorAction Stop)).Trim() } catch {}
+if ($script:LocalKey.Length -lt 24) {
+    $kc = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'.ToCharArray()
+    $script:LocalKey = -join (1..32 | ForEach-Object { $kc[(Get-Random -Maximum $kc.Length)] })
+    [IO.File]::WriteAllText($LocalKeyFile, $script:LocalKey, $Utf8NoBom)
+}
+# klucz dla stron z dysku: obok panelu (folder obs-game-overlay); git go pomija (.gitignore)
+try { [IO.File]::WriteAllText((Join-Path (Split-Path $Root -Parent) 'vm-key.js'), "window.VM_KEY = '$($script:LocalKey)';`r`n", $Utf8NoBom) } catch { }
+$script:BlockedLogged = @{}
+$script:AllowOrigin = '*'
+function Test-Trusted($req, $q) {
+    $origin = [string]$req.Headers['Origin']
+    $script:AllowOrigin = if ($origin) { $origin } else { '*' }
+    $self = 'http://' + $req.Url.Authority.ToLowerInvariant()
+    $key = [string]$req.Headers['X-VM-Key']; if (-not $key) { $key = [string]$q['vmk'] }
+    if ($key -and $key -eq $script:LocalKey) { return $true }
+    if ($origin -and $origin -ne 'null') { $o = $origin.TrimEnd('/').ToLowerInvariant(); return ($o -eq $self -or $script:Trusted -contains $o) }
+    if (-not $origin) {
+        $ref = [string]$req.Headers['Referer']
+        if ($ref -and $ref.ToLowerInvariant().StartsWith($self + '/')) { return $true }
+        if (-not $req.IsLocal) { return $true }     # telefon: klucz pilota sprawdzony wcześniej
+    }
+    return $false
+}
+
 function Get-LanAddresses {
     $ips = @()
     try {
@@ -1767,7 +1804,7 @@ function Send-File($ctx, [string]$rel) {
     $rel = [Uri]::UnescapeDataString($rel).Replace('/', '\')
     $full = [IO.Path]::GetFullPath((Join-Path $AppDir $rel))
     $ext = [IO.Path]::GetExtension($full).ToLowerInvariant()
-    $okPath = $full.StartsWith($AppDir + '\', [StringComparison]::OrdinalIgnoreCase) -and $full -notlike '*\detector\*'
+    $okPath = $full.StartsWith($AppDir + '\', [StringComparison]::OrdinalIgnoreCase) -and $full -notlike '*\detector\*' -and [IO.Path]::GetFileName($full) -ne 'vm-key.js'
     if (-not $okPath -or -not $MimeTypes.ContainsKey($ext) -or -not (Test-Path $full -PathType Leaf)) {
         $res.StatusCode = 404; $res.OutputStream.Close(); return
     }
@@ -1788,7 +1825,7 @@ function Send-Json($ctx, $obj, [int]$code = 200) {
     $res = $ctx.Response
     $res.StatusCode = $code
     $res.ContentType = 'application/json; charset=utf-8'
-    $res.Headers['Access-Control-Allow-Origin'] = '*'
+    $res.Headers['Access-Control-Allow-Origin'] = $script:AllowOrigin
     $res.Headers['Access-Control-Allow-Private-Network'] = 'true'
     $res.Headers['Cache-Control'] = 'no-store'
     $bytes = $Utf8NoBom.GetBytes(($obj | ConvertTo-Json -Depth 6 -Compress))
@@ -1800,7 +1837,7 @@ function Send-Json($ctx, $obj, [int]$code = 200) {
 function Send-Raw($ctx, [string]$text, [string]$type) {
     $res = $ctx.Response
     $res.ContentType = "$type; charset=utf-8"
-    $res.Headers['Access-Control-Allow-Origin'] = '*'; $res.Headers['Cache-Control'] = 'no-store'
+    $res.Headers['Access-Control-Allow-Origin'] = $script:AllowOrigin; $res.Headers['Cache-Control'] = 'no-store'
     $b = $Utf8NoBom.GetBytes($text); $res.ContentLength64 = $b.Length; $res.OutputStream.Write($b, 0, $b.Length); $res.OutputStream.Close()
 }
 
@@ -1823,13 +1860,15 @@ function Get-Query($req) {
 function Invoke-Request($ctx) {
     $req = $ctx.Request
     try {
-        if ($req.HttpMethod -eq 'OPTIONS') {
-            $ctx.Response.Headers['Access-Control-Allow-Methods'] = 'GET'
-            $ctx.Response.Headers['Access-Control-Allow-Headers'] = '*'
-            Send-Json $ctx @{ ok = $true }; return
-        }
         $q = Get-Query $req
         $path = $req.Url.AbsolutePath
+        $script:AllowOrigin = if ($req.Headers['Origin']) { [string]$req.Headers['Origin'] } else { '*' }
+        if ($req.HttpMethod -eq 'OPTIONS') {
+            # zapytanie wstępne przeglądarki (nagłówek X-VM-Key) – samo niczego nie robi
+            $ctx.Response.Headers['Access-Control-Allow-Methods'] = 'GET, POST'
+            $ctx.Response.Headers['Access-Control-Allow-Headers'] = 'X-VM-Key, Content-Type'
+            Send-Json $ctx @{ ok = $true }; return
+        }
         # z sieci domowej (telefon) tylko z kluczem; na tym komputerze bez klucza
         if (-not $req.IsLocal) {
             $key = [string]$q['key']
@@ -1843,6 +1882,13 @@ function Invoke-Request($ctx) {
             if ($q['key']) { $ctx.Response.AppendCookie((New-Object Net.Cookie('vmkey', $script:RemoteKey, '/'))) }
         }
         if ($path -eq '/ui' -or $path.StartsWith('/ui/')) { Send-File $ctx ($path -replace '^/ui/?', ''); return }
+        # obrazki (ikony, okładki) i stan aktualizacji są niegroźne; reszta tylko dla zaufanych stron
+        if (@('/icon', '/art', '/update/status') -notcontains $path.TrimEnd('/') -and -not (Test-Trusted $req $q)) {
+            $o = [string]$req.Headers['Origin']; if (-not $o) { $o = 'bez adresu (' + [string]$req.Headers['Referer'] + ')' }
+            if (-not $script:BlockedLogged.ContainsKey($o)) { $script:BlockedLogged[$o] = 1; Log "Zablokowano stronę spoza zaufanych: $o → $path (dopisz ją do data\trusted-origins.txt, jeśli to Twoja)" 'Yellow' }
+            $script:AllowOrigin = '*'
+            Send-Json $ctx @{ ok = $false; error = 'untrusted'; msg = 'Ta strona nie jest na liście zaufanych wykrywacza.' } 403; return
+        }
         switch ($path.TrimEnd('/')) {
             '/settings' {
                 if ($req.HttpMethod -eq 'POST') {
@@ -1857,7 +1903,7 @@ function Invoke-Request($ctx) {
                     $json = if ($script:Settings) { $script:Settings } else { 'null' }
                     $raw = '{"rev":' + $script:SettingsRev + ',"from":' + ($script:SettingsFrom | ConvertTo-Json) + ',"settings":' + $json + '}'
                     $res = $ctx.Response; $res.ContentType = 'application/json; charset=utf-8'
-                    $res.Headers['Access-Control-Allow-Origin'] = '*'; $res.Headers['Cache-Control'] = 'no-store'
+                    $res.Headers['Access-Control-Allow-Origin'] = $script:AllowOrigin; $res.Headers['Cache-Control'] = 'no-store'
                     $b = $Utf8NoBom.GetBytes($raw); $res.ContentLength64 = $b.Length; $res.OutputStream.Write($b, 0, $b.Length); $res.OutputStream.Close()
                 }
             }
@@ -1928,6 +1974,16 @@ function Invoke-Request($ctx) {
                 [IO.File]::WriteAllText($UpdateCfg, (@{ auto = $script:UP.auto } | ConvertTo-Json), $Utf8NoBom)
                 Log ("Automatyczne aktualizacje: " + $(if ($script:UP.auto) { 'włączone' } else { 'wyłączone' }))
                 Send-Json $ctx (Get-UpdateStatus)
+            }
+            '/log/open' {
+                # pełny dziennik w Notatniku (folder i plik zakładamy, jeśli ich nie ma)
+                try { New-Item -ItemType Directory -Force -Path (Split-Path $script:LogFile) | Out-Null; if (-not (Test-Path $script:LogFile)) { [IO.File]::WriteAllText($script:LogFile, '', $Utf8NoBom) }
+                      Start-Process notepad.exe -ArgumentList ('"' + $script:LogFile + '"'); Send-Json $ctx @{ ok = $true } } catch { Send-Json $ctx @{ ok = $false; error = $_.Exception.Message } }
+            }
+            '/log/file' {
+                $t = ''; try { $t = [IO.File]::ReadAllText($script:LogFile, [Text.Encoding]::UTF8) } catch {}
+                $ctx.Response.Headers['Content-Disposition'] = 'attachment; filename="detector.log"'
+                Send-Raw $ctx $t 'text/plain'
             }
             '/log' {
                 $after = 0; if ($q.ContainsKey('after')) { [void][int]::TryParse([string]$q['after'], [ref]$after) }

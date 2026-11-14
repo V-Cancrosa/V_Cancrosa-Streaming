@@ -180,6 +180,14 @@
   /* progi szerokości z themes/bp.js (jedno miejsce): wąski dok → zakładki przewijane; szeroki → kolumny */
   html[data-bp="sm"] .tabs { grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: max-content; overflow-x: auto; scrollbar-width: none; }
   html[data-bp="sm"] .tabs button { padding: 8px 10px; }
+  /* strzałki przy przewijanych zakładkach: pokazują, że za krawędzią jest więcej */
+  .tabwrap { position: relative; }
+  html[data-bp="lg"] .sticky-top .tabwrap, html[data-bp="xl"] .sticky-top .tabwrap { flex: 1; }
+  .tabarr { position: absolute; top: 2px; bottom: 0; z-index: 3; width: 34px; padding: 0; border: 0; font-size: 22px; font-weight: 700; color: #fff; }
+  .tabarr.l { left: 0; background: linear-gradient(90deg, var(--bg) 55%, transparent); text-align: left; padding-left: 4px; }
+  .tabarr.r { right: 0; background: linear-gradient(270deg, var(--bg) 55%, transparent); text-align: right; padding-right: 4px; animation: tabnudge 1.6s ease-in-out 3; }
+  .tabarr:hover { background-color: transparent; filter: brightness(1.3); }
+  @keyframes tabnudge { 50% { transform: translateX(3px); } }
   html[data-bp="sm"] .hostgrid { grid-template-columns: repeat(3, 1fr); }
   html[data-bp="lg"] main, html[data-bp="xl"] main { max-width: none; }
   html[data-bp="lg"] .tab:not([hidden]) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
@@ -223,6 +231,7 @@
       <button class="fastchip" id="fastChip" title="Szybkie powiadomienia: od razu, bez kolejki – do sprawdzania">⚡ szybkie: wył.</button>
     </div>
   </section>
+  <div class="tabwrap"><button class="tabarr l" id="tabL" aria-label="Zakładki w lewo" hidden>‹</button><button class="tabarr r" id="tabR" aria-label="Więcej zakładek" hidden>›</button>
   <nav class="tabs" role="tablist" aria-label="Sekcje panelu">
     <button role="tab" data-tab="start">Start</button>
     <button role="tab" data-tab="live">Sterowanie</button>
@@ -232,7 +241,7 @@
     <button role="tab" data-tab="more">Więcej</button>
     <i class="vm-mark" id="tabMark" aria-hidden="true"></i>
     <button class="pv-toggle" id="pvToggle" title="Zwiń / rozwiń podgląd" aria-pressed="true">▴</button>
-  </nav>
+  </nav></div>
   </div>
   <div class="hostpick layedit vm-modal" id="layEdit" hidden><iframe id="layEditFrame" title="Edytor ułożenia"></iframe><button id="layClose" class="layclose" hidden>✕ Zamknij pilota</button></div>
   <div class="hostpick vm-modal" id="hostPick" hidden>
@@ -754,7 +763,8 @@
   <section data-feature="local">
     <h2>Wykrywacz – podgląd na żywo <span id="logPill" class="pill off"></span></h2>
     <div class="term" id="detLog"><span class="tdim">Łączę z wykrywaczem…</span></div>
-    <p class="hint" style="margin:0">Wykrywacz działa w tle, bez okna PowerShella – tu widać wszystko, co robi. Pełny dziennik: <code>detector\data\detector.log</code>.</p>
+    <p class="hint" style="margin:0">Wykrywacz działa w tle, bez okna PowerShella – tu widać wszystko, co robi. Pełny dziennik zapisuje się sam (folder zakłada się sam).</p>
+    <div class="row" style="gap:6px"><button id="logOpen">📄 Otwórz pełny dziennik</button><button id="logSave">⬇ Pobierz dziennik</button></div>
   </section>
 
   <section data-feature="twitch">
@@ -846,6 +856,16 @@
   const BP_NAME = { sm: 'wąski dok – zakładki przewijane', md: 'zwykły dok', lg: 'szeroki – 2 kolumny', xl: 'duże okno – 3 kolumny' };
   const bpInfo = () => { const e = $('bpInfo'); if (e) e.textContent = `Szerokość panelu: ${document.documentElement.clientWidth} px · próg ${document.documentElement.dataset.bp || '?'} (${BP_NAME[document.documentElement.dataset.bp] || ''})`; };
   window.addEventListener('resize', bpInfo); window.addEventListener('vm-bp', bpInfo); setTimeout(bpInfo, 0);
+  // strzałki zakładek: widoczne tylko, gdy pasek się przewija i jest coś za krawędzią
+  function tabArrows() {
+    const t = document.querySelector('.tabs'); if (!t) return;
+    const more = t.scrollWidth - t.clientWidth > 2;
+    $('tabL').hidden = !more || t.scrollLeft < 4; $('tabR').hidden = !more || t.scrollLeft + t.clientWidth >= t.scrollWidth - 4;
+  }
+  document.querySelector('.tabs').addEventListener('scroll', tabArrows, { passive: true });
+  $('tabL').onclick = () => document.querySelector('.tabs').scrollBy({ left: -document.querySelector('.tabs').clientWidth * .6, behavior: 'smooth' });
+  $('tabR').onclick = () => document.querySelector('.tabs').scrollBy({ left: document.querySelector('.tabs').clientWidth * .6, behavior: 'smooth' });
+  window.addEventListener('resize', tabArrows); window.addEventListener('vm-bp', () => setTimeout(tabArrows, 60)); setTimeout(tabArrows, 100);
   window.addEventListener('resize', () => markTab()); window.addEventListener('vm-bp', () => setTimeout(markTab, 50));
   if (new URLSearchParams(location.search).get('slow') === '1') document.documentElement.style.setProperty('--k', 4);
   function save() {
@@ -986,6 +1006,8 @@
   document.querySelector('.tabs button[data-tab="make"]').addEventListener('click', () => setTimeout(() => renderPages(true), 60));
   window.addEventListener('storage', e => { if (e.key === PAGES_KEY) renderPages(); });
   setInterval(() => renderPages(), 3000);
+  $('logOpen').onclick = async () => { const b = $('logOpen'); try { const j = await (await fetch(hubUrl() + '/log/open', { cache: 'no-store' })).json(); b.textContent = j.ok ? '✓ otwarte w Notatniku' : '✗ ' + (j.error || j.msg || 'nie udało się'); } catch { b.textContent = '✗ wykrywacz nie odpowiada'; } vmPulse(b); setTimeout(() => b.textContent = '📄 Otwórz pełny dziennik', 3000); };
+  $('logSave').onclick = async () => { try { const t = await (await fetch(hubUrl() + '/log/file', { cache: 'no-store' })).text(); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([t], { type: 'text/plain' })); a.download = 'detector.log'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); } catch { $('logSave').textContent = '✗ wykrywacz nie odpowiada'; } };
   $('toggleBtn').onclick = () => { s.visible = !s.visible; save(); };
   $('timerBtn').onclick = () => { s.since = Date.now(); save(); };
   $('clearBtn').onclick = () => { s.game = ''; s.subtitle = ''; s.cover = ''; $('game').value = ''; $('subtitle').value = ''; $('cover').value = ''; save(); };
@@ -1997,7 +2019,9 @@
     const feat = feats();
     let g = null, ver = '';
     if (s.local) {
-      try { const j = await (await fetch(hubUrl() + '/game', { cache: 'no-store' })).json(); g = j.game; ver = j.appVersion || ''; c.det = { ok: true }; }
+      try { const r = await fetch(hubUrl() + '/game', { cache: 'no-store' }), j = await r.json();
+        if (r.status === 403) { c.det = { ok: false, msg: ON_PAGES ? `wykrywacz nie ufa tej stronie – dopisz ${location.origin} do detector\\data\\trusted-origins.txt i uruchom go ponownie` : 'wykrywacz nie ufa tej stronie – uruchom go ponownie (zapisze nowy klucz) i odśwież panel' }; everOk.det = 1; }
+        else { g = j.game; ver = j.appVersion || ''; c.det = { ok: true }; } }
       catch { c.det = booting('det') ? { ok: 'wait', msg: 'uruchamiam się…' } : { ok: false, msg: 'nie odpowiada' + (await detLogTail()) }; }
       if (c.det.ok === true) everOk.det = 1;
       step();
@@ -2467,6 +2491,7 @@
     for (const b of document.querySelectorAll('.tabs button[data-tab]')) b.setAttribute('aria-selected', b.dataset.tab === name);
     for (const t of document.querySelectorAll('.tab')) t.hidden = t.dataset.tab !== name;
     markTab();
+    { const sb = document.querySelector(`.tabs button[data-tab="${name}"]`); if (sb && sb.parentElement.scrollWidth > sb.parentElement.clientWidth) sb.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' }); setTimeout(() => typeof tabArrows === 'function' && tabArrows(), 400); }
     const t = document.querySelector(`.tab[data-tab="${name}"]`);
     if (t && (!was || was.tab !== name)) vmEnter(t);
     try { localStorage.setItem(TAB_KEY, name); } catch {}
