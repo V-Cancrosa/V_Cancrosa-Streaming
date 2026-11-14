@@ -31,74 +31,103 @@
 <div id="root" class="vmp-root"></div>
 <script>
 (() => {
+  // page.html?id=…          – strona w OBS (bez klikania)
+  // page.html?id=…&pilot=1  – pilot: przyciski, pola i listy działają (panel → Twórz → 🎛 Pilot)
   const C = window.VMClient, P = window.VMPages, $ = id => document.getElementById(id);
   P.injectCss();
-  const id = C.param('id');
+  const id = C.param('id'), pilot = C.param('pilot') === '1', mode = pilot ? 'pilot' : 'live';
   let page = null, sig = '';
-  const nodes = {};               // id elementu → div
-  const shown = {};               // id elementu → do kiedy widoczny (alert / komenda)
-  const evCtx = {};               // id elementu → {user, n} z ostatniego zdarzenia
-  let lastSettings = C.settings();
+  const nodes = {}, pulsed = {};
+  if (pilot) { document.body.style.background = '#0e0f13'; document.body.style.overflow = 'auto'; }
 
-  function visible(el) {
-    const w = el.show || {}, s = lastSettings;
-    if (w.when === 'flag') return !!(s.pageFlags && s.pageFlags[el.id]);
-    if (w.when === 'alert' || w.when === 'command') return (shown[el.id] || 0) > Date.now();
-    if (w.when === 'scene') return s.scene === w.scene;
-    return true;
+  function fitPilot() {
+    if (!pilot || !page) return;
+    const k = Math.min(1, innerWidth / page.w, innerHeight / page.h);
+    Object.assign($('root').style, { transform: `scale(${k})`, transformOrigin: '0 0' });
   }
-  function setVis(d, el, on) {
-    const was = d.dataset.on === '1';
-    if (on === was) return;
-    d.dataset.on = on ? '1' : '0';
-    d.classList.remove('vmp-out', ...[...d.classList].filter(c => c.startsWith('vmp-in-')));
-    if (on) { d.classList.remove('hid'); if (el.anim !== 'none') { void d.offsetWidth; d.classList.add('vmp-in-' + (el.anim || 'fade')); } }
-    else if (el.anim === 'none') d.classList.add('hid');
-    else { d.classList.add('vmp-out'); d.addEventListener('animationend', () => { if (d.dataset.on === '0') d.classList.add('hid'); }, { once: true }); }
-  }
-
   function render() {
-    lastSettings = C.settings();
     page = P.get(id);
-    if (!page) { $('root').innerHTML = '<div id="msg">Nie ma takiej strony – zrób ją w panelu: Twórz.</div>'; return; }
-    const ns = JSON.stringify([page.w, page.h, page.bg, page.els.map(e => e.id + e.type)]);
+    if (!page) { $('root').innerHTML = '<div style="font:600 28px Inter,sans-serif;padding:40px;color:rgba(255,255,255,.7)">Nie ma takiej strony – zrób ją w panelu: Twórz.</div>'; return; }
+    const ns = JSON.stringify([page.w, page.h, page.els.map(e => e.id + e.type)]);
     if (ns !== sig) { sig = ns; $('root').textContent = ''; for (const k in nodes) delete nodes[k]; }
-    P.drawBg($('root'), page);
-    const base = P.ctx();
+    P.drawBg($('root'), page); fitPilot();
+    const c = P.ctx(), vis = P.getVis();
+    const shown = el => P.isOn(el, vis) && !(el.pilotOnly && !pilot) && P.parentsOf(page, el).every(g => P.isOn(g, vis));
     for (const el of page.els) {
       let d = nodes[el.id];
-      if (!d) { d = nodes[el.id] = document.createElement('div'); d.dataset.on = ''; $('root').appendChild(d); }
-      P.drawEl(d, el, evCtx[el.id] ? { ...base, ...evCtx[el.id] } : base, true);
-      if (d.dataset.on === '') { const on = visible(el); d.dataset.on = on ? '1' : '0'; if (!on) d.classList.add('hid'); else if (el.anim !== 'none') d.classList.add('vmp-in-' + (el.anim || 'fade')); }
-      else setVis(d, el, visible(el));
+      if (!d) { d = nodes[el.id] = document.createElement('div'); d.dataset.on = ''; }
+      $('root').appendChild(d);
+      P.drawEl(d, el, c, mode);
+      const on = shown(el);
+      // popup z przyciemnieniem: warstwa pod nim
+      if (el.type === 'popup' && el.p.dim) { let dim = d.previousElementSibling; if (!dim || !dim.classList.contains('vmp-dim')) { dim = document.createElement('div'); dim.className = 'vmp-dim'; $('root').insertBefore(dim, d); } dim.style.display = on ? '' : 'none'; }
+      if (d.dataset.on === '') { d.dataset.on = on ? '1' : '0'; if (!on) d.classList.add('hid'); }
+      else if ((d.dataset.on === '1') !== on) {
+        d.dataset.on = on ? '1' : '0';
+        d.classList.remove('vmp-out', ...[...d.classList].filter(x => x.startsWith('vmp-in-')));
+        if (on) { d.classList.remove('hid'); if (el.anim !== 'none') { void d.offsetWidth; d.classList.add('vmp-in-' + (el.anim || 'fade')); } }
+        else if (el.anim === 'none') d.classList.add('hid');
+        else { d.classList.add('vmp-out'); d.addEventListener('animationend', () => { if (d.dataset.on === '0') d.classList.add('hid'); }, { once: true }); }
+      } else if (!on) d.classList.add('hid');
+      const pv = vis[el.id] && vis[el.id].pulse;
+      if (pv && pv !== pulsed[el.id]) { const fresh = Date.now() - pv < 3000 && pulsed[el.id] !== undefined; pulsed[el.id] = pv; if (fresh || Date.now() - pv < 1500) { d.classList.remove('vmp-pulse'); void d.offsetWidth; d.classList.add('vmp-pulse'); } }
+      else if (pulsed[el.id] === undefined) pulsed[el.id] = pv || 0;
     }
   }
 
-  // alerty z kreatora: element „Miejsce na alerty” mówi alerts.html, gdzie ma pokazać kartę
-  if (window.VMZone) window.VMZone.announce(() => {
-    const a = page && page.els.find(e => e.type === 'alerts');
-    return a ? { mode: 'card', rect: [a.x, a.y, a.w, a.h] } : null;
-  }, 2);
-
+  // --- Workflow ---
+  const wfs = type => (page && page.wf || []).filter(w => w.on && w.on.type === type);
+  const evKey = ev => ev.id != null ? String(ev.id) : (ev.type + (ev.user || '') + (ev.text || '') + Math.floor(Date.now() / 5000));
   const ALERTS = ['follow', 'sub', 'resub', 'gift', 'cheer', 'raid', 'redeem'];
   C.events(ev => {
     if (!page) return;
-    if (ev.type === 'chat') for (const el of page.els) {
-      if (el.type === 'chat' && nodes[el.id] && nodes[el.id].chat) nodes[el.id].chat.add(ev);
-      const w = el.show || {};
-      if (w.when === 'command' && w.cmd && String(ev.text || '').trim().toLowerCase().startsWith(w.cmd.toLowerCase())) { shown[el.id] = Date.now() + (w.secs || 8) * 1000; evCtx[el.id] = { user: ev.user || '' }; }
+    if (ev.type === 'chat') {
+      P.pushChat(ev);
+      for (const el of page.els) if (el.type === 'chat' && nodes[el.id] && nodes[el.id].chat) nodes[el.id].chat.add(ev);
+      const t = String(ev.text || '').trim().toLowerCase();
+      for (const w of wfs('command')) if (w.on.cmd && (t === w.on.cmd.toLowerCase() || t.startsWith(w.on.cmd.toLowerCase() + ' ')) && P.once(w.id + ':' + evKey(ev))) P.run(page, w, { user: ev.user || '', text: ev.text || '' });
     }
-    if (ALERTS.includes(ev.type)) for (const el of page.els) {
-      const w = el.show || {};
-      if (w.when === 'alert' && (w.alert === 'any' || w.alert === ev.type || (w.alert === 'sub' && ['resub', 'gift'].includes(ev.type)))) {
-        shown[el.id] = Date.now() + (w.secs || 8) * 1000; evCtx[el.id] = { user: ev.user || '', n: ev.count || ev.months || ev.amount || ev.viewers || '' };
-      }
+    if (ALERTS.includes(ev.type)) for (const w of wfs('alert')) {
+      const a = w.on.alert || 'any';
+      if ((a === 'any' || a === ev.type || (a === 'sub' && ['resub', 'gift'].includes(ev.type))) && P.once(w.id + ':' + evKey(ev)))
+        P.run(page, w, { user: ev.user || '', n: ev.count || ev.months || ev.amount || ev.viewers || '' });
     }
     render();
   }, { onSettings: render });
+  // co jakiś czas / zmiana ekranu
+  let lastScene = C.settings().scene;
+  setInterval(() => {
+    if (!page) return;
+    const now = Date.now();
+    for (const w of wfs('every')) { const ms = Math.max(5, +w.on.secs || 60) * 1000, slot = Math.floor(now / ms); if (w._slot !== undefined && w._slot !== slot && P.once(w.id + ':' + slot)) P.run(page, w, {}); w._slot = slot; }
+    const sc = C.settings().scene;
+    if (sc !== lastScene) { lastScene = sc; for (const w of wfs('stage')) if (w.on.scene === sc && P.once(w.id + ':' + sc + ':' + Math.floor(now / 30000))) P.run(page, w, {}); }
+  }, 1000);
+  // pilot: kliknięcia i pola formularzy
+  if (pilot) {
+    $('root').addEventListener('click', e => {
+      const d = e.target.closest('.vmp-el'); if (!d || !page) return;
+      for (const w of wfs('click')) if (w.on.el === d.dataset.id) P.run(page, w, {});
+      render();
+    });
+    $('root').addEventListener('input', e => {
+      const d = e.target.closest('.vmp-el'), el = d && page && page.els.find(x => x.id === d.dataset.id); if (!el || !el.p.key) return;
+      P.setState({ [el.p.key]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
+    });
+    $('root').addEventListener('change', e => {
+      const d = e.target.closest('.vmp-el'), el = d && page && page.els.find(x => x.id === d.dataset.id); if (!el || !el.p.key) return;
+      P.setState({ [el.p.key]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
+    });
+    addEventListener('resize', fitPilot);
+  }
+  // alerty: element „Miejsce na alerty” mówi alerts.html, gdzie pokazać kartę
+  if (window.VMZone && !pilot) window.VMZone.announce(() => {
+    const a = page && page.els.find(e => e.type === 'alerts');
+    return a ? { mode: 'card', rect: [a.x, a.y, a.w, a.h] } : null;
+  }, 2);
   try { new BroadcastChannel('obsGameOverlay').addEventListener('message', e => { if (e.data && e.data.type === 'pages') render(); }); } catch (e) {}
-  window.addEventListener('storage', e => { if (e.key === P.KEY) render(); });
-  async function pollSession() { try { P.setSession(await C.hubGet('/session')); } catch (e) {} setTimeout(pollSession, 15000); }
+  addEventListener('storage', e => { if ([P.KEY, P.STATE, P.VIS].includes(e.key)) render(); });
+  async function pollSession() { try { P.setSession(await C.hubGet('/session')); } catch (e) {} setTimeout(pollSession, 10000); }
   pollSession();
   render();
   setInterval(render, 1000);

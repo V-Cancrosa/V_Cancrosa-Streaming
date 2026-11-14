@@ -198,24 +198,37 @@ Działa domyślnie. Wyłączenie: Więcej → OBS → „wszystko w jednej sceni
 
 Czego HTML nie zrobi: nie złapie obrazu z innego okna, kamerki ani dźwięku. To zawsze robi OBS (źródło przechwytywania), a panel tylko je ustawia.
 
-## Twórz: kreator stron (HUB)
+## Twórz: Kreator stron (HUB, jak Bubble.io)
 
-Zakładka **Twórz** w panelu to miejsce na własne strony do 1920×1080: cały ekran, pasek, plakietka albo kwadrat. **✦ Otwórz kreator** działa jak Bubble: elementy dodajesz z palety, przeciągasz je i zmieniasz rozmiar (z przyciąganiem i liniami pomocniczymi), a po prawej ustawiasz ich wygląd.
+Zakładka **Twórz** w panelu. **✦ Otwórz kreator** zaczyna od ekranu **„Co robimy?”**: wybierasz gotowy pomysł albo pustą stronę i dostajesz działającą stronę do przerobienia. Gotowe pomysły:
+- ekran „zaraz zaczynamy”;
+- licznik śmierci;
+- podziękowanie za follow;
+- ostatni followerzy;
+- pasek z linkami;
+- pilot;
+- pusta strona.
 
-- **Elementy:** Napis, Kształt, Obrazek, Postać (portret prowadzącej postaci), Gra (okładka/logo ze Steama albo ikona programu), Odliczanie, Zegar, Linki, Czat, Miejsce na alerty.
-- **Znaczniki w napisach:** `{gra}` `{postac}` `{godzina}` `{data}` `{odliczanie}` `{follow}` `{sub}` `{raid}`, a przy alertach i komendach także `{user}` i `{n}`.
-- **Kiedy widać (mechanika):**
-  - zawsze;
-  - *gdy włączę w panelu* – przycisk pojawia się na karcie strony w Twórz;
-  - *przy alercie* (follow, sub, bitsy, raid, punkty) na N sekund;
-  - *na komendę z czatu* (np. `!hej`) na N sekund;
-  - *na ekranie* – tylko na danym etapie: przerwa, koniec…
-- **Animacje wejścia** (wyłanianie, od 0,95, wjazd z boku) i wyjścia trzymają się zasad ruchu.
-- **Edycja:** cofanie i ponawianie (Ctrl+Z / Ctrl+Y), kopia elementu (Ctrl+D), usuwanie (Delete), warstwy wyżej/niżej, szablony na start (ekran powitalny, pasek z linkami, podziękowanie za follow).
-- **Na stream:**
-  - strona 1920×1080 → przycisk **▶ Na stream** pokazuje ją w scenie `VM · Stream`;
-  - każda strona → **＋ OBS** dodaje ją jako osobne źródło (`page.html?id=…`) do bieżącej sceny.
-- **Zapis:** strony są w pamięci OBS. *Kopia zapasowa stron* zapisuje je do pliku JSON i wczytuje z powrotem.
+Kreator ma trzy widoki (pasek z lewej):
+- **✎ Projekt** – paleta elementów jak w Bubble. Element przeciągasz na stronę albo klikasz, wtedy ląduje na środku. Po prawej zmieniasz wygląd, układ i zachowanie: *widoczny od razu*, *tylko w pilocie*, animacja pojawienia się.
+  - *Elementy wizualne:* Tekst, Przycisk, Ikona, Obrazek, Kształt, Wideo, HTML.
+  - *Kontenery:* Grupa (elementy położone na niej przesuwają się i znikają razem z nią), Grupa powtarzalna (lista z danych: ostatnie followy, suby, raidy, osoby na czacie, wiadomości), Popup (ukryty na start, z przyciemnieniem).
+  - *Pola formularza:* Pole tekstowe, Checkbox, Lista wyboru. Działają w pilocie i zapisują wpisaną wartość do stanu.
+  - *Stream:* Postać, Gra, Odliczanie, Zegar, Linki, Czat, Miejsce na alerty.
+- **⚡ Workflow** – zasady „**Kiedy** → **Zrób**”.
+  - Kiedy: kliknięto element, przyszedł alert, ktoś napisał komendę na czacie, co jakiś czas, zmienił się ekran.
+  - Zrób: pokaż, ukryj, przełącz albo mrugnij elementem (opcjonalnie na N sekund), ustaw stan, dodaj do stanu (licznik), pokaż stronę na streamie.
+  - Przykład: *Kiedy* komenda `!smierc` → dodaj 1 do `smierci` → mrugnij napisem.
+- **▤ Dane** – stany, czyli zapamiętane wartości wspólne dla wszystkich stron, np. `smierci`, `temat`, `user`. W napisach wpisujesz `{nazwa}`; przycisk *＋ wstaw dane* podpowiada znaczniki (`{gra}`, `{postac}`, `{godzina}`, `{odliczanie}`, `{follow}`…).
+
+Strona trafia na stream na trzy sposoby, wszystkie z karty strony w Twórz:
+- **▶ Na stream** – strona 1920×1080 w scenie `VM · Stream`;
+- **＋ OBS** – osobne źródło `page.html?id=…`;
+- **🎛 Pilot** – ta sama strona z działającymi przyciskami i polami, do klikania w panelu.
+
+Zdarzenie z czatu albo alert działa raz, nawet gdy strona jest otwarta w kilku miejscach (OBS, podgląd, pilot).
+
+Skróty klawiszowe: Ctrl+Z / Ctrl+Y, Ctrl+D (kopia), Delete, strzałki. Kopia zapasowa stron: Twórz → *Kopia zapasowa stron*.
 
 ## Edytor ułożenia
 

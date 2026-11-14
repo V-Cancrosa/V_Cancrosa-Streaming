@@ -80,7 +80,7 @@
   .mk .lbtn { padding: 6px 8px 8px; } .mk .lbtn button { padding: 4px 8px; font-size: 11.5px; }
   .mkflags { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 8px 8px; } .mkflags button { padding: 3px 8px; font-size: 11px; border-radius: 999px; }
   .mkflags button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .layedit { padding: 0; z-index: 60; } .layedit iframe { width: 100%; height: 100%; border: 0; }
+  .layedit { padding: 0; z-index: 60; } .layclose { position: absolute; right: 10px; top: 10px; z-index: 2; } .layedit iframe { width: 100%; height: 100%; border: 0; }
   .hostpick { position: fixed; inset: 0; z-index: 50; background: rgba(8,9,12,.92); display: grid; place-items: center; padding: 14px; }
   .hostbox { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 12px; } .hostbox h2 { text-align: center; font-size: 15px; color: #fff; letter-spacing: .06em; }
   .posgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; max-width: 220px; aspect-ratio: 16 / 9; padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: #101216; }
@@ -213,7 +213,7 @@
     <button class="pv-toggle" id="pvToggle" title="Zwiń / rozwiń podgląd" aria-pressed="true">▴</button>
   </nav>
   </div>
-  <div class="hostpick layedit vm-modal" id="layEdit" hidden><iframe id="layEditFrame" title="Edytor ułożenia"></iframe></div>
+  <div class="hostpick layedit vm-modal" id="layEdit" hidden><iframe id="layEditFrame" title="Edytor ułożenia"></iframe><button id="layClose" class="layclose" hidden>✕ Zamknij pilota</button></div>
   <div class="hostpick vm-modal" id="hostPick" hidden>
     <div class="hostbox"><h2>Kto dziś prowadzi stream?</h2><div class="hostgrid big" id="hostGrid"></div>
     <button class="auto" id="hostKeep">Zostaw: <b id="hostCur"></b></button></div>
@@ -905,28 +905,27 @@
   // --- Twórz: strony z kreatora (builder.html, themes/pagekit.js) ---
   const PAGES_KEY = 'obsGameOverlay.pages';
   const pagesList = () => { const l = load(PAGES_KEY, []); return Array.isArray(l) ? l : []; };
-  const openBuilder = id => { $('layEditFrame').src = 'builder.html?embed=1' + (id ? '&id=' + encodeURIComponent(id) : ''); $('layEdit').hidden = false; };
+  $('layClose').onclick = () => { $('layEdit').hidden = true; $('layClose').hidden = true; $('layEditFrame').src = 'about:blank'; };
+  const openBuilder = id => { $('layClose').hidden = true;  $('layEditFrame').src = 'builder.html?embed=1' + (id ? '&id=' + encodeURIComponent(id) : ''); $('layEdit').hidden = false; };
   $('mkNew').onclick = () => openBuilder('');
   $('mkLayout').onclick = () => $('layEditBtn').click();
   let pagesKey = '';
   function renderPages(force) {
     if (document.querySelector('.tab[data-tab="make"]').hidden && !force) return;
     const l = pagesList(), live = s.stage === 'page' ? s.pageId : '';
-    const key = JSON.stringify([l, live, s.pageFlags || {}]); if (key === pagesKey && !force) return; pagesKey = key;
+    const key = JSON.stringify([l, live]); if (key === pagesKey && !force) return; pagesKey = key;
     $('mkList').innerHTML = l.length ? l.map(p => {
-      const flags = (p.els || []).filter(e => e.show && e.show.when === 'flag');
       return `<div class="mk ${live === p.id ? 'live' : ''}" data-id="${esc(p.id)}">
         <div class="mkthumb"><iframe data-w="${p.w}" data-h="${p.h}" src="page.html?id=${encodeURIComponent(p.id)}" width="${p.w}" height="${p.h}" tabindex="-1" title="${esc(p.name)}"></iframe></div>
         <b>${esc(p.name)}</b><small>${p.w}×${p.h} · ${(p.els || []).length} el.</small>
-        ${flags.length ? `<div class="mkflags">${flags.map(f => `<button data-flag="${esc(f.id)}" aria-pressed="${!!(s.pageFlags && s.pageFlags[f.id])}">${esc(f.name || 'element')}</button>`).join('')}</div>` : ''}
-        <div class="lbtn"><button data-edit="${esc(p.id)}">✎ Edytuj</button>${p.w === 1920 && p.h === 1080 ? `<button class="${live === p.id ? '' : 'primary'}" data-live="${esc(p.id)}">${live === p.id ? '● na wizji' : '▶ Na stream'}</button>` : ''}<button data-src="${esc(p.id)}" title="Dodaj jako osobne źródło do bieżącej sceny OBS">＋ OBS</button></div></div>`;
+        <div class="lbtn"><button data-edit="${esc(p.id)}">✎ Edytuj</button>${p.w === 1920 && p.h === 1080 ? `<button class="${live === p.id ? '' : 'primary'}" data-live="${esc(p.id)}">${live === p.id ? '● na wizji' : '▶ Na stream'}</button>` : ''}<button data-src="${esc(p.id)}" title="Dodaj jako osobne źródło do bieżącej sceny OBS">＋ OBS</button><button data-pilot="${esc(p.id)}" title="Strona z działającymi przyciskami i polami">🎛 Pilot</button></div></div>`;
     }).join('') : '<p class="hint" style="margin:0">Nie masz jeszcze stron – otwórz kreator, zacznie od gotowego ekranu powitalnego.</p>';
     requestAnimationFrame(() => { for (const f of $('mkList').querySelectorAll('iframe')) { const w = f.parentElement.clientWidth, k = Math.min(w / +f.dataset.w, (w * 9 / 16) / +f.dataset.h); f.style.transform = `scale(${k})`; } });
   }
   $('mkList').addEventListener('click', async e => {
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.edit) return openBuilder(b.dataset.edit);
-    if (b.dataset.flag) { s.pageFlags = { ...(s.pageFlags || {}), [b.dataset.flag]: !(s.pageFlags && s.pageFlags[b.dataset.flag]) }; save(); renderPages(true); return; }
+    if (b.dataset.pilot) { $('layEditFrame').src = 'page.html?pilot=1&id=' + encodeURIComponent(b.dataset.pilot); $('layEdit').hidden = false; $('layClose').hidden = false; return; }
     if (b.dataset.live) {
       // cała strona jako ekran w scenie „VM · Stream” (przechwytywanie gry się chowa)
       const id = b.dataset.live;
