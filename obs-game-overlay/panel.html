@@ -751,16 +751,18 @@
   </section>
   <section data-feature="obs">
     <h2>OBS (WebSocket) <span id="obsPill" class="pill off">…</span></h2>
-    <div class="status" id="obsStatus">Łączę…</div>
+    <div class="status" id="obsStatus" hidden>Łączę…</div>
     <label>Mikrofon – avatar ożywa, gdy mówisz
       <select id="obsMic"><option value="">automatycznie (pierwsze wejście audio)</option></select>
     </label>
-    <label>Próg głosu <span id="thrVal"></span>
-      <input id="micThreshold" type="range" min="-60" max="-10" step="1">
-    </label>
-    <div class="meter" id="micMeter"><i id="micBar"></i><b id="micMark"></b></div>
-    <details>
-      <summary>Ręczne połączenie</summary>
+    <div class="lbl2">Kiedy avatar „mówi” <span id="thrVal" class="hint"></span></div>
+    <div class="seg3" id="thrSeg">
+      <button data-thr="-48">czule (cichy głos)</button><button data-thr="-38">zwykle</button><button data-thr="-28">tylko głośno</button>
+    </div>
+    <input id="micThreshold" type="range" min="-60" max="-10" step="1" hidden>
+    <div class="meter" id="micMeter" title="Twój mikrofon na żywo – kreska to próg"><i id="micBar"></i><b id="micMark"></b></div>
+    <details id="obsManual">
+      <summary>Ręczne połączenie (gdy OBS nie łączy się sam)</summary>
 
       <label>Adres<input id="obsUrl" type="text" placeholder="ws://localhost:4455"></label>
       <label>Hasło<input id="obsPassword" type="password" autocomplete="off"></label>
@@ -1524,6 +1526,11 @@
   $('obsMic').onchange = () => { s.obsMic = $('obsMic').value; save(); obsStart(); };
   $('micThreshold').oninput = () => { s.micThreshold = +$('micThreshold').value; $('thrVal').textContent = s.micThreshold + ' dB'; save(); };
   $('micThreshold').onchange = () => obsStart();
+  // próg głosu przyciskami zamiast suwaka; ręczne połączenie tylko wtedy, gdy OBS nie łączy się sam
+  $('thrSeg').onclick = e => { const b = e.target.closest('[data-thr]'); if (!b) return; s.micThreshold = +b.dataset.thr; $('micThreshold').value = s.micThreshold; save(); obsStart(); thrUi(); };
+  const thrUi = () => { const t = s.micThreshold ?? -38; for (const b of $('thrSeg').children) b.setAttribute('aria-pressed', Math.abs(+b.dataset.thr - t) <= 4); $('thrVal').textContent = t + ' dB'; };
+  setTimeout(thrUi, 0);
+  setInterval(() => { const on = $('obsPill').classList.contains('on'); $('obsManual').hidden = on; $('obsStatus').hidden = on; }, 1500);
   $('obsAutoScene').onchange = () => { s.obsAutoScene = $('obsAutoScene').checked; save(); };
   $('oneScene').onchange = () => { s.oneScene = $('oneScene').checked; save(); };
   $('transitions').onchange = () => { s.transitions = $('transitions').checked; save(); };
