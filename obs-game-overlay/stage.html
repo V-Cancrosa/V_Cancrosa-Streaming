@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Stream</title>
+<script src="version.js"></script>
+<style>
+  /*
+    Jedno źródło na cały stream (scena OBS „VM · Stream”): w środku ekrany i układy jako ramki,
+    a panel przełącza między nimi (s.stage: screen | game | frame | talk; ekran = s.scene).
+    Ukryte ramki mają display:none – nie liczą animacji i nie zgłaszają alertom swojej strefy.
+  */
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
+  iframe { position: absolute; inset: 0; width: 1920px; height: 1080px; border: 0; background: transparent; display: none; }
+  iframe.on { display: block; }
+</style>
+</head>
+<body>
+<script>
+(() => {
+  const KEY = 'obsGameOverlay.v1';
+  const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
+  // każdy etap = zestaw ramek (od dołu do góry)
+  const SETS = { screen: ['scenes.html'], game: ['layouts.html?layout=game-full', 'overlay.html'], frame: ['layouts.html?layout=game-frame'], talk: ['layouts.html?layout=talk'] };
+  const frames = {};
+  let active = !window.obsstudio, cur = '';
+  function frame(src) {
+    if (frames[src]) return frames[src];
+    const f = document.createElement('iframe'); f.src = src; f.title = src; f.setAttribute('allowtransparency', 'true');
+    document.body.appendChild(f); frames[src] = f; return f;
+  }
+  const tell = () => { for (const f of Object.values(frames)) try { f.contentWindow.postMessage({ vmStage: 1, active: active && f.classList.contains('on') }, '*'); } catch {} };
+  function render() {
+    const s = load(), st = SETS[s.stage] ? s.stage : 'game';
+    if (st === cur) return; cur = st;
+    const want = new Set(SETS[st]);
+    for (const src of want) frame(src);
+    for (const [src, f] of Object.entries(frames)) f.classList.toggle('on', want.has(src));
+    // kolejność: najpierw tło układu, na wierzchu karta „Teraz gram”
+    SETS[st].forEach(src => document.body.appendChild(frames[src]));
+    tell();
+    try { localStorage.setItem('obsGameOverlay.hb.stage', JSON.stringify({ v: window.VM_VERSION || '', at: Date.now(), stage: st })); } catch {}
+  }
+  // od razu wczytaj resztę w tle (po chwili), żeby przełączenie było natychmiastowe
+  setTimeout(() => { for (const l of Object.values(SETS)) l.forEach(frame); }, 4000);
+  window.addEventListener('obsSourceActiveChanged', e => { active = !!(e.detail && e.detail.active); tell(); });
+  window.addEventListener('storage', e => { if (e.key === KEY) render(); });
+  try { new BroadcastChannel('obsGameOverlay').addEventListener('message', e => { if (e.data === 'update') render(); }); } catch {}
+  setInterval(() => { render(); tell(); }, 1500);
+  render();
+})();
+</script>
+</body>
+</html>

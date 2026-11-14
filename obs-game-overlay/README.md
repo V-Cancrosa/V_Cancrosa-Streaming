@@ -172,6 +172,16 @@ Cały ciąg do gry dzieje się w **jednej scenie OBS `VM · Start streamu`** (pa
 
 Lista kontrolna na ekranie przygotowań (Scena, Dźwięk, Mikrofon, Czat, Alerty, Gra) pokazuje prawdziwe wyniki szybkiego testu panelu, a nie odhacza punktów na czas.
 
+## Jedna scena OBS na cały stream
+
+Scena **`VM · Stream`** zawiera przechwytywanie gry, jedno źródło przeglądarki `stage.html` („VM · Scena”), alerty, przejścia i mikrofon. Panel tworzy ją sam przy pierwszym przełączeniu. Przyciski scen w panelu (Start streamu, Gra, Gra w ramce, Rozmowa, Przerwa, Koniec) oraz `!vm` z czatu zmieniają tylko to, co pokazuje strona w środku. Scena OBS się nie zmienia:
+- przechwytywanie gry samo przechodzi na pełny ekran albo w ramkę z edytora ułożenia, a na przerwie, w rozmowie i na ekranach jest schowane;
+- alerty i czat dalej wiedzą, co jest na wizji (panel podaje im dawną nazwę sceny).
+
+Działa domyślnie. Wyłączenie: Więcej → OBS → „wszystko w jednej scenie OBS”. Wtedy wraca stary podział na sceny `VM · …`.
+
+Czego HTML nie zrobi: nie złapie obrazu z innego okna, kamerki ani dźwięku. To zawsze robi OBS (źródło przechwytywania), a panel tylko je ustawia.
+
 ## Edytor ułożenia
 
 Wygląd → **✥ Edytor ułożenia** (albo `editor.html` w przeglądarce). Na podglądzie prawdziwej sceny przeciągasz okno gry, avatara, czat, pasek z linkami i strefę alertów. Elementy przyciągają się do siatki 10 px, krawędzi i środka ekranu oraz do siebie nawzajem (różowe linie). Róg zmienia rozmiar: gra trzyma 16:9, avatar kwadrat, a z Shiftem proporcje są dowolne. Strzałki przesuwają o 1 px.

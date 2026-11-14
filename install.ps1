@@ -269,6 +269,7 @@ if (-not (Test-Path $ObsDir)) {
                     @{ key = 'lfull'; name = "${Prefix}Układ gra pełny ekran"; url = "$layouts`?layout=game-full"; audio = $false },
                     @{ key = 'lframe'; name = "${Prefix}Układ gra w ramce"; url = "$layouts`?layout=game-frame"; audio = $false },
                     @{ key = 'ltalk'; name = "${Prefix}Układ rozmowa"; url = "$layouts`?layout=talk"; audio = $false },
+                    @{ key = 'stage'; name = "${Prefix}Scena"; url = (To-Url (Join-Path $InstallDir 'stage.html')); audio = $false },
                     @{ key = 'trans'; name = "${Prefix}Przejścia"; url = (To-Url (Join-Path $InstallDir 'transition.html')); audio = $false }
                 )
                 $S = @{}
@@ -282,6 +283,7 @@ if (-not (Test-Path $ObsDir)) {
                 # kolejność elementów: od dołu do góry; w scenach z grą dodaj przechwytywanie gry i przesuń je na sam dół
                 $sceneDefs = @(
                     @{ name = "${Prefix}Nakładki"; items = @('overlay', 'alerts', 'trans') },
+                    @{ name = "${Prefix}Stream"; items = @('stage', 'alerts', 'trans') },
                     @{ name = "${Prefix}Przygotowania"; items = @('prep', 'alerts', 'trans') },
                     @{ name = "${Prefix}Stream za…"; items = @('soon', 'alerts', 'trans') },
                     @{ name = "${Prefix}Zaraz zaczynamy"; items = @('start', 'alerts', 'trans') },

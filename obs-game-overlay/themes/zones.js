@@ -14,9 +14,14 @@
   let bc = null; try { bc = new BroadcastChannel('obsGameOverlay'); } catch (e) {}
   const inOBS = !!window.obsstudio;
   const src = Math.random().toString(36).slice(2);
+  // w ramce sceny „VM · Stream” (stage.html): na wizji, gdy ramka jest widoczna, a scena w programie
+  const inStage = window.parent !== window;
+  let stageActive = true;
+  window.addEventListener('message', e => { if (e.data && e.data.vmStage) { stageActive = !!e.data.active; send(); } });
   let obsActive = false, getZone = null, prio = 1, timer = null, wasOn = false, since = 0;
 
   function isActive() {
+    if (inStage) return stageActive && window.innerWidth > 0 && window.innerHeight > 0;
     if (inOBS) return obsActive;
     // ramka w stronie (demo): ukryta ramka nie jest „na wizji”
     try { const fe = window.frameElement; if (fe && (fe.hidden || fe.getClientRects().length === 0)) return false; } catch (e) {}

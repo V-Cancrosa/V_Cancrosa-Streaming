@@ -336,6 +336,7 @@
     <div class="tests" id="obsScenes" hidden></div>
     <p class="hint" style="margin:0">Sceny przełączasz na karcie Start.</p>
     <label class="check"><input id="obsAutoScene" type="checkbox"> wybór ekranu przełącza też scenę OBS („VM · …”)</label>
+    <label class="check"><input id="oneScene" type="checkbox"> wszystko w jednej scenie OBS „VM · Stream” (ekrany i układy zmieniają się w środku)</label>
   </section>
 
   <section>
@@ -1051,7 +1052,7 @@
     s.scene = b.dataset.s;
     if (s.scene === 'late' || s.scene === 'brb-late') s.sceneLateAt = s.sceneUntil && s.sceneUntil < Date.now() ? s.sceneUntil : Date.now();
     const target = OBS_SCENE_FOR[s.scene];
-    const toObs = obs && s.obsAutoScene !== false && obsSceneList.includes(target);
+    const toObs = obs && s.obsAutoScene !== false && (s.oneScene !== false || obsSceneList.includes(target));
     // przejście: najpierw zasłona, potem zmiana ekranu (i sceny OBS), na końcu odsłonięcie
     goScene(s.scene, () => { save(); if (toObs) obs.setSceneCut(target).catch(() => {}); });
   });
@@ -1076,11 +1077,22 @@
   // --- OBS: sceny, mikrofon, próg głosu ---
   let obs = null, obsSceneList = [], obsMics = new Set(), obsLevel = -100, obsTalk = false;
   // alerty dobierają miejsce do sceny na wizji (alerts.html → strefy)
-  let obsCurrent = '';
+  let obsCurrent = '', obsRaw = '';
+  // jedna scena „VM · Stream”: panel udaje dawne nazwy scen (alerty, czat i łańcuch startu dalej wiedzą, co jest na wizji)
+  const STREAM_SCENE = 'VM · Stream';
+  const virtScene = () => {
+    if (obsRaw !== STREAM_SCENE) return obsRaw;
+    const st = s.stage || 'game';
+    if (st === 'game') return 'VM · Gra – pełny ekran';
+    if (st === 'frame') return 'VM · Gra – w ramce';
+    if (st === 'talk') return 'VM · Rozmowa';
+    return s.scene === 'vote' ? 'VM · Głosowanie' : ({ prep: 'VM · Przygotowania', soon: 'VM · Stream za…', start: 'VM · Zaraz zaczynamy', late: 'VM · Spóźnienie', brb: 'VM · Przerwa', 'brb-late': 'VM · Przerwa', end: 'VM · Koniec' })[s.scene] || 'VM · Przygotowania';
+  };
+  setInterval(() => { if (obsRaw === STREAM_SCENE) obsCurrent = virtScene(); }, 1000);
   const tellScene = () => { if (obsCurrent && bc && !isRemote) bc.postMessage({ type: 'scene', name: obsCurrent }); };
   setInterval(tellScene, 4000);
   function obsRenderScenes(list, current) {
-    obsSceneList = list; obsCurrent = current || ''; tellScene();
+    obsSceneList = list; obsRaw = current || ''; obsCurrent = virtScene(); tellScene();
     const box = $('obsScenes'); box.textContent = '';
     for (const name of list) {
       const b = document.createElement('button'); b.textContent = name.replace(/^VM · /, ''); b.title = name;
@@ -1090,6 +1102,57 @@
     }
     pill('obsLive', !!current, current ? 'NA ŻYWO: ' + current.replace(/^VM · /, '') : '');
     if (typeof renderStartScenes === 'function') try { renderStartScenes(); } catch {}
+  }
+  // przełączenie na dawną scenę VM = zmiana etapu w „VM · Stream” (scena OBS zostaje ta sama)
+  const STAGE_FOR = { 'VM · Gra – pełny ekran': 'game', 'VM · Gra – w ramce': 'frame', 'VM · Rozmowa': 'talk', 'VM · Start streamu': 'screen', 'VM · Głosowanie': 'screen',
+    'VM · Przygotowania': 'screen', 'VM · Stream za…': 'screen', 'VM · Zaraz zaczynamy': 'screen', 'VM · Spóźnienie': 'screen', 'VM · Przerwa': 'screen', 'VM · Koniec': 'screen' };
+  const SCREEN_FOR = { 'VM · Głosowanie': 'vote', 'VM · Przygotowania': 'prep', 'VM · Stream za…': 'soon', 'VM · Zaraz zaczynamy': 'start', 'VM · Spóźnienie': 'late', 'VM · Przerwa': 'brb', 'VM · Koniec': 'end' };
+  function wrapCut() {
+    if (!obs || obs._vmWrapped) return; obs._vmWrapped = true;
+    const real = obs.setSceneCut.bind(obs);
+    obs.setSceneCut = async name => {
+      const st = STAGE_FOR[name];
+      if (s.oneScene === false || !st || isRemote) return real(name);
+      const k = SCREEN_FOR[name]; if (k && !String(s.scene || '').startsWith(k)) s.scene = k;
+      s.stage = st; save(); obsCurrent = virtScene(); tellScene();
+      let ok = false; try { ok = await ensureStreamScene(); } catch {}
+      if (!ok) return real(name);
+      placeStreamCapture();
+      if (obsRaw !== STREAM_SCENE) return real(STREAM_SCENE);
+    };
+  }
+  async function ensureStreamScene() {
+    if (!obs) return false;
+    if (obsSceneList.includes(STREAM_SCENE)) return true;
+    if (!/^file:/.test(location.protocol)) return false;
+    await obs.call('CreateScene', { sceneName: STREAM_SCENE });
+    const vs = await obs.call('GetVideoSettings');
+    const inputs = ((await obs.call('GetInputList')).inputs || []).map(x => x.inputName);
+    const add = async n => { try { return (await obs.call('CreateSceneItem', { sceneName: STREAM_SCENE, sourceName: n })).sceneItemId; } catch { return null; } };
+    if (inputs.includes(CAP_NAME)) await add(CAP_NAME);
+    const STAGE_SRC = 'VM · Scena';
+    const id = inputs.includes(STAGE_SRC) ? await add(STAGE_SRC)
+      : (await obs.call('CreateInput', { sceneName: STREAM_SCENE, inputName: STAGE_SRC, inputKind: 'browser_source', inputSettings: { url: new URL('stage.html', location.href).href, width: 1920, height: 1080, is_local_file: false, reroute_audio: false } })).sceneItemId;
+    if (id != null) await obs.call('SetSceneItemTransform', { sceneName: STREAM_SCENE, sceneItemId: id, sceneItemTransform: { boundsType: 'OBS_BOUNDS_STRETCH', boundsWidth: vs.baseWidth, boundsHeight: vs.baseHeight, positionX: 0, positionY: 0 } });
+    for (const n of ['VM · Alerty', 'VM · Przejścia', 'VM · Mikrofon']) if (inputs.includes(n)) await add(n);
+    obsSceneList = obsSceneList.concat(STREAM_SCENE);
+    return true;
+  }
+  // przechwytywanie gry w „VM · Stream”: pełny ekran, w ramce (z edytora ułożenia) albo schowane (ekrany, rozmowa)
+  async function placeStreamCapture() {
+    if (!obs || !obsSceneList.includes(STREAM_SCENE)) return;
+    try {
+      const it = ((await obs.call('GetSceneItemList', { sceneName: STREAM_SCENE })).sceneItems || []).find(i => i.sourceName === CAP_NAME);
+      if (!it) return;
+      const st = s.stage || 'game', show = st === 'game' || st === 'frame';
+      await obs.call('SetSceneItemEnabled', { sceneName: STREAM_SCENE, sceneItemId: it.sceneItemId, sceneItemEnabled: show });
+      if (!show) return;
+      const vs = await obs.call('GetVideoSettings'), kx = vs.baseWidth / 1920, ky = vs.baseHeight / 1080;
+      const CL = window.OverlayChat && window.OverlayChat.layoutOf ? window.OverlayChat.layoutOf(s) : { dir: 'v', side: 'right' };
+      const own = window.VMLayout && VMLayout.custom(s, 'game-frame', CL);
+      const r = st === 'frame' ? (own ? own.game : [CL.dir === 'v' && CL.side === 'left' ? 440 : 40, CL.dir === 'h' && CL.side === 'top' ? 70 : 40, 1440, 810]) : [0, 0, 1920, 1080];
+      await obs.call('SetSceneItemTransform', { sceneName: STREAM_SCENE, sceneItemId: it.sceneItemId, sceneItemTransform: { positionX: r[0] * kx, positionY: r[1] * ky, boundsType: 'OBS_BOUNDS_SCALE_INNER', boundsAlignment: 0, boundsWidth: r[2] * kx, boundsHeight: r[3] * ky } });
+    } catch {}
   }
   // OBS niepołączony (np. hasło nie przyszło, bo wykrywacz jeszcze nie działał) – co 15 s spróbuj od nowa
   setInterval(() => { if (feats().obs !== false && !isRemote && !$('obsPill').classList.contains('on')) obsStart(); }, 15000);
@@ -1106,7 +1169,7 @@
         if (!s.obsMic || name === s.obsMic) obsLevel = db;
       },
       onTalking: t => { obsTalk = t; },
-      onReady: () => { obsRecStatus(); setTimeout(ensureMic, 1500); setTimeout(readStreamDelay, 1000); },
+      onReady: () => { wrapCut(); obsRecStatus(); setTimeout(ensureMic, 1500); setTimeout(readStreamDelay, 1000); },
       // nagrywanie razem ze streamem: start po starcie streama, stop po końcu (jeśli włączone)
       onOutput: async (t, d) => {
         if (t === 'RecordStateChanged') { obsRecStatus(); return; }
@@ -1147,6 +1210,7 @@
   $('micThreshold').oninput = () => { s.micThreshold = +$('micThreshold').value; $('thrVal').textContent = s.micThreshold + ' dB'; save(); };
   $('micThreshold').onchange = () => obsStart();
   $('obsAutoScene').onchange = () => { s.obsAutoScene = $('obsAutoScene').checked; save(); };
+  $('oneScene').onchange = () => { s.oneScene = $('oneScene').checked; save(); };
   $('transitions').onchange = () => { s.transitions = $('transitions').checked; save(); };
   $('transitionText').onchange = () => { s.transitionText = $('transitionText').checked; save(); };
   $('transitionStyle').onchange = () => { s.transitionStyle = $('transitionStyle').value; save(); };
@@ -1210,6 +1274,7 @@
     $('sceneHero').checked = s.sceneHero !== false;
     $('autoLate').checked = s.autoLate !== false;
     $('obsAutoScene').checked = s.obsAutoScene !== false;
+    $('oneScene').checked = s.oneScene !== false;
     $('transitions').checked = s.transitions !== false;
     $('transitionText').checked = s.transitionText !== false;
     $('transitionStyle').value = s.transitionStyle || 'auto';
@@ -1323,7 +1388,7 @@
   $('stStatus').addEventListener('click', e => { const d = e.target.closest('[data-goto]'); if (!d) return; openGroup(d.dataset.goto === 'twPill' ? 'Twitch' : d.dataset.goto === 'obsPill' ? 'OBS' : 'Lokalny wykrywacz'); });
   let capLast = '', capBusy = false;
   const CAP_NAME = 'VM · Gra (automatycznie)';
-  const CAP_SCENES = { 'VM · Gra – pełny ekran': 'full', 'VM · Gra – w ramce': 'frame' };
+  const CAP_SCENES = { 'VM · Gra – pełny ekran': 'full', 'VM · Gra – w ramce': 'frame', 'VM · Stream': 'stream' };
   // sceny z przechwytywaniem: sceny z grą VM + wszystkie Twoje (nie-VM), bez odznaczonych
   const capTargets = () => obsSceneList.filter(n => (CAP_SCENES[n] || n.indexOf('VM · ') !== 0) && !(s.captureExclude || []).includes(n));
   function renderCapScenes() {
@@ -1381,12 +1446,13 @@
         const mode = CAP_SCENES[sc] || 'full';
         const items = (await obs.call('GetSceneItemList', { sceneName: sc })).sceneItems || [];
         const have = items.find(i => i.sourceName === CAP_NAME);
-        if (have && mode !== 'frame') { placed++; continue; }
+        if (have && mode !== 'frame') { placed++; if (mode === 'stream') placeStreamCapture(); continue; }
         const id = have ? have.sceneItemId : made ? (await obs.call('CreateSceneItem', { sceneName: sc, sourceName: CAP_NAME })).sceneItemId
           : (await obs.call('CreateInput', { sceneName: sc, inputName: CAP_NAME, inputKind: kind, inputSettings: settings })).sceneItemId;
         made = true; placed++;
         const kx = vs.baseWidth / 1920, ky = vs.baseHeight / 1080, fr = mode === 'frame';
         if (!have) await obs.call('SetSceneItemIndex', { sceneName: sc, sceneItemId: id, sceneItemIndex: 0 });    // na sam dół – pod nakładkami
+        if (mode === 'stream') { placeStreamCapture(); continue; }
         await obs.call('SetSceneItemTransform', { sceneName: sc, sceneItemId: id, sceneItemTransform: { positionX: fr ? fx0 * kx : 0, positionY: fr ? fy0 * ky : 0,
           boundsType: 'OBS_BOUNDS_SCALE_INNER', boundsAlignment: 0, boundsWidth: fr ? fw * kx : vs.baseWidth, boundsHeight: fr ? fh * ky : vs.baseHeight } });
       }
@@ -1653,7 +1719,7 @@
     if (!obs || censorBusy) return;
     censorBusy = true;
     try {
-      const scene = obsCurrent || (await obs.call('GetCurrentProgramScene')).currentProgramSceneName;
+      const scene = obsRaw || (await obs.call('GetCurrentProgramScene')).currentProgramSceneName;
       const vs = await obs.call('GetVideoSettings');
       const items = await captureItems(scene);
       localStorage.setItem('obsGameOverlay.censorMap', JSON.stringify({ at: Date.now(), scene, canvas: { w: vs.baseWidth, h: vs.baseHeight }, items }));
@@ -1784,7 +1850,7 @@
           else if (!g || !g.window) c.cap = { ok: null, msg: g ? 'gra bez widocznego okna' : 'nic nie jest uruchomione' };
           else {
             const set = (await obs.call('GetInputSettings', { inputName: CAP_NAME })).inputSettings || {};
-            const inScene = obsCurrent && ((await obs.call('GetSceneItemList', { sceneName: obsCurrent })).sceneItems || []).some(i => i.sourceName === CAP_NAME);
+            const inScene = obsRaw && ((await obs.call('GetSceneItemList', { sceneName: obsRaw })).sceneItems || []).some(i => i.sourceName === CAP_NAME);
             c.cap = set.window === g.window ? { ok: true, msg: g.name + (inScene ? '' : ' (w tej scenie nie ma przechwytywania – może celowo)') } : { ok: false, msg: 'źródło nie wskazuje na okno ' + g.name };
           }
         } catch { c.cap = g && g.window ? { ok: false, msg: 'nie ma źródła „' + CAP_NAME + '”' } : { ok: null, msg: 'nic nie jest uruchomione' }; }
@@ -1985,7 +2051,7 @@
     const game = (s.mode === 'manual' && s.game) || (det.local && det.local.game && det.local.game.name) || s.game || '';
     if (!persona || !game) { st.textContent = 'Do głosowania potrzebna jest postać i gra/program (wybierz z listy „Co dziś?”).'; return; }
     try {
-      if (!inFlow) await ensureVoteScene();
+      if (!inFlow && s.oneScene === false) await ensureVoteScene();
       const j = await (await fetch(hubUrl() + '/vote/start?a=' + encodeURIComponent(persona.name) + '&b=' + encodeURIComponent(game) + '&sec=' + (+s.voteSec || 300), { cache: 'no-store' })).json();
       voteId = j.id;
       if (!inFlow) goScene('start', () => obs.setSceneCut(VOTE_SCENE).catch(() => {}));
@@ -2030,6 +2096,7 @@
   // jedna scena w OBS na cały start: ekran (scenes.html bez ?scene=) przechodzi przez etapy sam
   const FLOW_SCENE = 'VM · Start streamu';
   async function ensureFlowScene() {
+    if (s.oneScene !== false) return false;     // jedna scena: etapy idą przez „VM · Stream” (setSceneCut niżej)
     if (!obs) return false;
     if (obsSceneList.includes(FLOW_SCENE)) return true;
     if (!/^file:/.test(location.protocol)) return false;
@@ -2043,7 +2110,7 @@
   }
   function flowNow() {
     if (obsCurrent === VOTE_SCENE) return 'vote';
-    const pre = !obsCurrent || obsCurrent === FLOW_SCENE || /^VM · (Przygotowania|Stream za|Zaraz zaczynamy|Spóźnienie)/.test(obsCurrent);
+    const pre = !obsCurrent || obsCurrent === FLOW_SCENE || (obsRaw === STREAM_SCENE && s.stage === 'screen' && !/^brb|^end/.test(s.scene || '')) || /^VM · (Przygotowania|Stream za|Zaraz zaczynamy|Spóźnienie)/.test(obsCurrent);
     if (!pre) return 'game';
     const k = s.scene === 'late' ? 'start' : s.scene;
     return ['prep', 'soon', 'start', 'vote'].includes(k) ? k : 'prep';
@@ -2076,6 +2143,8 @@
     // ekran zmienia się w tej samej scenie; na scenę „Start streamu” przechodzimy z przejściem tylko, gdy jesteśmy gdzie indziej
     let ok = false; try { ok = await ensureFlowScene(); } catch {}
     const apply = () => { s.scene = step; save(); };
+    if (s.oneScene !== false && obs) { const name = step === 'vote' ? 'VM · Głosowanie' : ({ prep: 'VM · Przygotowania', soon: 'VM · Stream za…', start: 'VM · Zaraz zaczynamy', late: 'VM · Spóźnienie' })[step];
+      goScene(step === 'vote' ? 'start' : step, () => { apply(); obs.setSceneCut(name).catch(() => {}); }); setTimeout(renderFlow, 1200); return; }
     if (ok && obsCurrent !== FLOW_SCENE) goScene(step === 'vote' ? 'start' : step, () => { apply(); obs.setSceneCut(FLOW_SCENE).catch(() => {}); });
     else goScene(step === 'vote' ? 'start' : step, apply);
     setTimeout(renderFlow, 1200);
