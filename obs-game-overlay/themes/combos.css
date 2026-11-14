@@ -1,0 +1,67 @@
+/* Fuzje szyte na miarę (themes/combos.js) – zastępują ogólną tabliczkę „sąsiadów”. */
+.combo #gbadge, .combo #fusebar { display: none !important; }
+#combo { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+#combo > div { position: absolute; }
+#combo svg { display: block; width: 100%; height: 100%; overflow: visible; }
+
+/* ---------------- Vince × Townscaper: plan architekta, domki kreślone i zamalowywane po kolei */
+.cbv-plan { left: 150px; right: 16px; top: -58px; height: 56px; }
+.side-r .cbv-plan { left: 16px; right: 150px; }
+.side-c .cbv-plan { left: 20px; right: 20px; top: auto; bottom: -60px; }
+.vt .cbv-plan { top: auto; bottom: -60px; }
+.vt.side-c .cbv-plan { bottom: auto; top: -58px; }
+.cbv-h { --d: calc(var(--i) * .45s); }
+.cbv-line * { stroke-dasharray: 240; stroke-dashoffset: 240; animation: cbv-draw 14s var(--d) infinite; }
+.cbv-fill { opacity: 0; animation: cbv-fill 14s calc(var(--d) + .5s) infinite; }
+@keyframes cbv-draw { 0% { stroke-dashoffset: 240; } 7%, 92% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: 240; } }
+@keyframes cbv-fill { 0%, 4% { opacity: 0; } 9%, 88% { opacity: 1; } 95%, 100% { opacity: 0; } }
+/* portret w oknie kamieniczki: dach z kominem nad ramką */
+.cbv-roof { left: 8px; top: -78px; width: 140px; height: 46px; }
+.side-r .cbv-roof { left: auto; right: 8px; }
+.side-c .cbv-roof { left: 50%; margin-left: -70px; top: -196px; }
+.vt .cbv-roof { top: auto; bottom: 92px; }
+.vt.side-c .cbv-roof { top: auto; bottom: -26px; }
+
+/* ---------------- Ragnar × Townscaper: korektor z wież z domków, 128 BPM */
+.cb-ragnar-tsc .fr-eq { display: none !important; }
+.cbr-eq { left: 50%; transform: translateX(-50%); top: -80px; height: 74px; display: flex; gap: 4px; }
+.vt .cbr-eq { top: auto; bottom: -80px; }
+.side-c .cbr-eq { left: auto; right: 22px; transform: none; top: auto; bottom: 10px; height: 60px; }
+.cbr-col { width: 22px; height: 100%; overflow: hidden; }
+.cbr-svg { animation: cbr-eq .9375s steps(1) infinite; animation-delay: calc(var(--i) * -.137s); }
+@keyframes cbr-eq { 0% { transform: translateY(36px); } 25% { transform: translateY(0); } 50% { transform: translateY(24px); } 75% { transform: translateY(12px); } }
+
+/* ---------------- Toro × Townscaper: most z łukami pod kartą, lampiony w łukach */
+.cb-toro-tsc #card::after { display: none; }
+.cbt-bridge { left: 0; right: 0; bottom: -54px; height: 58px; }
+.cbt-wave { animation: cbt-wave 3s linear infinite; } @keyframes cbt-wave { to { transform: translateX(-20px); } }
+.cbt-lamp { animation: cbt-lamp 2.6s ease-in-out infinite; animation-delay: calc(var(--i) * -.4s); }
+@keyframes cbt-lamp { 0%, 100% { opacity: 1; } 45% { opacity: .65; } 70% { opacity: .95; } }
+.cbt-lamp rect { filter: drop-shadow(0 0 4px #ffc864); }
+
+/* ---------------- Chip × Townscaper: piernikowe miasteczko z lukrem */
+.cbc-town { left: 14px; top: -60px; height: 58px; width: 56%; }
+.side-l .cbc-town { left: auto; right: 14px; }
+.vt .cbc-town { top: auto; bottom: -60px; }
+.side-c .cbc-town { width: 32%; }
+.cbc-steam { animation: cbc-steam 3s ease-in-out infinite; animation-delay: calc(var(--i, 0) * -.5s); }
+.cbc-h { --i: 0; }
+@keyframes cbc-steam { 0% { transform: translateY(0); opacity: 0; } 30% { opacity: .8; } 100% { transform: translateY(-10px); opacity: 0; } }
+
+/* ---------------- Myr × Townscaper: panorama z diod LED, okna zapalają się na kolorowo */
+.cbm-led { right: 26px; top: -62px; width: 330px; height: 58px; padding: 4px 8px; box-sizing: border-box; background: #14171b; border: 2px solid #3a3f45; border-bottom: 0; border-radius: 8px 8px 0 0; }
+.side-r .cbm-led { right: auto; left: 26px; }
+.vt .cbm-led, .side-c.vb .cbm-led { top: auto; bottom: -62px; border-bottom: 2px solid #3a3f45; border-top: 0; border-radius: 0 0 8px 8px; }
+.cbm-dots { filter: drop-shadow(0 0 1.5px #ff8a2a) drop-shadow(0 0 4px rgba(255,138,42,.45)); }
+.cbm-win { fill: #3a2410; animation: cbm-win 7s steps(1) infinite; animation-delay: calc(var(--i) * -.41s); }
+@keyframes cbm-win { 0%, 35% { fill: #3a2410; } 36%, 100% { fill: var(--c); filter: drop-shadow(0 0 2px var(--c)); } }
+
+/* ---------------- Zarin × Townscaper: domki ze złomu, wiatraczek */
+.cbz-yard { left: 20px; top: -62px; height: 60px; width: 46%; }
+.vt .cbz-yard { top: auto; bottom: -62px; }
+.side-c .cbz-yard { width: 34%; }
+.cbz-fan { transform-origin: 12px 20px; animation: cbz-spin 1.6s linear infinite; }
+@keyframes cbz-spin { to { transform: rotate(360deg); } }
+
+.reduced-motion #combo * { animation: none !important; }
+.reduced-motion .cbv-fill { opacity: 1; } .reduced-motion .cbv-line * { stroke-dashoffset: 0; }

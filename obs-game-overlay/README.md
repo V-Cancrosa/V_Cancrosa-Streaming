@@ -160,6 +160,16 @@ Nazwy z tego pliku mają pierwszeństwo przed bazą Discorda, więc możesz w ni
 Jeśli wpiszesz ręcznie tę samą nazwę co wykryta gra, Twój podtytuł i okładka mają pierwszeństwo.
 Licznik czasu przy wykrytej grze liczy od uruchomienia gry, przy wpisanej ręcznie – od chwili jej ustawienia.
 
+## Fuzje szyte na miarę
+
+Niektóre pary postać + gra mają zamiast ogólnych „sąsiadów” własny pomysł (`themes/combos.js`). Działa to w trybie *Sąsiedzi*. Na razie Townscaper:
+- **Vince** – plan architekta na kalce: złote linie kreślą domki, które po kolei wypełniają się kolorami gry. Jego portret jest oknem kamieniczki z czerwonym dachem.
+- **Ragnar** – słupki korektora to wieże z kolorowych domków, rosnące i malejące w rytmie 128 BPM.
+- **Toro** – pod kartą most z łukami nad wodą, w każdym łuku lampion.
+- **Chip** – piernikowe miasteczko z lukrowanymi dachami i parą z kominów.
+- **Myr** – panorama miasteczka z diod LED jak w jej wizjerze; w oknach zapalają się kolorowe światełka.
+- **Zarin** – domki skręcone ze złomu, z nitami, blachami pomalowanymi w kolory palety i wiatraczkiem.
+
 ## Co nowego w 1.24
 
 - **Głosowanie: postać kontra gra** – przycisk *Głosowanie ⚔* w scenach „Przed streamem”. Panel sam tworzy scenę `VM · Głosowanie`, startuje głosowanie i ją włącza.

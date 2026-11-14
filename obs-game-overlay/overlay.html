@@ -14,7 +14,9 @@
 <link rel="stylesheet" href="themes/library.css">
 <script src="themes/library.js"></script>
 <link rel="stylesheet" href="themes/fusion.css">
+<link rel="stylesheet" href="themes/combos.css">
 <script src="themes/fusion.js"></script>
+<script src="themes/combos.js"></script>
 <script src="themes/fit.js"></script>
 <script src="themes/voices.js"></script>
 <script src="themes/voices-games.js"></script>
@@ -54,6 +56,7 @@
       </div>
     </div>
     <div id="emblem" aria-hidden="true"></div>
+    <div id="combo" aria-hidden="true"></div>
     <div id="popbox" aria-hidden="true"></div>
     <div id="pop" aria-hidden="true"></div>
   </div>
@@ -311,7 +314,9 @@
     const popSrc = pd && pd.pop && !th.persona ? pd.pop : '';
     // tk-top (pasek czatu u góry) ustawia mountTicker – nie gubić go przy odświeżeniu stylu
     const keepTop = document.body.classList.contains('tk-top');
-    document.body.className = (keepTop ? 'tk-top ' : '') + `theme-${th.cls} pos-${settings.position} side-${side} ${vt ? 'vt' : 'vb'}` + (flip ? ' face-flip' : '') + (popSrc ? ' has-pop' : '') + (GT.bodyClasses ? GT.bodyClasses(th) : '') +
+    // fuzja szyta na miarę (np. Vince × Townscaper) – zastępuje ogólnych „sąsiadów”
+    const cb = GT.combo ? GT.combo(th) : null;
+    document.body.className = (keepTop ? 'tk-top ' : '') + `theme-${th.cls} pos-${settings.position} side-${side} ${vt ? 'vt' : 'vb'}` + (flip ? ' face-flip' : '') + (popSrc ? ' has-pop' : '') + (cb ? ' combo ' + cb.cls : '') + (GT.bodyClasses ? GT.bodyClasses(th) : '') +
       (reduced ? ' reduced-motion' : '') + (settings.icon ? '' : ' no-icon') + (settings.showLabel ? '' : ' no-label');
     const key = th.cls + '|' + (th.game ? th.game.id : '') + '|' + (th.persona ? th.persona.id : '') + '|' + th.mode + '|' + (th.variant || '');
     if (emblemFor !== key) {
@@ -321,6 +326,8 @@
       emblemEl.innerHTML = def ? def.emblem || '' : '';
       backEl.innerHTML = def ? def.back || '' : '';
     }
+    const cEl = $('combo'), cKey = cb ? cb.key : '';
+    if (cEl.dataset.key !== cKey) { cEl.dataset.key = cKey; cEl.innerHTML = cb ? cb.html : ''; }
     const popEl = $('pop');
     if (popEl.dataset.src !== popSrc) { popEl.dataset.src = popSrc; popEl.innerHTML = popSrc ? `<img src="${popSrc}" alt="">` : ''; }
     // dobudowane okienko (L albo T) w tym samym stylu co karta – tło, ramka, zaokrąglenie skopiowane z karty
