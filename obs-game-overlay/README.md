@@ -374,6 +374,14 @@ Nakładka nie usuwa wiadomości z samego Twitcha. Żeby Twitch w ogóle ich nie 
 
 ## Archiwum, statystyki i podejrzane konta
 
+**Boty – co jest sprawdzane** (*Czat → Moderacja → Podejrzane konta*):
+- **pojedyncze konto:** świeże konto, nick jak z generatora (`user_12345`, losowe litery i cyfry), domyślny awatar razem z pustym bio, link albo reklama widzów na dzień dobry, ogólnikowe „fajnie grasz”, ten sam szablon powtarzany przez tę samą osobę albo przez kilka kont;
+- **followboty:** fala co najmniej 8 followów w półtorej minuty bez raidu. Panel i dziennik pokazują, ile kont w fali ma nicki z generatora, ile ma mniej niż 7 dni i ile jest bez awatara;
+- **viewboty („Zdrowie widowni”):** liczba widzów na jednego piszącego (naturalnie 6–20; ostrzeżenie powyżej 40 albo przy martwym czacie), płaski wykres widowni przez 10+ minut, skok widowni bez raidu;
+- **legalne boty** (Nightbot, StreamElements, Fossabot, Moobot, Streamlabs…) nie są oceniane. Na czacie mają znaczek **BOT** i można je ukryć z ekranu przełącznikiem *ukryj boty kanału*.
+
+Flaga to podpowiedź, nie wyrok – wielu widzów po prostu lurkuje.
+
 Wykrywacz zapisuje każdy stream (od startu do końca na Twitchu) w `detector\data\archive\streams\`:
 - `<data_godzina>.jsonl` – cały czat i wszystkie alerty z godziną,
 - `<data_godzina>.json` – podsumowanie: czas, kategoria i gry, widzowie co minutę (szczyt, średnia), wiadomości, czatownicy (w tym nowi), follow, suby, gifty, bitsy, raidy, najaktywniejsi na czacie, oflagowani.

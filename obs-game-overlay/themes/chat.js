@@ -54,6 +54,7 @@
     const body = el('div', 'cbody');
     const name = el('div', 'cname', uname);
     for (const b of ev.badges || []) if (BADGES[b]) name.append(el('span', 'cbadge cb-' + b, BADGES[b]));
+    if (ev.bot) name.append(el('span', 'cbadge cb-bot', 'BOT'));   // legalny bot kanału (Nightbot, StreamElements…)
     // numer i godzina – widoczne tylko w niektórych stylach czatu (terminal, playlista, adnotacje…)
     const d = new Date(), pad = n => String(n).padStart(2, '0');
     name.prepend(el('span', 'ctime', pad(d.getHours()) + ':' + pad(d.getMinutes())), el('span', 'cnum', pad(++msgNo % 100)));
@@ -152,6 +153,7 @@
   // podejrzane wiadomości (świeże konto, reklama widzów…) nie trafiają na ekran, dopóki panel ich nie puści
   function allowed(ev) {
     if (ev && ev.hidden) return false;      // polecenie pilota z czatu (!vm …) – nie na ekran
+    if (ev && ev.bot) { try { const st = window.VMClient ? window.VMClient.settings() : {}; if (st.hideBots) return false; } catch (e) {} }
     const w = ev && ev.type === 'chat' ? words(ev) : null;
     if (w && w.level !== 'swear' && window.VMWords.settings().mode === 'hide') return false;   // przekleństwa nie ukrywają całej wiadomości
     if (!ev.flag || ev.flag.level !== 'suspect') return true;

@@ -705,7 +705,64 @@ function Update-State {
 # ---------------------------------------------------------------- zdarzenia (alerty)
 $script:Events = New-Object Collections.ArrayList
 $script:EventSeq = 0
+# ---------------------------------------------------------------- boty: fale followów i zdrowie widowni (viewboty)
+$script:Follows = New-Object Collections.ArrayList; $script:LastRaidAt = [DateTime]::MinValue; $script:WaveAt = [DateTime]::MinValue
+$script:ChatTimes = New-Object Collections.ArrayList; $script:Audience = $null
+function Watch-BotSignals($ev) {
+    $now = Get-Date
+    if ($ev.type -eq 'raid') { $script:LastRaidAt = $now }
+    if ($ev.type -eq 'chat' -and -not $ev.command -and -not $ev.test) { [void]$script:ChatTimes.Add([pscustomobject]@{ login = [string]$ev.login; at = $now }) }
+    while ($script:ChatTimes.Count -and ($now - $script:ChatTimes[0].at).TotalMinutes -gt 15) { $script:ChatTimes.RemoveAt(0) }
+    if ($ev.type -ne 'follow' -or $ev.test) { return }
+    [void]$script:Follows.Add([pscustomobject]@{ login = [string]$ev.login; user = [string]$ev.user; at = $now })
+    while ($script:Follows.Count -and ($now - $script:Follows[0].at).TotalSeconds -gt 90) { $script:Follows.RemoveAt(0) }
+    # fala: 8+ followów w 90 s, bez raidu w ostatnich 3 minutach, najwyżej raz na 5 minut
+    if ($script:Follows.Count -ge 8 -and ($now - $script:LastRaidAt).TotalMinutes -gt 3 -and ($now - $script:WaveAt).TotalMinutes -gt 5) {
+        $script:WaveAt = $now
+        $logins = @($script:Follows | ForEach-Object { $_.login } | Where-Object { $_ } | Select-Object -Unique)
+        $odd = @($logins | Where-Object { Test-BotName $_ }).Count; $fresh = 0; $noAv = 0
+        try {
+            if ($logins.Count -and $script:TW.status -eq 'online') {
+                $u = Invoke-Helix 'GET' ('users?' + (($logins | Select-Object -First 100 | ForEach-Object { 'login=' + [Uri]::EscapeDataString($_) }) -join '&')) $null
+                foreach ($d in @($u.data)) {
+                    if (((Get-Date).ToUniversalTime() - [datetime]::Parse([string]$d.created_at).ToUniversalTime()).TotalDays -lt 7) { $fresh++ }
+                    if ([string]$d.profile_image_url -match 'user-default-pictures') { $noAv++ }
+                }
+            }
+        } catch {}
+        $wave = [pscustomobject]@{ type = 'botwave'; count = $script:Follows.Count; odd = $odd; fresh = $fresh; noAvatar = $noAv; users = @($script:Follows | ForEach-Object { $_.user }) }
+        Log ("Boty? Fala followów: {0} w 90 s bez raidu (nicki z generatora: {1}, nowe konta: {2}, bez awatara: {3})" -f $wave.count, $odd, $fresh, $noAv) 'Yellow'
+        $script:LastWave = $wave
+        Add-Event $wave
+    }
+}
+# zdrowie widowni: stosunek widzów do piszących, płaski wykres, skoki bez raidu
+function Get-Audience {
+    $c = $script:Cur; $now = Get-Date
+    $chatters = @($script:ChatTimes | ForEach-Object { $_.login } | Select-Object -Unique).Count
+    $v = [int]$script:Channel.viewers
+    $flags = New-Object Collections.ArrayList
+    $ratio = if ($chatters) { [Math]::Round($v / $chatters, 1) } else { $null }
+    if ($script:Channel.live -and $v -ge 30) {
+        if (-not $chatters) { [void]$flags.Add("$v widzów i nikt nie pisze od 15 minut") }
+        elseif ($ratio -gt 40) { [void]$flags.Add("$ratio widzów na jednego piszącego (zwykle 6–20)") }
+    }
+    $vs = if ($c) { @($c.viewers | Select-Object -Last 12 | ForEach-Object { [int]$_.v }) } else { @() }
+    if ($vs.Count -ge 10 -and ($vs | Measure-Object -Minimum).Minimum -ge 30) {
+        $mn = ($vs | Measure-Object -Minimum).Minimum; $mx = ($vs | Measure-Object -Maximum).Maximum
+        if (($mx - $mn) -le [Math]::Max(1, $mx * 0.01)) { [void]$flags.Add("płaski wykres: $mn–$mx widzów przez 10+ minut") }
+    }
+    if ($vs.Count -ge 2) {
+        $a = $vs[$vs.Count - 2]; $b = $vs[$vs.Count - 1]
+        if ($b - $a -ge 30 -and $b -gt $a * 1.6 -and ($now - $script:LastRaidAt).TotalMinutes -gt 3) { [void]$flags.Add("skok z $a do $b widzów bez raidu") }
+    }
+    $w = $script:LastWave
+    return [pscustomobject]@{ live = [bool]$script:Channel.live; viewers = $v; chatters15 = $chatters; ratio = $ratio; flags = @($flags)
+        wave = $(if ($w -and ($now - $script:WaveAt).TotalMinutes -lt 30) { $w } else { $null }) }
+}
+
 function Add-Event($ev) {
+    try { Watch-BotSignals $ev } catch {}
     $script:EventSeq++
     $ev | Add-Member -NotePropertyName id -NotePropertyValue $script:EventSeq -Force
     $ev | Add-Member -NotePropertyName at -NotePropertyValue ([DateTimeOffset]::Now.ToUnixTimeMilliseconds()) -Force
@@ -843,6 +900,7 @@ function New-ChatEvent($login, $user, [string]$color, [string]$text, $fragments,
         try { $flag = Get-ChatFlag $rec $text $badges $userId $fakeAge } catch {}
     }
     return [pscustomobject]@{
+        bot = [bool]($KnownGoodBots -contains ([string]$login).ToLowerInvariant())
         type = 'chat'; user = $user; login = $login; text = $text; fragments = @($fragments); badges = @($badges)
         color = $(if ($v -and $v.color) { $v.color } elseif ($color) { $color } else { '' })
         style = $(if ($v -and $v.style) { $v.style } else { '' })
@@ -937,15 +995,35 @@ function Save-Chatters([switch]$Force) {
 # wiek konta z Twitcha (raz na czatownika, zapamiętany)
 function Get-AccountAgeDays($rec, [string]$userId) {
     if (-not $rec.created -and $userId -and $script:TW.token -and $script:TW.status -eq 'online') {
-        try { $u = Invoke-Helix 'GET' "users?id=$userId" $null; if ($u.data.Count) { $rec.created = [string]$u.data[0].created_at; $script:ChattersDirty = $true } } catch {}
+        try {
+            $u = Invoke-Helix 'GET' "users?id=$userId" $null
+            if ($u.data.Count) {
+                $d = $u.data[0]; $rec.created = [string]$d.created_at
+                # profil: domyślny awatar, puste bio (typowe dla kont-botów)
+                $rec | Add-Member -NotePropertyName noAvatar -NotePropertyValue ([string]$d.profile_image_url -match 'user-default-pictures') -Force
+                $rec | Add-Member -NotePropertyName noBio -NotePropertyValue (-not ([string]$d.description).Trim()) -Force
+                $script:ChattersDirty = $true
+            }
+        } catch {}
     }
     if (-not $rec.created) { return -1 }
     try { return [Math]::Max(0, ((Get-Date).ToUniversalTime() - [datetime]::Parse($rec.created).ToUniversalTime()).TotalDays) } catch { return -1 }
 }
 
 # ocena wiadomości: świeże konto, link w pierwszej wiadomości, typowe teksty botów i «fajnie grasz», gdy nikt nie gra
+# legalne boty kanału (moderacja, komendy) – nigdy nie są oznaczane jako podejrzane
+$KnownGoodBots = @('nightbot', 'streamelements', 'streamlabs', 'fossabot', 'moobot', 'wizebot', 'sery_bot', 'soundalerts', 'botrixoficial', 'commanderroot', 'pretzelrocks', 'kofistreambot', 'blerp', 'streamstickers', 'tangiabot', 'own3d', 'creatisbot', 'frostytoolsdotcom', 'lumiastream', 'restreambot', 'botisimo', 'deepbot', 'phantombot', 'coebot', 'ankhbot', 'vivbot', 'super_timer_bot')
+# nick jak z generatora: losowe litery i cyfry, schemat słowo_12345, mało samogłosek
+function Test-BotName([string]$login) {
+    $l = $login.ToLowerInvariant()
+    if ($l -match '^[a-z]+_?\d{4,}$' -or $l -match '\d{6,}') { return $true }
+    $letters = ($l -replace '[^a-z]', ''); $digits = ($l -replace '[^0-9]', '').Length
+    if ($l.Length -ge 10 -and $digits -ge 3 -and $letters.Length -ge 5 -and ($letters -replace '[^aeiouy]', '').Length / [double]$letters.Length -lt 0.2) { return $true }
+    if ($letters.Length -ge 8 -and $letters -match '[bcdfghjklmnpqrstvwxz]{6,}') { return $true }
+    return $false
+}
 function Get-ChatFlag($rec, [string]$text, $badges, [string]$userId, [double]$fakeAge = -2) {
-    if ($rec.trust) { return $null }
+    if ($rec.trust -or ($KnownGoodBots -contains ([string]$rec.login).ToLowerInvariant())) { return $null }
     foreach ($b in @($badges)) { if (@('broadcaster', 'moderator', 'vip', 'subscriber', 'founder') -contains [string]$b) { return $null } }
     $t = Remove-Diacritics $text
     $first = [int]$rec.msgs -lt 1
@@ -956,6 +1034,19 @@ function Get-ChatFlag($rec, [string]$text, $badges, [string]$userId, [double]$fa
         if ($age -lt 2) { $score += 3; [void]$why.Add(('konto ma {0} h' -f [int]($age * 24))) }
         elseif ($age -lt 14) { $score += 2; [void]$why.Add(('konto ma {0} dni' -f [int]$age)) }
         elseif ($age -lt 60 -and $first) { $score += 1; [void]$why.Add(('konto ma {0} dni' -f [int]$age)) }
+    }
+    if ($early) {
+        if (Test-BotName ([string]$rec.login)) { $score += 1; [void]$why.Add('nick jak z generatora') }
+        if ($rec.noAvatar -and $rec.noBio) { $score += 1; [void]$why.Add('domyślny awatar i puste bio') }
+    }
+    # ta sama osoba powtarza ten sam szablon (bez względu na to, co się dzieje na streamie)
+    $own = ($t -replace '\W+', ' ').Trim().ToLowerInvariant()
+    if ($own.Length -ge 6) {
+        if (-not $script:UserTexts) { $script:UserTexts = @{} }
+        $hist = @($script:UserTexts[$rec.login]) | Where-Object { $_ -and ((Get-Date) - $_.at).TotalMinutes -lt 10 }
+        $rep = @($hist | Where-Object { $_.text -eq $own }).Count
+        $script:UserTexts[$rec.login] = @($hist) + [pscustomobject]@{ text = $own; at = Get-Date } | Select-Object -Last 8
+        if ($rep -ge 2) { $score += 2; [void]$why.Add('powtarza ten sam tekst') }
     }
     $hasLink = $t -match '(https?://|www\.|\b[a-z0-9-]+\s?\.\s?(com|net|org|ru|xyz|io|gg|ly|shop|site|online|top)\b|discord\.gg)'
     if ($hasLink) { if ($early) { $score += 3; [void]$why.Add('link na początku znajomości') } else { $score += 1; [void]$why.Add('link') } }
@@ -1279,7 +1370,7 @@ function Register-TwitchEvents([string]$sessionId) {
 function Convert-TwitchEvent([string]$type, $e) {
     $tier = { param($t) switch ([string]$t) { '2000' { 'Tier 2' } '3000' { 'Tier 3' } default { 'Tier 1' } } }
     switch ($type) {
-        'channel.follow' { return [pscustomobject]@{ type = 'follow'; user = $e.user_name } }
+        'channel.follow' { return [pscustomobject]@{ type = 'follow'; user = $e.user_name; login = [string]$e.user_login } }
         'channel.subscribe' {
             if ($e.is_gift) { return $null }   # pokazujemy jeden alert «gift» zamiast wielu
             return [pscustomobject]@{ type = 'sub'; user = $e.user_name; tier = (& $tier $e.tier) }
@@ -1931,6 +2022,7 @@ function Invoke-Request($ctx) {
                 Send-Json $ctx @{ ok = $true }
             }
             '/archive' { Send-Json $ctx (Get-ArchiveList) }
+            '/audience' { Send-Json $ctx (Get-Audience) }
             '/archive/stream' {
                 $id = [string]$q['id']
                 if ($id -notmatch '^[\w-]+$') { Send-Json $ctx @{ ok = $false } 400; return }

@@ -479,6 +479,7 @@
       <label class="check" title="terminal Myr, karteczki Chipa, playlista Ragnara, lampiony Toro, adnotacje Vince'a, tabliczki Zarin; bez postaci – pergamin, komunikator, EVA"><input id="chatSkin" type="checkbox"> styl postaci / gry</label>
       <label class="check" title="kolumna albo pasek także na ekranach przerw"><input id="sceneChat" type="checkbox"> też na przerwach</label>
       <label class="check" title="wiadomości z flagą „podejrzane” (świeże konto, reklama widzów…) nie trafiają na ekran"><input id="botHide" type="checkbox"> ukryj podejrzane</label>
+      <label class="check" title="odpowiedzi Nightbota, StreamElements, Fossabota itp. nie trafiają na ekran (na Twitchu zostają)"><input id="hideBots" type="checkbox"> ukryj boty kanału</label>
     </div>
     <div hidden>
     <label>Gra na pełnym ekranie – jak pokazać czat
@@ -570,7 +571,10 @@
   </section>
   <section data-feature="local">
     <h2>Podejrzane konta <span id="flagPill" class="pill off"></span></h2>
-    <p class="hint" style="margin:0">Flaga to podpowiedź, nie wyrok. Liczą się: wiek konta (z Twitcha), link albo reklama widzów na początku znajomości, ogólnikowe „fajnie grasz” na dzień dobry, pisanie o graniu, gdy kategoria to np. Art / Blender, i ten sam tekst od kilku kont. Subskrybenci, VIP-y i moderatorzy nie są oceniani.</p>
+    <div class="stats" id="audStats"></div>
+    <div class="slist" id="audFlags"></div>
+    <details><summary>Po czym poznaję boty</summary>
+    <p class="hint" style="margin:0"><b>Konto:</b> świeże konto, nick jak z generatora (user_12345, losowe litery i cyfry), domyślny awatar i puste bio, link albo reklama widzów na dzień dobry, ogólnikowe „fajnie grasz”, pisanie o graniu przy kategorii Art/Blender, ten sam szablon powtarzany albo od kilku kont. <b>Followboty:</b> fala 8+ followów w półtorej minuty bez raidu – z liczbą nowych kont, losowych nicków i kont bez awatara. <b>Viewboty:</b> dużo widzów przy martwym czacie (zwykle 6–20 widzów na jednego piszącego), płaski wykres widowni, skok bez raidu. Legalne boty (Nightbot, StreamElements, Fossabot…) nie są oceniane. Subskrybenci, VIP-y i moderatorzy też nie. To podpowiedź, nie wyrok – wielu widzów po prostu lurkuje.</p></details>
     <div class="slist" id="flagList"></div>
   </section>
   <section data-feature="local">
@@ -1547,6 +1551,8 @@
   $('feedStop').onclick = () => { $('feedChat').setAttribute('aria-pressed', false); $('feedAlerts').setAttribute('aria-pressed', false); refeed(); };
   $('botTest').onclick = () => { window.VMTestFeed.configure(feedOpts()); window.VMTestFeed.bot(s.lang || 'pl').forEach((ev, i) => setTimeout(() => feedSend(ev), i * 700)); };
   $('botShow').onclick = () => { s.botHide = s.botHide === false; save(); };
+  $('hideBots').onchange = () => { s.hideBots = $('hideBots').checked; save(); };
+  setTimeout(() => { $('hideBots').checked = !!s.hideBots; }, 0);
 
 
   // --- własna wiadomość testowa + słowa zakazane ---
@@ -1972,6 +1978,21 @@
       }
     } catch {}
   }, 2000);
+
+
+  // --- zdrowie widowni (viewboty, fale followów) z wykrywacza ---
+  async function audPoll() {
+    if (!s.local || isRemote || document.querySelector('.tab[data-tab="chat"]').hidden) return;
+    try {
+      const a = await (await fetch(hubUrl() + '/audience', { cache: 'no-store' })).json();
+      $('audStats').innerHTML = [['Widzowie', a.live ? a.viewers : '—'], ['Piszący (15 min)', a.chatters15], ['Widzów / piszącego', a.ratio == null ? '—' : a.ratio]]
+        .map(([n, v]) => `<div class="stat"><b>${esc(String(v))}</b><span>${esc(n)}</span></div>`).join('');
+      const items = arr(a.flags).map(f => `<div class="flag suspect"><div class="fh"><b>Widownia</b><span class="pill off">viewboty?</span></div><div class="fr">${esc(f)}</div></div>`);
+      if (a.wave) items.push(`<div class="flag suspect"><div class="fh"><b>Fala followów: ${a.wave.count}</b><span class="pill off">followboty?</span></div><div class="fr">nicki z generatora: ${a.wave.odd} · nowe konta (&lt;7 dni): ${a.wave.fresh} · bez awatara: ${a.wave.noAvatar}</div><q>${esc(arr(a.wave.users).slice(0, 12).join(', '))}</q></div>`);
+      $('audFlags').innerHTML = items.join('') || '<p class="hint" style="margin:0">Widownia wygląda naturalnie.</p>';
+    } catch {}
+  }
+  setInterval(audPoll, 20000); document.querySelector('.tabs button[data-tab="chat"]').addEventListener('click', () => setTimeout(audPoll, 100));
 
   // --- czat na ekranie, moderacja, statystyki, nagrywanie ---
   document.querySelectorAll('[data-ct]').forEach(b => b.onclick = () => runTest(b.dataset.ct, 0));
