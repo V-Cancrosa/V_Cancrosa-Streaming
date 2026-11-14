@@ -104,7 +104,8 @@
   .tpl .mini { position: relative; aspect-ratio: 16 / 9; background: repeating-conic-gradient(#1b1d24 0 25%, #15171d 0 50%) 0 0 / 16px 16px; overflow: hidden; display: grid; place-items: center; }
   .tpl .mini > div { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
   .tpl b { padding: 10px 12px 2px; font-size: 14px; } .tpl small { padding: 0 12px 12px; color: var(--dim); }
-  .tpl:hover { outline: 2px solid var(--acc); filter: none; }
+  .tpl { transition: transform 250ms cubic-bezier(.22,1,.36,1), box-shadow 250ms cubic-bezier(.22,1,.36,1), border-color 250ms cubic-bezier(.22,1,.36,1); }
+  .tpl:hover { transform: translateY(-5px); border-color: var(--acc); box-shadow: 0 12px 24px -10px color-mix(in srgb, var(--acc) 45%, transparent); filter: none; }
   @media (max-width: 1000px) { .work { grid-template-columns: 48px 1fr; grid-template-rows: auto 1fr auto; } aside.l { grid-column: 2; max-height: 30vh; } main { grid-column: 1 / -1; } aside.r { grid-column: 1 / -1; max-height: 34vh; } .rail { grid-row: 1; } }
 </style>
 </head>

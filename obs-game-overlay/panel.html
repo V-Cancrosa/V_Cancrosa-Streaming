@@ -187,6 +187,14 @@
   html[data-bp="lg"] .sticky-top, html[data-bp="xl"] .sticky-top { flex-direction: row; align-items: flex-end; }
   html[data-bp="lg"] .sticky-top .preview-sec, html[data-bp="xl"] .sticky-top .preview-sec { width: 360px; flex: none; }
   html[data-bp="lg"] .sticky-top .tabs, html[data-bp="xl"] .sticky-top .tabs { flex: 1; }
+  /* karty stron (Twórz): 1 / 2 / 3 / 4 kolumny jak w siatce z pena @custom-media; w szerokim doku zakładka Twórz na całą szerokość */
+  html[data-bp="sm"] .mklist { grid-template-columns: 1fr; }
+  html[data-bp="md"] .mklist { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  html[data-bp="lg"] .mklist { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  html[data-bp="xl"] .mklist { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  html[data-bp="lg"] .tab[data-tab="make"]:not([hidden]), html[data-bp="xl"] .tab[data-tab="make"]:not([hidden]) { display: flex; }
+  .mk { transition: transform calc(250ms * var(--k, 1)) var(--ease-out, ease), box-shadow calc(250ms * var(--k, 1)) var(--ease-out, ease), border-color calc(250ms * var(--k, 1)) var(--ease-out, ease); }
+  .mk:hover { transform: translateY(-4px); border-color: var(--accent); box-shadow: 0 12px 24px -10px color-mix(in srgb, var(--accent) 45%, transparent); }
 </style>
 <script src="version.js"></script>
 <script src="themes/games.js"></script>
