@@ -126,7 +126,7 @@
         since = r.at;
         // podgląd skanera (panel → Cenzura ekranu → „pokaż, co widzi skaner”): każde odczytane słowo w ramce
         document.querySelectorAll('.dbg').forEach(e => e.remove());
-        if (s.censorDebug !== false && !r.skip && r.lines) {
+        if (s.censorDebug === true && !r.skip && r.lines) {
           const all = []; for (const l of r.lines) for (const w of l.words || []) all.push(w);
           const p = project(r, all);
           for (const b of p.out) { const d = document.createElement('div'); d.className = 'dbg'; Object.assign(d.style, { left: b.x + 'px', top: b.y + 'px', width: b.w + 'px', height: b.h + 'px' }); document.body.appendChild(d); }
@@ -135,7 +135,7 @@
         } else st.style.display = '';
         if (!r.skip && r.lines) {
           const bad = window.VMWords.lines(r.lines);
-          if (bad.length) { const p = project(r, bad); show(p.out); if (p.why) st.textContent = p.why; }
+          if (bad.length) { const p = project(r, bad); show(p.out); if (p.why && s.censorDebug === true) st.textContent = p.why; }
         }
       }
     } catch {}

@@ -51,7 +51,7 @@
   }
   const B = (cmd, label, cls = '') => `<button data-c="${cmd}" class="${cls}">${label}</button>`;
   $('app').innerHTML = `
-    <h2>Start streamu</h2><div class="grid">${B('dalej', 'Dalej ▶ (następny krok)', 'big')}${B('przygotowania', 'Przygotowania')}${B('start', 'Zaraz zaczynamy')}${B('spoznienie', 'Spóźnienie')}${B('glosowanie', 'Głosowanie')}</div>
+    <h2>Start streamu</h2><div class="grid">${B('dalej', 'Dalej ▶ (następny krok)', 'big')}${B('przygotowania', 'Przygotowania')}${B('start', 'Zaraz zaczynamy')}${B('spoznienie', 'Spóźnienie')}${B('glosowanie', 'Głosowanie')}${B('koniecglosowania', '⏹ Zakończ głosowanie teraz', 'red')}</div>
     <h2>W trakcie</h2><div class="grid three">${B('gra', '🎮 Gra')}${B('ramka', '▣ Ramka')}${B('rozmowa', '💬 Rozmowa')}</div>
     <h2>Przerwa i koniec</h2><div class="grid">${B('przerwa', '⏸ Przerwa', 'red')}${B('koniec', '■ Koniec', 'red')}</div>
     <h2>Karta „Teraz gram”</h2><div class="grid three">${B('ukryj', 'Ukryj')}${B('pokaz', 'Pokaż')}${B('auto', '↺ Auto')}</div>
@@ -65,11 +65,23 @@
     try {
       const r = await fetch('https://ntfy.sh/' + topic, { method: 'POST', body: cmd });
       if (!r.ok) throw new Error('HTTP ' + r.status);
-      state(true, 'Wysłano: <b>' + cmd.replace(/[<>&]/g, '') + '</b> – OBS wykona za chwilę');
+      state(true, 'Wysłano: <b>' + cmd.replace(/[<>&]/g, '') + '</b> – czekam, aż komputer odbierze…');
       note('→ ' + cmd);
+      waitAck(cmd, Math.floor(Date.now() / 1000) - 2);
       if (btn) { btn.classList.add('sent'); setTimeout(() => btn.classList.remove('sent'), 900); }
       if (navigator.vibrate) navigator.vibrate(30);
     } catch (e) { state(false, 'Nie wysłano (' + e.message + ') – sprawdź internet'); }
+  }
+  // potwierdzenie: GameRadar po odebraniu odsyła polecenie na temat „…-ack”
+  async function waitAck(cmd, since) {
+    for (let i = 0; i < 6; i++) {
+      await new Promise(r => setTimeout(r, 1500));
+      try {
+        const t = await (await fetch('https://ntfy.sh/' + topic + '-ack/json?poll=1&since=' + since)).text();
+        if (t.split('\n').some(l => { try { const m = JSON.parse(l); return m.event === 'message' && m.message === cmd; } catch { return false; } })) { state(true, '✓ Komputer odebrał: <b>' + cmd.replace(/[<>&]/g, '') + '</b>'); note('✓ ' + cmd); return; }
+      } catch {}
+    }
+    state(false, 'Komputer nie potwierdził – czy GameRadar działa i pilot jest włączony w panelu (Więcej → Pilot)?');
   }
   $('app').addEventListener('click', e => { const b = e.target.closest('[data-c]'); if (b) send(b.dataset.c, b); });
   $('gameGo').onclick = () => { const v = $('game').value.trim(); if (v) send('gra ' + v, $('gameGo')); };

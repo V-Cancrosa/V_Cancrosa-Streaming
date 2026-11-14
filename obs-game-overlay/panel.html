@@ -121,7 +121,7 @@
   .layedit { padding: 0; z-index: 60; } .layclose { position: absolute; right: 10px; top: 10px; z-index: 2; } .layedit iframe { width: 100%; height: 100%; border: 0; }
   .hostpick { position: fixed; inset: 0; z-index: 50; background: rgba(8,9,12,.92); display: grid; place-items: center; padding: 14px; }
   .hostbox { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 12px; } .hostbox h2 { text-align: center; justify-content: center; font-size: 15px; color: #fff; letter-spacing: .06em; }
-  .posgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; max-width: 220px; aspect-ratio: 16 / 9; padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: #101216; }
+  .posgrid { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-areas: "tl . tr" "bl bc br"; gap: 4px; max-width: 220px; aspect-ratio: 16 / 9; padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: #101216; }
   .posgrid button { padding: 0; border-radius: 4px; min-height: 0; font-size: 11px; }
   .posgrid button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
   .chipset { gap: 6px; }
@@ -332,7 +332,7 @@
   <section>
     <h2>Sceny</h2>
     <div class="flow" id="flow"></div>
-    <div class="row"><button class="primary" id="flowNext">Dalej ▶</button></div>
+    <div class="row"><button class="primary" id="flowNext">Dalej ▶</button><button id="voteStop" hidden title="Kończy głosowanie od razu – wygrywa ten, kto prowadzi">⏹ Zakończ głosowanie</button></div>
     <div id="stScenes"></div>
     <div class="tidy" id="tidyBox" hidden><b>🧹 W OBS są stare sceny VM</b><span class="hint" id="tidyList"></span><button class="primary" id="tidyBtn">Uporządkuj OBS – zostaw jedną scenę „VM · Stream”</button></div>
   </section>
@@ -1102,6 +1102,12 @@
     } catch (e) { b.textContent = 'OBS odmówił: ' + e.message; }
     setTimeout(() => { b.disabled = false; b.textContent = 'Uporządkuj OBS – zostaw jedną scenę „VM · Stream”'; tidyCheck(); }, 5000);
   };
+  // głosowanie trwa → przycisk „Zakończ głosowanie” obok Dalej
+  setInterval(async () => {
+    if (document.querySelector('.tab[data-tab="start"]').hidden || !s.local) return;
+    try { const v = await (await fetch(hubUrl() + '/vote', { cache: 'no-store' })).json(); $('voteStop').hidden = !v.active; if (v.active) $('voteStop').textContent = `⏹ Zakończ głosowanie (${v.va}:${v.vb}, ${v.endsIn}s)`; } catch { $('voteStop').hidden = true; }
+  }, 2000);
+  $('voteStop').onclick = () => { fetch(hubUrl() + '/vote/stop', { cache: 'no-store' }).catch(() => {}); $('voteStop').hidden = true; };
   // tryb pilota – zapamiętany w tym oknie (dok w OBS ma swój, przeglądarka swój)
   const setCompact = on => { document.body.classList.toggle('compact', on); $('compact').checked = on; $('compactHint').hidden = !on; if (on && !['start', 'live', 'more'].includes((document.querySelector('.tab:not([hidden])') || {}).dataset?.tab)) setTimeout(() => showTab('start'), 0); setTimeout(() => { markTab(); tabArrows(); }, 50); };
   $('compact').onchange = () => { try { localStorage.setItem('vm.panelCompact', $('compact').checked ? '1' : '0'); } catch {} setCompact($('compact').checked); };
@@ -1143,7 +1149,7 @@
       if (j.on === undefined) { $('rlStatus').textContent = 'GameRadar działa jeszcze w starszej wersji (bez pilota). Kliknij „↻ Uruchom GameRadar ponownie” w sekcji GameRadar – albo zrobi to sam, gdy nie trwa transmisja ani nagrywanie.'; return; }
       pill('rlPill', j.on, 'WŁ.', 'WYŁ.');
       $('rlOn').hidden = j.on; $('rlOff').hidden = !j.on; $('rlNew').hidden = !j.on; $('rlBox').hidden = !j.on;
-      $('rlStatus').textContent = j.on ? (j.last ? 'Ostatnie polecenie z telefonu: ' + j.last : 'Czekam na polecenia z telefonu.') : '';
+      $('rlStatus').textContent = !j.on ? '' : j.error ? '⚠ GameRadar nie łączy się z przekaźnikiem: ' + j.error : j.pollAgo > 30 ? '⚠ GameRadar dawno nie sprawdzał przekaźnika (' + j.pollAgo + ' s) – uruchom go ponownie.' : (j.last ? 'Ostatnie polecenie z telefonu: ' + j.last : 'Nasłuchuję – kliknij coś na telefonie.') + (j.pollAgo >= 0 ? ' · sprawdzono ' + j.pollAgo + ' s temu' : '');
       const url = j.on && j.topic ? (/github\.io$/.test(location.hostname) ? new URL('site/pilot.html', location.href).href : PILOT_PAGE) + '#t=' + j.topic : '';
       if (url && url !== rlShown) {
         rlShown = url; $('rlUrl').value = url; $('rlQr').textContent = '';
@@ -2163,7 +2169,7 @@
   $('censorExes').onchange = () => { s.censorExes = $('censorExes').value.trim(); save(); };
   $('censorAll').onchange = () => { s.censorAll = $('censorAll').checked; save(); };
   $('censorDebug').onchange = () => { s.censorDebug = $('censorDebug').checked; save(); };
-  setTimeout(() => { $('censorDebug').checked = s.censorDebug !== false; }, 0);
+  setTimeout(() => { $('censorDebug').checked = s.censorDebug === true; }, 0);   // ramki skanera tylko na życzenie (na streamie to niebieskie prostokąty)
   $('censorDelay').onclick = async () => {
     const st = $('censorStatus'); if (!obs) { st.textContent = 'Brak połączenia z OBS.'; return; }
     try {
@@ -2405,8 +2411,10 @@
     }
   }, 0);
   // pozycja karty: siatka 3×2 zamiast listy
-  const POS = [['tl', '↖'], ['tc', '↑'], ['tr', '↗'], ['bl', '↙'], ['bc', '↓'], ['br', '↘']];
-  const renderPos = () => { $('posGrid').innerHTML = POS.map(([v, a]) => `<button data-pos="${v}" aria-pressed="${s.position === v}" title="${esc($('position').querySelector(`option[value="${v}"]`).textContent)}">${a}</button>`).join(''); };
+  // pozycja karty: środek u góry odpada (zasłaniał alerty i pasek czatu); kto go miał – dostaje lewy górny
+  const POS = [['tl', '↖'], ['tr', '↗'], ['bl', '↙'], ['bc', '↓'], ['br', '↘']];
+  if (s.position === 'tc') { s.position = 'tl'; setTimeout(save, 0); }
+  const renderPos = () => { $('posGrid').innerHTML = POS.map(([v, a]) => `<button data-pos="${v}" style="grid-area:${v}" aria-pressed="${s.position === v}" title="${esc($('position').querySelector(`option[value="${v}"]`).textContent)}">${a}</button>`).join(''); };
   $('posGrid').addEventListener('click', e => { const b = e.target.closest('[data-pos]'); if (!b) return; delete s.cardXY; $('position').value = b.dataset.pos; $('position').dispatchEvent(new Event('change')); setTimeout(renderPos, 50); });
   // gra obok postaci: trzy przyciski (pełna lista trybów w „Więcej opcji karty”)
   const MODE_HINT = { 'fuse-half': 'Postać i gra po równo: kolory, czcionki i teksty z obu motywów.', 'fuse-game': 'Karta w czystym motywie gry, a postać wchodzi portretem, plakietką z imieniem i swoim kolorem – bez mieszania.', off: 'Tylko motyw postaci – gra tylko z nazwy.', game: 'Na czas gry karta w całości w motywie gry.' };
@@ -2465,6 +2473,7 @@
     }
     if (k === 'auto') { s.mode = 'auto'; save(); return say('wykrywanie automatyczne'); }
     if (k === 'glosowanie' || k === 'vote') { flowGo('vote'); return say('głosowanie'); }
+    if (k === 'koniecglosowania' || k === 'stopglos' || k === 'votestop') { fetch(hubUrl() + '/vote/stop', { cache: 'no-store' }).catch(() => {}); return say('głosowanie zakończone'); }
     if (k === 'dalej' || k === 'next') { $('flowNext').click(); return say('następny krok startu'); }
     if (k === 'ukryj' || k === 'pokaz') { s.visible = k === 'pokaz'; save(); return say(k === 'pokaz' ? 'karta widoczna' : 'karta ukryta'); }
     if (k === 'test') { runTest('follow', 0); return say('test alertu'); }

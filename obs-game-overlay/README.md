@@ -654,6 +654,20 @@ file:///C:/OBS/obs-game-overlay/overlay.html?panel=0&game=Elden%20Ring&theme=esp
 
 Z `panel=0` możesz zrobić kilka źródeł z różnymi stałymi ustawieniami. Bez `panel=0` ustawienia z panelu nadpisują te z adresu.
 
+## 1.47: miejsce na alerty, cenzura bez ramek, głos widać, pilot z potwierdzeniem
+
+- **Ekrany przed streamem i przerwy** (przygotowania, stream za…, zaraz zaczynamy, spóźnienie, przerwa):
+  - karta schodzi na dół, na poziom zdjęcia postaci, nad czat i listę kontrolną;
+  - lewe górne ~42% ekranu jest wolne dla alertów, także legendarnych;
+  - sociale stoją w prawym górnym rogu.
+  
+  Napisy końcowe zostają po staremu.
+- **Cenzura ekranu.** Niebieskie ramki skanera i napis „brak mapy sceny” pokazują się tylko wtedy, gdy sam włączysz „ramki skanera”. Wcześniej były włączone domyślnie i było je widać na streamie.
+- **Widać, że mówisz.** Postać przy karcie „Teraz gram”, portret w trybie „Gra + postać” i zdjęcie na ekranach przerw podskakują i świecą, gdy mówisz do mikrofonu.
+- **Pilot z telefonu z potwierdzeniem.** Po kliknięciu telefon czeka, aż GameRadar odpisze, i pokazuje „✓ Komputer odebrał” albo „Komputer nie potwierdził”. W panelu (Więcej → Pilot) widać, kiedy GameRadar ostatnio sprawdzał przekaźnik i czy łączy się z ntfy.sh. Błędy połączenia trafiają do dziennika.
+- **Głosowanie można zakończyć od razu.** Robisz to przyciskiem „⏹ Zakończ głosowanie (wynik, czas)” obok *Dalej*, przyciskiem w pilocie albo komendą `!vm koniecglosowania`. Wygrywa ten, kto prowadzi.
+- **Pozycja karty bez środka u góry.** Zasłaniał alerty i pasek czatu; kto go miał, dostaje lewy górny róg.
+
 ## Panel 1.46: Gra + postać, avatar tak/nie, „Popraw głos”
 
 - **Nowy tryb motywu „Gra + postać”** (Wygląd → Postać i gra, także w serwisie). Karta, czcionki i tło są w czystym motywie gry. Prowadząca postać wchodzi w kartę portretem w okrągłej ramce, plakietką z imieniem i paskiem w swoim kolorze. Postać i gra się nie mieszają. Teraz są cztery tryby: Fuzja 50:50, Gra + postać, Sam motyw gry, Sama postać.

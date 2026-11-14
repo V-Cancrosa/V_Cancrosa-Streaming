@@ -29,6 +29,7 @@
 <link rel="stylesheet" href="themes/chat.css">
 <script src="themes/chat.js"></script>
 <script src="themes/client.js"></script>
+<script src="themes/obsws.js"></script>
 <style>
   /* pasek czatu na ekranie gry (w każdej scenie z tą nakładką) */
   #ticker { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; }
@@ -442,6 +443,14 @@
     timerEl.textContent = settings.timer && start ? fmt(Date.now() - start) : '';
   }
   setInterval(tick, 1000);
+  // mówisz → postać w karcie ożywa (portret „Gra + postać”, postać przy karcie, ikona) – mikrofon z OBS
+  (async () => {
+    if (settings.obsVoice === false || !window.OverlayOBS) return;
+    try {
+      const cfg = await window.OverlayOBS.config(settings);
+      window.OverlayOBS.connect({ ...cfg, mic: settings.obsMic || '', threshold: settings.micThreshold ?? -38, onTalking: t => document.documentElement.classList.toggle('talking', !!t) });
+    } catch (e) {}
+  })();
   // edytor ułożenia: karta w dowolnym miejscu (s.cardXY = lewy górny róg karty na obrazie 1920×1080);
   // róg z panelu zostaje (strona postaci, ozdoby) – tu tylko dosuwamy kartę do wskazanego punktu
   let cdx = 0, cdy = 0;

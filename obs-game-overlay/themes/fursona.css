@@ -289,3 +289,10 @@
 /* Toro: ceglany pasek dołu karty kończy się przy okienku z postacią (nie przecina jej) */
 .vt.side-l.has-pop.theme-g-toro #card::after { left: 206px; }
 .vt.side-r.has-pop.theme-g-toro #card::after { right: 206px; }
+
+/* mówisz → postać przy karcie i portret w karcie ożywają (html.talking ustawia overlay.html z mikrofonu OBS) */
+@keyframes vm-talk { from { translate: 0 0; } to { translate: 0 -7px; } }
+@keyframes vm-talk-ring { 50% { box-shadow: 0 0 34px var(--g1, var(--accent)), 0 0 0 3px rgba(0,0,0,.55); } }
+html.talking #pop img { animation: vm-talk .28s ease-in-out infinite alternate; filter: drop-shadow(0 0 22px var(--accent)) brightness(1.08); }
+html.talking .fuse-persona #pbadge { animation: vm-talk .28s ease-in-out infinite alternate, vm-talk-ring .56s ease-in-out infinite; }
+html.talking #icon { filter: drop-shadow(0 0 14px var(--accent)); }

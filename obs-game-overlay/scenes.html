@@ -64,6 +64,9 @@
   /* mówię: postać podskakuje i mocniej świeci (mikrofon z OBS) */
   .talking #hero.full img { animation: hero-talk .3s ease-in-out infinite alternate; filter: drop-shadow(0 0 60px var(--accent)) brightness(1.08); }
   .talking #hero.photo, .talking #hero.sheet, .talking #hero.emblem { filter: drop-shadow(0 0 40px var(--accent)); }
+  /* zdjęcie postaci „mówi”: podskakuje i świeci, gdy mówisz do mikrofonu */
+  @keyframes photo-talk { from { translate: 0 0; } to { translate: 0 -9px; } }
+  .talking #hero.photo img, .talking #hero.sheet img, .talking #hero.emblem > * { animation: photo-talk .28s ease-in-out infinite alternate; }
   @keyframes hero-talk { to { transform: translateY(-14px) scale(1.02); } }
   .hype #hero.full img { animation: hero-hype calc(.25s + var(--hype, 1) * .05s) cubic-bezier(.3,1.6,.5,1) calc(2 + var(--hype, 1)) alternate !important; filter: drop-shadow(0 0 calc(30px + var(--hype, 1) * 14px) var(--accent)) brightness(1.15); }
   .hype #hero.photo, .hype #hero.sheet, .hype #hero.emblem { filter: drop-shadow(0 0 calc(var(--hype, 1) * 16px) var(--accent)); }
@@ -95,6 +98,11 @@
     background: linear-gradient(transparent, rgba(0,0,0,.55));
   }
   #foot:empty { display: none; }
+  /* sociale w prawym górnym rogu (nad zdjęciem postaci) – dół ekranu jest dla czatu, góra po lewej dla alertów */
+  body:not(.k-end):not(.schat-top) #foot { top: 22px; bottom: auto; left: auto; right: 40px; padding: 10px 16px; flex-direction: column; align-items: flex-end; gap: 10px; background: none; }
+  body:not(.k-end):not(.schat-top) #socials { justify-content: flex-end; font-size: 19px; gap: 10px 22px; max-width: 46vw; }
+  body:not(.k-end):not(.schat-top).schat-h #schat { bottom: 0; }
+  body:not(.k-end):not(.schat-top) .k-prep #extra, body.k-prep:not(.schat-top) #extra { bottom: 96px; }
   #socials { display: flex; gap: 14px 30px; flex-wrap: wrap; font-size: 20px; }
   #socials .soc-ic { width: 1.3em; height: 1.3em; filter: drop-shadow(0 1px 3px rgba(0,0,0,.45)); }
   /* czat na ekranach: kolumna po prawej w stylu postaci / gry; postać i napisy końcowe przesuwają się w lewo */
@@ -431,15 +439,21 @@
       const r = $('schat').getBoundingClientRect();
       if (document.body.classList.contains('schat-left')) leftEdge = Math.round(r.right) + 40; else right = Math.min(right, Math.round(r.left) - 40);
     }
-    let bottom = vis($('foot')) && $('foot').textContent.trim() ? Math.round($('foot').getBoundingClientRect().top) - 12 : H - 40;
+    // stopka z socialami liczy się tylko wtedy, gdy stoi na dole (na ekranach przed streamem jest w prawym górnym rogu)
+    const footTop = vis($('foot')) && $('foot').textContent.trim() ? Math.round($('foot').getBoundingClientRect().top) : H;
+    let bottom = footTop > H / 2 ? footTop - 12 : H - 40;
     if (kind === 'prep' && vis($('extra'))) bottom = Math.min(bottom, Math.round($('extra').getBoundingClientRect().top) - 24);
     if (vis($('schat')) && document.body.classList.contains('schat-h') && !document.body.classList.contains('schat-top')) bottom = Math.min(bottom, Math.round($('schat').getBoundingClientRect().top) - 12);
-    const top = ALERT_BAND;
+    // ekrany przed streamem i przerwy: karta schodzi na dół (do czatu i zdjęcia postaci), a górna część ekranu
+    // zostaje wolna dla alertów – także legendarnych, które są duże; napisy końcowe zostają jak były
+    const low = kind !== 'end';
+    const top = low ? Math.max(ALERT_BAND, Math.round(H * 0.42)) : ALERT_BAND;
+    stage.style.alignItems = low ? 'flex-end' : '';
     const L0 = leftEdge != null ? Math.max(left, leftEdge) : left;
     stage.style.inset = `${top}px ${W - right}px ${H - bottom}px ${L0}px`;
     stage.style.padding = '0';
     stage.style.justifyContent = side ? 'flex-start' : 'center';
-    wrapEl.style.transformOrigin = side ? 'left center' : 'center';
+    wrapEl.style.transformOrigin = (side ? 'left ' : 'center ') + (low ? 'bottom' : 'center');
     const base = kind === 'end' ? 1.55 : (+settings.sceneScale || 2.1);
     const ow = wrapEl.offsetWidth, oh = wrapEl.offsetHeight;
     const f = ow && oh ? Math.min(1, (right - L0) * 0.97 / (ow * base), (bottom - top) * 0.9 / (oh * base)) : 1;

@@ -1657,7 +1657,7 @@ $script:LanMode = $false
 $RelayFile = Join-Path $DataDir 'relay.json'
 $script:Relay = @{ on = $false; topic = ''; since = '' }
 try { $rj = (Get-Content $RelayFile -Raw -Encoding UTF8) | ConvertFrom-Json; $script:Relay = @{ on = [bool]$rj.on; topic = [string]$rj.topic; since = '' } } catch {}
-$script:RelayTask = $null; $script:RelayNext = [DateTime]::MinValue; $script:RelayHttp = $null; $script:RelayLast = ''
+$script:RelayTask = $null; $script:RelayNext = [DateTime]::MinValue; $script:RelayHttp = $null; $script:RelayLast = ''; $script:RelayErr = ''; $script:RelayPollAt = [DateTime]::MinValue
 function Save-Relay { [IO.File]::WriteAllText($RelayFile, (@{ on = $script:Relay.on; topic = $script:Relay.topic } | ConvertTo-Json), $Utf8NoBom) }
 function New-RelayTopic {
     $kc = 'abcdefghijkmnpqrstuvwxyz23456789'.ToCharArray()
@@ -1669,7 +1669,14 @@ function Update-Relay {
     if ($script:RelayTask) {
         if (-not $script:RelayTask.IsCompleted) { return }
         $t = $script:RelayTask; $script:RelayTask = $null; $script:RelayNext = (Get-Date).AddSeconds(2)
-        if ($t.IsFaulted) { $script:RelayNext = (Get-Date).AddSeconds(15); return }
+        if ($t.IsFaulted) {
+            $script:RelayNext = (Get-Date).AddSeconds(15)
+            $err = $t.Exception.GetBaseException().Message
+            if ($err -ne $script:RelayErr) { $script:RelayErr = $err; Log "Pilot z telefonu: nie mogę połączyć się z przekaźnikiem ntfy.sh ($err)" 'Yellow' }
+            return
+        }
+        if ($script:RelayErr) { $script:RelayErr = ''; Log 'Pilot z telefonu: przekaźnik znowu odpowiada' 'Green' }
+        $script:RelayPollAt = Get-Date
         foreach ($line in ($t.Result -split "`n")) {
             if (-not $line.Trim()) { continue }
             try { $m = $line | ConvertFrom-Json } catch { continue }
@@ -1680,6 +1687,8 @@ function Update-Relay {
             Add-Event ([pscustomobject]@{ type = 'control'; cmd = $c; user = 'pilot' })
             $script:RelayLast = "$c ($(Get-Date -Format 'HH:mm:ss'))"
             Log "Pilot z telefonu: $c" 'Cyan'
+            # potwierdzenie dla telefonu: «komputer odebrał» (osobny temat …-ack)
+            try { [void]$script:RelayHttp.PostAsync("https://ntfy.sh/$($script:Relay.topic)-ack", (New-Object Net.Http.StringContent($c))) } catch {}
         }
         return
     }
@@ -1977,7 +1986,8 @@ function Invoke-Request($ctx) {
                 if ($q['on'] -eq '1') { if (-not $script:Relay.topic) { New-RelayTopic }; $script:Relay.on = $true; Save-Relay; Log 'Pilot z telefonu (przekaźnik): włączony' 'Cyan' }
                 if ($q['on'] -eq '0') { $script:Relay.on = $false; Save-Relay; Log 'Pilot z telefonu (przekaźnik): wyłączony' }
                 if ($q['new'] -eq '1') { New-RelayTopic; Log 'Pilot z telefonu: nowy klucz – stary link przestał działać' 'Cyan' }
-                Send-Json $ctx ([pscustomobject]@{ ok = $true; on = $script:Relay.on; topic = $(if ($script:Relay.on) { $script:Relay.topic } else { '' }); last = $script:RelayLast })
+                $pollAgo = if ($script:RelayPollAt -eq [DateTime]::MinValue) { -1 } else { [int][Math]::Min([double]99999, ((Get-Date) - $script:RelayPollAt).TotalSeconds) }
+                Send-Json $ctx ([pscustomobject]@{ ok = $true; on = $script:Relay.on; topic = $(if ($script:Relay.on) { $script:Relay.topic } else { '' }); last = $script:RelayLast; error = $script:RelayErr; pollAgo = $pollAgo })
             }
             '/kv' {
                 if ($req.HttpMethod -eq 'POST') {
