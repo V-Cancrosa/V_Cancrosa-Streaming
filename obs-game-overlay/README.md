@@ -654,6 +654,19 @@ file:///C:/OBS/obs-game-overlay/overlay.html?panel=0&game=Elden%20Ring&theme=esp
 
 Z `panel=0` możesz zrobić kilka źródeł z różnymi stałymi ustawieniami. Bez `panel=0` ustawienia z panelu nadpisują te z adresu.
 
+## Panel 1.46: Gra + postać, avatar tak/nie, „Popraw głos”
+
+- **Nowy tryb motywu „Gra + postać”** (Wygląd → Postać i gra, także w serwisie). Karta, czcionki i tło są w czystym motywie gry. Prowadząca postać wchodzi w kartę portretem w okrągłej ramce, plakietką z imieniem i paskiem w swoim kolorze. Postać i gra się nie mieszają. Teraz są cztery tryby: Fuzja 50:50, Gra + postać, Sam motyw gry, Sama postać.
+- **Avatar: tak / nie.** Kamerka i VTuber są na razie schowane.
+- **Art postaci „czasem nie działał”.** Przy motywie samej gry układy brały grę za postać i pokazywały emblemat gry albo pustą poświatę. Teraz avatar to zawsze prowadząca postać.
+- **✨ Popraw głos** (Start, przy mikrofonie). Jedno kliknięcie dokłada na mikrofon w OBS filtry, w tej kolejności:
+  1. redukcja szumów **RNNoise** – zdejmuje szum tła;
+  2. **bramka szumów** (otwiera się przy −36 dB, zamyka przy −44 dB) – cisza między zdaniami;
+  3. **kompresor** (4:1 od −20 dB, +4 dB) – wyrównuje głośność;
+  4. **limiter** (−3 dB) – krzyk nie przesteruje.
+  
+  Drugie kliknięcie je zdejmuje. Dostrajasz w OBS: prawy klik na mikrofon → Filtry.
+
 ## Panel 1.45: porządki
 
 - **Start → Teraz.** Gdy wszystko działa, widać jedną zieloną belkę. Lista pokazuje się przy uruchamianiu albo przy kłopocie i zawiera cztery najważniejsze rzeczy: **GameRadar, OBS, Twitch, Przechwytywanie gry**. Reszta (wersja, lista gier, sceny, mikrofon, cenzura, nakładki) pojawia się tylko wtedy, gdy coś z nią nie gra, albo po kliknięciu belki. Kafelki stanu i sekcja „Automatyka” zniknęły: przechwytywanie gry i mikrofon zawsze działają same.

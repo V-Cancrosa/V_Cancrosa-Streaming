@@ -25,7 +25,7 @@
 
 /* gra bazą, postać dodatkiem (33:66): portret/emblemat postaci w odznace + pasek w jej kolorach */
 #pbadge { display: none; position: absolute; pointer-events: none; }
-.fuse-persona #pbadge { display: block; z-index: 4; width: 74px; height: 74px; left: -26px; bottom: -28px; border-radius: 50%; overflow: hidden;
+.fuse-persona #pbadge { display: block; z-index: 4; width: 96px; height: 96px; left: -34px; bottom: -36px; border-radius: 50%; overflow: hidden;
   background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--g1) 40%, #0b0b10), #07070b 75%);
   border: 3px solid var(--g1); box-shadow: 0 0 18px color-mix(in srgb, var(--g1) 70%, transparent), 0 0 0 3px rgba(0,0,0,.55); }
 .fuse-persona #pbadge img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 15%; }
@@ -67,3 +67,11 @@
 .fuse-patch #label .dot { background: var(--accent) !important; box-shadow: 0 0 10px var(--accent) !important; }
 .side-r.fuse-patch #gbadge { right: auto; left: 26px; }
 .reduced-motion .fuse-patch #gbadge { animation: none !important; }
+
+/* „Gra + postać”: imię prowadzącego przy portrecie, w jego kolorze */
+#pname { display: none; position: absolute; pointer-events: none; }
+.fuse-persona #pname:not(:empty) { display: block; z-index: 5; left: 70px; bottom: -22px; padding: 3px 12px 3px 14px; border-radius: 999px;
+  background: var(--g1, var(--accent)); color: var(--on-g1, #fff); font: 800 14px/1.2 Inter, system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase;
+  box-shadow: 0 0 16px color-mix(in srgb, var(--g1, var(--accent)) 55%, transparent); }
+.fuse-persona #wrap.show #pname { animation: gb-in .7s .5s both cubic-bezier(.2,.9,.3,1.4); }
+.reduced-motion .fuse-persona #pname { animation: none !important; }

@@ -114,7 +114,7 @@
   html[data-bp="lg"] .tab[data-tab="more"] > section.shut > [hidden], html[data-bp="xl"] .tab[data-tab="more"] > section.shut > [hidden] { display: none !important; }
   /* Czat: bez długich stałych opisów (komunikaty o stanie mają id i zostają) */
   .tab[data-tab="chat"] > section > p.hint:not([id]), .tab[data-tab="chat"] > section > details > p.hint:not([id]) { display: none; }
-  .microw { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 10px; background: #14161b; border: 1px solid #20232b; font-size: 12.5px; }
+  .microw { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 10px; background: #14161b; border: 1px solid #20232b; font-size: 12.5px; }
   .tidy { display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: 10px; border: 1px solid var(--warn); background: color-mix(in srgb, var(--warn) 10%, #14161b); }
   /* tryb pilota (to okno, np. dok w OBS): tylko Start i Sterowanie – konfiguracja jest w serwisie w przeglądarce */
   body.compact .tabs button[data-tab="look"], body.compact .tabs button[data-tab="chat"], body.compact .tabs button[data-tab="make"] { display: none; }
@@ -301,7 +301,8 @@
     <div class="row" id="detStartRow" hidden><button class="primary" id="detStart">▶ Uruchom wykrywacz</button></div>
     <div class="status" id="detStartMsg" hidden></div>
     <div class="now"><b id="stGame">—</b><small id="stGameSub"></small></div>
-    <div class="microw" id="micRow" hidden><span>🎙 Mikrofon</span><select id="micDev" title="Mikrofon, który OBS nagrywa (i na który reaguje avatar)"></select></div>
+    <div class="microw" id="micRow" hidden><span>🎙 Mikrofon</span><select id="micDev" title="Mikrofon, który OBS nagrywa (i na który reaguje avatar)"></select><button id="voiceFx" title="Filtry na mikrofonie w OBS, po kolei: redukcja szumów (RNNoise) → bramka szumów → kompresor → limiter">✨ Popraw głos</button></div>
+    <p class="hint" id="voiceFxMsg" hidden style="margin:0"></p>
     <details id="autoBox" hidden><summary id="autoSum">Automatyka</summary>
     <label class="check"><input id="autoCapture" type="checkbox"> OBS sam łapie okno wykrytej gry</label>
     <label class="check"><input id="autoMic" type="checkbox"> dodaj mikrofon do scen, jeśli OBS go nie ma</label>
@@ -493,7 +494,7 @@
     <div class="sclabel">Gdzie stoi karta „Teraz gram”</div>
     <div class="posgrid" id="posGrid"></div>
     <div class="sclabel">Gra obok postaci</div>
-    <div class="seg3" id="modeSeg"><button data-m="fuse-half">Fuzja 50:50</button><button data-m="off">Sama postać</button><button data-m="game">Sam motyw gry</button></div>
+    <div class="seg3" id="modeSeg"><button data-m="fuse-half">Fuzja 50:50</button><button data-m="fuse-game">Gra + postać</button><button data-m="off">Sama postać</button><button data-m="game">Sam motyw gry</button></div>
     <p class="hint" style="margin:0" id="modeHint"></p>
     <div class="sclabel">Na karcie</div>
     <div class="checks chipset">
@@ -547,6 +548,7 @@
       <label style="flex-basis:100%">Tryb łączenia z grą (pełna lista)
         <select id="gameMode">
           <option value="fuse-half">Fuzja – postać i gra pół na pół</option>
+          <option value="fuse-game">Gra + postać – karta gry, portret i kolor postaci</option>
           <option value="game">Sam motyw gry</option>
           <option value="off">Sama postać</option>
         </select>
@@ -555,8 +557,9 @@
     </details>
   </section>
   <section>
-    <h2>Avatar / kamerka</h2>
-    <label>Miejsce na avatara w układach (gra w ramce, rozmowa, róg ekranu)
+    <h2>Avatar</h2>
+    <div class="seg3" id="avSeg"><button data-av="art">Tak – postać ożywa, gdy mówisz</button><button data-av="none">Nie</button></div>
+    <label hidden>Miejsce na avatara w układach (gra w ramce, rozmowa, róg ekranu)
       <select id="avatarMode">
         <option value="art">Art postaci – ożywa, gdy mówisz</option>
         <option value="camera">Kamerka – okno w ramce na Twoje źródło</option>
@@ -1575,7 +1578,11 @@
   $('sceneAt').addEventListener('change', () => { const t = new Date($('sceneAt').value).getTime(); s.sceneAt = isNaN(t) ? 0 : t; save(); });
   $('autoLate').addEventListener('change', () => { s.autoLate = $('autoLate').checked; save(); });
   for (const id of ['talkTopic', 'avatarIdle', 'avatarTalk']) $(id).addEventListener('change', () => { s[id] = $(id).value.trim(); save(); });
-  $('avatarMode').addEventListener('change', () => { s.avatarMode = $('avatarMode').value; save(); });
+  $('avatarMode').addEventListener('change', () => { s.avatarMode = $('avatarMode').value; save(); avUi(); });
+  // avatar: proste tak / nie (kamerka i VTuber – później)
+  const avUi = () => { const m = s.avatarMode === 'none' ? 'none' : 'art'; for (const b of $('avSeg').children) b.setAttribute('aria-pressed', b.dataset.av === m); };
+  $('avSeg').onclick = e => { const b = e.target.closest('[data-av]'); if (!b) return; s.avatarMode = b.dataset.av; $('avatarMode').value = s.avatarMode; save(); avUi(); };
+  setTimeout(avUi, 0);
   $('sceneGo').onclick = () => {
     const m = parseFloat(String($('sceneMin').value).replace(',', '.'));
     if (!(m > 0)) { $('sceneMin').focus(); return; }
@@ -1831,6 +1838,40 @@
       $('micDev').innerHTML = items.map(i => `<option value="${esc(i.itemValue)}"${i.itemValue === cur ? ' selected' : ''}>${esc(i.itemValue === 'default' ? 'domyślny w Windows' : i.itemName)}</option>`).join('');
     } catch { $('micRow').hidden = true; }
   }
+  // „Popraw głos”: łańcuch filtrów na mikrofonie w OBS – kolejność ma znaczenie:
+  // 1) redukcja szumów (RNNoise) zdejmuje szum tła, 2) bramka wycisza ciszę między zdaniami,
+  // 3) kompresor wyrównuje głośność (cichy i głośny głos bliżej siebie), 4) limiter pilnuje, żeby krzyk nie przesterował
+  const VOICE_FX = [
+    ['VM · Redukcja szumów', 'noise_suppress_filter_v2', { method: 'rnnoise' }],
+    ['VM · Bramka szumów', 'noise_gate_filter', { open_threshold: -36, close_threshold: -44, attack_time: 25, hold_time: 200, release_time: 150 }],
+    ['VM · Kompresor', 'compressor_filter', { ratio: 4, threshold: -20, attack_time: 6, release_time: 60, output_gain: 4 }],
+    ['VM · Limiter', 'limiter_filter', { threshold: -3, release_time: 60 }],
+  ];
+  async function voiceFxState() {
+    if (!obs || !micInput) return false;
+    try { const f = ((await obs.call('GetSourceFilterList', { sourceName: micInput })).filters || []).map(x => x.filterName); const on = VOICE_FX.every(([n]) => f.includes(n)); $('voiceFx').setAttribute('aria-pressed', on); $('voiceFx').textContent = on ? '✨ Głos poprawiony' : '✨ Popraw głos'; return on; } catch { return false; }
+  }
+  $('voiceFx').onclick = async () => {
+    if (!obs || !micInput) return;
+    const msg = $('voiceFxMsg'); msg.hidden = false;
+    try {
+      if (await voiceFxState()) {
+        for (const [n] of VOICE_FX) { try { await obs.call('RemoveSourceFilter', { sourceName: micInput, filterName: n }); } catch {} }
+        msg.textContent = 'Filtry zdjęte – mikrofon bez obróbki.';
+      } else {
+        const have = ((await obs.call('GetSourceFilterList', { sourceName: micInput })).filters || []).map(x => x.filterName);
+        for (let i = 0; i < VOICE_FX.length; i++) {
+          const [n, kind, set] = VOICE_FX[i];
+          if (have.includes(n)) await obs.call('SetSourceFilterSettings', { sourceName: micInput, filterName: n, filterSettings: set });
+          else await obs.call('CreateSourceFilter', { sourceName: micInput, filterName: n, filterKind: kind, filterSettings: set });
+          await obs.call('SetSourceFilterIndex', { sourceName: micInput, filterName: n, filterIndex: i });
+        }
+        msg.textContent = `Gotowe na „${micInput}”: redukcja szumów → bramka → kompresor → limiter. Dostroisz je w OBS: prawy klik na mikrofon → Filtry.`;
+      }
+    } catch (e) { msg.textContent = 'OBS odmówił: ' + e.message; }
+    voiceFxState(); vmPulse($('voiceFx')); setTimeout(() => { msg.hidden = true; }, 9000);
+  };
+  setInterval(() => { if (!document.querySelector('.tab[data-tab="start"]').hidden) voiceFxState(); }, 8000); setTimeout(voiceFxState, 4500);
   $('micDev').onchange = async () => { try { await obs.call('SetInputSettings', { inputName: micInput, inputSettings: { device_id: $('micDev').value } }); s.micAutoPicked = true; save(); micDevKey = ''; } catch {} };
   setInterval(() => { if (!document.querySelector('.tab[data-tab="start"]').hidden) micDevices(); }, 8000); setTimeout(micDevices, 3500);
   $('autoMic').onchange = () => { s.autoMic = $('autoMic').checked; save(); ensureMic(); };
@@ -2365,8 +2406,8 @@
   const renderPos = () => { $('posGrid').innerHTML = POS.map(([v, a]) => `<button data-pos="${v}" aria-pressed="${s.position === v}" title="${esc($('position').querySelector(`option[value="${v}"]`).textContent)}">${a}</button>`).join(''); };
   $('posGrid').addEventListener('click', e => { const b = e.target.closest('[data-pos]'); if (!b) return; delete s.cardXY; $('position').value = b.dataset.pos; $('position').dispatchEvent(new Event('change')); setTimeout(renderPos, 50); });
   // gra obok postaci: trzy przyciski (pełna lista trybów w „Więcej opcji karty”)
-  const MODE_HINT = { 'fuse-half': 'Postać i gra po równo: kolory, czcionki i teksty z obu motywów.', off: 'Tylko motyw postaci – gra tylko z nazwy.', game: 'Na czas gry karta w całości w motywie gry.' };
-  const renderMode = () => { const m = s.gameThemes === false ? 'off' : (['game', 'off'].includes(s.gameMode) ? s.gameMode : 'fuse-half'); for (const b of $('modeSeg').children) b.setAttribute('aria-pressed', b.dataset.m === m); $('modeHint').textContent = MODE_HINT[m] || 'Tryb eksperymentalny (wybrany w „Więcej opcji karty”).'; };
+  const MODE_HINT = { 'fuse-half': 'Postać i gra po równo: kolory, czcionki i teksty z obu motywów.', 'fuse-game': 'Karta w czystym motywie gry, a postać wchodzi portretem, plakietką z imieniem i swoim kolorem – bez mieszania.', off: 'Tylko motyw postaci – gra tylko z nazwy.', game: 'Na czas gry karta w całości w motywie gry.' };
+  const renderMode = () => { const m = s.gameThemes === false ? 'off' : (['game', 'off', 'fuse-game'].includes(s.gameMode) ? s.gameMode : 'fuse-half'); for (const b of $('modeSeg').children) b.setAttribute('aria-pressed', b.dataset.m === m); $('modeHint').textContent = MODE_HINT[m] || 'Tryb eksperymentalny (wybrany w „Więcej opcji karty”).'; };
   $('modeSeg').addEventListener('click', e => { const b = e.target.closest('[data-m]'); if (!b) return; $('gameMode').value = b.dataset.m; $('gameMode').dispatchEvent(new Event('change')); setTimeout(renderMode, 50); });
   setTimeout(() => { renderPos(); renderMode(); }, 0);
   setInterval(() => { if (!document.querySelector('.tab[data-tab="look"]').hidden) { renderPos(); renderMode(); renderHosts(); } }, 2000);

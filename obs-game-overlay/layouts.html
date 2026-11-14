@@ -231,7 +231,9 @@
     let mode = s.avatarMode || 'art';
     // gra na pełnym ekranie: postać jest już wkomponowana w kartę „Teraz gram” – bez drugiego, dużego portretu
     if (mode === 'art' && layout === 'game-full' && !s.avatarIdle) mode = 'none';
-    const id = th ? th.id : 'neon';
+    // avatar to zawsze prowadząca postać – także gdy karta jest w samym motywie gry (wtedy th.id to gra)
+    const pd = th && (th.persona || (th.def && th.def.group === 'fursona' ? th.def : null));
+    const id = pd ? pd.id : String(s.theme || '').startsWith('g-') && window.OverlayGameThemes && OverlayGameThemes.byId(String(s.theme).slice(2)) && OverlayGameThemes.byId(String(s.theme).slice(2)).group === 'fursona' ? String(s.theme).slice(2) : (th ? th.id : 'neon');
     const key = mode + id + (s.avatarIdle || '') + (s.avatarTalk || '');
     document.body.classList.toggle('has-avatar', mode !== 'none');
     document.body.classList.toggle('no-avatar', mode === 'none');

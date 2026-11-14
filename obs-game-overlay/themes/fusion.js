@@ -4,7 +4,7 @@
                   naszyta na wierzch jak łatki: emblemat/logo gry, wstążka w kolorach gry, cząsteczki gry
     'fuse-half' – pół na pół (50:50, domyślny): wymieszane kolory, teksty po równo
     'fuse'      – [eksperymentalny] postać bazą, gra dodatkiem (66:33)
-    'fuse-game' – [eksperymentalny] gra bazą, postać dodatkiem (33:66): karta w motywie gry + portret/emblemat, kolor i głos postaci
+    'fuse-game' – „Gra + postać”: karta w czystym motywie gry, postać wchodzi portretem, plakietką z imieniem i swoim kolorem (bez mieszania)
     'game'      – motyw gry zastępuje styl
     'off'       – bez motywów gier
   Proporcja decyduje też, jak często mówi postać, a jak często gra (themes/voices.js → pickMix).
@@ -18,8 +18,9 @@
   function modeOf(settings) {
     if (settings.gameThemes === false) return 'off';
     // zostały trzy tryby: fuzja 50:50 (domyślny), sam motyw gry, sama postać; „Sąsiedzi” i eksperymenty 66:33 / 33:66 → fuzja 50:50
+    // cztery tryby: fuzja 50:50 (domyślny), gra + postać (karta gry, portret i kolor postaci), sam motyw gry, sama postać
     const m = settings.gameMode || 'fuse-half';
-    return ['game', 'off'].includes(m) ? m : 'fuse-half';
+    return ['game', 'off', 'fuse-game'].includes(m) ? m : 'fuse-half';
   }
 
   // r = { cls, def (styl karty), game (gra jako dodatek), persona (postać jako dodatek), mode, mix (udział gry w tekstach) }
@@ -141,6 +142,8 @@
       if (logo) { const im = new Image(); im.alt = ''; im.onload = () => { if (badge.dataset.id === gid) { badge.textContent = ''; badge.appendChild(im); badge.classList.add('logo'); } }; im.src = logo; }
     }
     const pid = r.persona ? r.persona.id : '';
+    // tryb „Gra + postać”: obok portretu plakietka z imieniem prowadzącego w jego kolorze
+    const pname = el('pname'); if (pname.dataset.id !== pid) { pname.dataset.id = pid; pname.textContent = r.persona ? r.persona.name : ''; }
     if (pbadge.dataset.id !== pid) {
       pbadge.dataset.id = pid;
       pbadge.innerHTML = !r.persona ? '' : PORTRAIT[pid] ? `<img src="${PORTRAIT[pid]}" alt="">` : (r.persona.emblem || '');
