@@ -714,7 +714,7 @@
   <div class="tab" data-tab="conn">
   <section data-feature="detect">
     <h2>Wykrywanie gier</h2>
-    <label>Źródło gry
+    <label hidden>Źródło gry
       <select id="mode">
         <option value="auto">Auto: wykryta gra, a jak nic nie gra – wpisana ręcznie</option>
         <option value="manual">Tylko ręcznie</option>
@@ -900,7 +900,9 @@
   const load = (k, fb) => { try { return JSON.parse(localStorage.getItem(k)) ?? fb; } catch { return fb; } };
   // v1.15: domyślna fuzja to 50:50; proporcje 66:33 / 33:66 są eksperymentalne (zostają tylko, jeśli ktoś wybrał je świadomie)
   // v1.45: zostały trzy tryby – „Sąsiedzi” i eksperymenty 66:33 / 33:66 przechodzą na fuzję 50:50
-  const migrate = st => { if (st.fuseV !== 4) { if (!['game', 'off'].includes(st.gameMode)) st.gameMode = 'fuse-half'; st.fuseV = 4; } return st; };
+  // źródło gry zawsze auto: „tylko wykryta” (dawne discord) i „tylko ręcznie” wracają do auto; wybór z „Co dziś?” to chwilowe nadpisanie (↺ auto)
+  const migrate0 = st => { if (st.mode === 'discord' || (st.mode === 'manual' && !st.game)) st.mode = 'auto'; return st; };
+  const migrate = st => { migrate0(st); if (st.fuseV !== 4) { if (!['game', 'off'].includes(st.gameMode)) st.gameMode = 'fuse-half'; st.fuseV = 4; } return st; };
   let s = { ...DEFAULTS, ...migrate(load(KEY, {})) };
   try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {}
   let history = load(HISTORY_KEY, []);
