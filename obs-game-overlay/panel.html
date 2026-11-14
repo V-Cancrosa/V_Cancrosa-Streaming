@@ -64,6 +64,7 @@
   .hostgrid button[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 22%, #1d2027); }
   .hostgrid button[aria-pressed="true"] .hp { border-color: var(--accent); box-shadow: 0 0 12px var(--accent); }
   .hostgrid.big { grid-template-columns: repeat(3, 1fr); } .hostgrid.big .hp { width: 78px; height: 78px; }
+  .layedit { padding: 0; z-index: 60; } .layedit iframe { width: 100%; height: 100%; border: 0; }
   .hostpick { position: fixed; inset: 0; z-index: 50; background: rgba(8,9,12,.92); display: grid; place-items: center; padding: 14px; }
   .hostbox { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 12px; } .hostbox h2 { text-align: center; font-size: 15px; color: #fff; letter-spacing: .06em; }
   .posgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; max-width: 220px; aspect-ratio: 16 / 9; padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: #101216; }
@@ -171,6 +172,7 @@
 <script src="themes/i18n.js"></script>
 <script src="themes/wordfilter.js"></script>
 <script src="themes/socials.js"></script>
+<script src="themes/layoutedit.js"></script>
 <script src="themes/chat.js"></script>
 <script src="themes/botcheck.js"></script>
 <script src="themes/testfeed.js"></script>
@@ -192,6 +194,7 @@
     <button class="pv-toggle" id="pvToggle" title="Zwiń / rozwiń podgląd" aria-pressed="true">▴</button>
   </nav>
   </div>
+  <div class="hostpick layedit" id="layEdit" hidden><iframe id="layEditFrame" title="Edytor ułożenia"></iframe></div>
   <div class="hostpick" id="hostPick" hidden>
     <div class="hostbox"><h2>Kto dziś prowadzi stream?</h2><div class="hostgrid big" id="hostGrid"></div>
     <button class="auto" id="hostKeep">Zostaw: <b id="hostCur"></b></button></div>
@@ -373,6 +376,7 @@
   <div class="tab" data-tab="look">
   <section>
     <h2>Wygląd</h2>
+    <button class="primary" id="layEditBtn" style="width:100%;margin-bottom:10px">✥ Edytor ułożenia – przesuń grę, avatara, czat…</button>
     <div class="sclabel">Kto prowadzi</div>
     <div class="hostgrid" id="personaGrid"></div>
     <div class="row">
@@ -851,6 +855,8 @@
   $('game').addEventListener('keydown', e => { if (e.key === 'Enter') setGame(); });
   $('subtitle').addEventListener('keydown', e => { if (e.key === 'Enter') setGame(); });
   $('cover').addEventListener('keydown', e => { if (e.key === 'Enter') setGame(); });
+  $('layEditBtn').onclick = () => { $('layEditFrame').src = 'editor.html?embed=1'; $('layEdit').hidden = false; };
+  window.addEventListener('message', e => { if (e.data === 'vm-editor-close') { $('layEdit').hidden = true; $('layEditFrame').src = 'about:blank'; capLast = ''; } });
   $('toggleBtn').onclick = () => { s.visible = !s.visible; save(); };
   $('timerBtn').onclick = () => { s.since = Date.now(); save(); };
   $('clearBtn').onclick = () => { s.game = ''; s.subtitle = ''; s.cover = ''; $('game').value = ''; $('subtitle').value = ''; $('cover').value = ''; save(); };
@@ -1352,8 +1358,9 @@
     const kind = s.captureKind === 'game' ? 'game_capture' : 'window_capture';
     // ramka gry zależy od układu czatu (pionowo z lewej → ramka po prawej; poziomo u góry → ramka niżej)
     const CL = window.OverlayChat && window.OverlayChat.layoutOf ? window.OverlayChat.layoutOf(s) : { dir: 'v', side: 'right' };
-    const fx0 = CL.dir === 'v' && CL.side === 'left' ? 440 : 40, fy0 = CL.dir === 'h' && CL.side === 'top' ? 70 : 40;
-    const key = kind + '|' + g.window + '|' + capTargets().join('|') + '|' + (s.captureExclude || []).join('|') + '|' + fx0 + ',' + fy0; if (key === capLast) return;
+    const own = window.VMLayout && VMLayout.custom(s, 'game-frame', CL);
+    const [fx0, fy0, fw, fh] = own ? own.game : [CL.dir === 'v' && CL.side === 'left' ? 440 : 40, CL.dir === 'h' && CL.side === 'top' ? 70 : 40, 1440, 810];
+    const key = kind + '|' + g.window + '|' + capTargets().join('|') + '|' + (s.captureExclude || []).join('|') + '|' + [fx0, fy0, fw, fh]; if (key === capLast) return;
     capBusy = true;
     try {
       const inputs = (await obs.call('GetInputList')).inputs || [];
@@ -1381,7 +1388,7 @@
         const kx = vs.baseWidth / 1920, ky = vs.baseHeight / 1080, fr = mode === 'frame';
         if (!have) await obs.call('SetSceneItemIndex', { sceneName: sc, sceneItemId: id, sceneItemIndex: 0 });    // na sam dół – pod nakładkami
         await obs.call('SetSceneItemTransform', { sceneName: sc, sceneItemId: id, sceneItemTransform: { positionX: fr ? fx0 * kx : 0, positionY: fr ? fy0 * ky : 0,
-          boundsType: 'OBS_BOUNDS_SCALE_INNER', boundsAlignment: 0, boundsWidth: fr ? 1440 * kx : vs.baseWidth, boundsHeight: fr ? 810 * ky : vs.baseHeight } });
+          boundsType: 'OBS_BOUNDS_SCALE_INNER', boundsAlignment: 0, boundsWidth: fr ? fw * kx : vs.baseWidth, boundsHeight: fr ? fh * ky : vs.baseHeight } });
       }
       await obs.call('SetInputSettings', { inputName: CAP_NAME, inputSettings: settings });
       capLast = key;

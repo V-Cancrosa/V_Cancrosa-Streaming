@@ -23,6 +23,7 @@
 <script src="themes/alertinfo.js"></script>
 <script src="themes/zones.js"></script>
 <script src="themes/chat.js"></script>
+<script src="themes/layoutedit.js"></script>
 <script src="themes/client.js"></script>
 <script src="themes/obsws.js"></script>
 <style>
@@ -206,6 +207,7 @@
   let th = null, avatarKey = '';
   // układ czatu z panelu: pionowo z lewej → ramka/rozmowa w lustrzanym odbiciu; poziomo u góry → ramka niżej
   function rects(s) {
+    const own = window.VMLayout && VMLayout.custom(s, layout); if (own) return { game: layout === 'game-frame' ? own.game : undefined, avatar: own.avatar };
     const L = chatLay(s), mirror = L.dir === 'v' && L.side === 'left', y = L.dir === 'h' && L.side === 'top' ? 70 : 40;
     if (layout === 'game-frame') return { game: [mirror ? 440 : 40, y, 1440, 810], avatar: [mirror ? 40 : 1510, y, 370, 370] };
     if (layout === 'talk') return { avatar: [mirror ? 1030 : 110, 150, 780, 780] };
@@ -278,6 +280,8 @@
     holes(s);
     renderAvatar(s);
     mountChat(s);
+    // własne ułożenie z edytora (inline style wygrywają z automatycznym CSS)
+    if (window.VMLayout) VMLayout.apply(s, layout, L, layout === 'game-frame' ? { game: 'gameFrame', avatar: 'avatar', chat: 'chat', bar: 'bar' } : layout === 'talk' ? { avatar: 'avatar', col: 'col' } : {});
     // pełny ekran: avatar stoi nad kartą „Teraz gram”, gdy karta jest w tym samym rogu; pasek czatu podnosi oba
     if (layout === 'game-full') {
       const tick = 0;
@@ -340,8 +344,9 @@
   }
   // gdzie alerts.html ma pokazać kartę, gdy ten układ jest na wizji
   if (window.VMZone) window.VMZone.announce(() => {
-    if (layout === 'game-full') return { mode: 'card', rect: [420, 24, 1080, 300] };
     if (alertsInChat()) return { mode: 'chat' };
+    const own = window.VMLayout && VMLayout.custom(C.settings(), layout); if (own && own.alerts) return { mode: 'card', rect: own.alerts };
+    if (layout === 'game-full') return { mode: 'card', rect: [420, 24, 1080, 300] };
     const L = chatLay(C.settings());
     // ramka + pasek czatu: na dole → alerty pod avatarem (prawa kolumna); u góry → alerty pod oknem gry (linki idą pod avatara)
     if (layout === 'game-frame' && L.dir === 'h') return L.side === 'top' ? { mode: 'card', rect: [40, 895, 1440, 170] } : { mode: 'card', rect: [1500, 440, 390, 540] };

@@ -172,6 +172,13 @@ Cały ciąg do gry dzieje się w **jednej scenie OBS `VM · Start streamu`** (pa
 
 Lista kontrolna na ekranie przygotowań (Scena, Dźwięk, Mikrofon, Czat, Alerty, Gra) pokazuje prawdziwe wyniki szybkiego testu panelu, a nie odhacza punktów na czas.
 
+## Edytor ułożenia
+
+Wygląd → **✥ Edytor ułożenia** (albo `editor.html` w przeglądarce). Na podglądzie prawdziwej sceny przeciągasz okno gry, avatara, czat, pasek z linkami i strefę alertów. Elementy przyciągają się do siatki 10 px, krawędzi i środka ekranu oraz do siebie nawzajem (różowe linie). Róg zmienia rozmiar: gra trzyma 16:9, avatar kwadrat, a z Shiftem proporcje są dowolne. Strzałki przesuwają o 1 px.
+
+- Zmiany zapisują się od razu, a scena w OBS układa się na bieżąco. Panel przestawia też przechwytywanie gry w OBS pod nowe okno.
+- Każdy układ czatu (pionowy, poziomy) ma osobne ułożenie. *Wszystko automatycznie* wraca do układu liczonego samodzielnie.
+
 ## Fuzje szyte na miarę
 
 Niektóre pary postać + gra mają zamiast ogólnych „sąsiadów” własny pomysł (`themes/combos.js`). Działa to w trybie *Sąsiedzi*. Na razie Townscaper:
