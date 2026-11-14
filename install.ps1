@@ -400,10 +400,13 @@ function New-Link([string]$path, [string]$target, [string]$dir, [string]$desc, [
 }
 $det = Join-Path $InstallDir 'detector'
 New-Link (Join-Path $menu 'Wykrywacz gier.lnk') (Join-Path $det 'start-detector.bat') $det 'Wykrywa grę, łączy z Twitchem i pilnuje aktualizacji'
+# start streamu jednym kliknięciem: GameRadar w tle, a po nim OBS
+$sh2 = New-Object -ComObject WScript.Shell; $l2 = $sh2.CreateShortcut((Join-Path $menu 'Start streamu.lnk'))
+$l2.TargetPath = "$env:WINDIR\System32\wscript.exe"; $l2.Arguments = '"' + (Join-Path $det 'start-stream.vbs') + '"'; $l2.WorkingDirectory = $det; $l2.Description = 'GameRadar w tle, a potem OBS'; $l2.Save()
 New-Link (Join-Path $menu 'Aktualizuj Vincent-Media.lnk') (Join-Path $InstallDir 'update.bat') $InstallDir 'Sprawdź i zainstaluj aktualizacje nakładek'
 New-Link (Join-Path $menu 'Folder Vincent-Media.lnk') $InstallDir $InstallDir 'Pliki nakładek'
 New-Link (Join-Path $menu 'Włącz pilota z telefonu.lnk') (Join-Path $det 'enable-remote.bat') $det 'Sterowanie nakładkami z telefonu w sieci domowej'
-Say 'Menu Start → Vincent-Media: Wykrywacz gier, Aktualizuj, Folder, Włącz pilota z telefonu.' 'Green'
+Say 'Menu Start → Vincent-Media: Start streamu, Wykrywacz gier, Aktualizuj, Folder, Włącz pilota z telefonu.' 'Green'
 
 Step 'Pilot z telefonu'
 Say 'Panel można otwierać na telefonie w domowej sieci Wi‑Fi (zmiana gry, ekrany przerw, alerty testowe).' 'Gray'

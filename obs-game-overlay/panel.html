@@ -80,6 +80,18 @@
   .mk .lbtn { padding: 6px 8px 8px; } .mk .lbtn button { padding: 4px 8px; font-size: 11.5px; }
   .mkflags { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 8px 8px; } .mkflags button { padding: 3px 8px; font-size: 11px; border-radius: 999px; }
   .mkflags button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .launch { display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: 10px; background: color-mix(in srgb, var(--accent) 8%, #14161b); border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line)); }
+  .lbl2 { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .tab[data-tab="more"] > section { border-radius: 12px; }
+  .tab[data-tab="more"] > section > h2 .ic { margin-right: 4px; filter: saturate(1.2); }
+  .tab[data-tab="more"] .term:not(.small) { height: 180px; }
+  .tab[data-tab="more"] .row button { white-space: normal; flex: 1 1 auto; }
+  html[data-bp="lg"] .tab[data-tab="more"]:not([hidden]), html[data-bp="xl"] .tab[data-tab="more"]:not([hidden]) { display: block; column-gap: 10px; }
+  html[data-bp="lg"] .tab[data-tab="more"]:not([hidden]) { columns: 2; }
+  html[data-bp="xl"] .tab[data-tab="more"]:not([hidden]) { columns: 3; }
+  html[data-bp="lg"] .tab[data-tab="more"] > section, html[data-bp="xl"] .tab[data-tab="more"] > section { break-inside: avoid; margin: 0 0 10px; display: flex; flex-direction: column; }
+  html[data-bp="lg"] .tab[data-tab="more"] > section.shut > :not(h2), html[data-bp="xl"] .tab[data-tab="more"] > section.shut > :not(h2) { display: revert !important; }
+  html[data-bp="lg"] .tab[data-tab="more"] > section.shut > [hidden], html[data-bp="xl"] .tab[data-tab="more"] > section.shut > [hidden] { display: none !important; }
   .layedit { padding: 0; z-index: 60; } .layclose { position: absolute; right: 10px; top: 10px; z-index: 2; } .layedit iframe { width: 100%; height: 100%; border: 0; }
   .hostpick { position: fixed; inset: 0; z-index: 50; background: rgba(8,9,12,.92); display: grid; place-items: center; padding: 14px; }
   .hostbox { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 12px; } .hostbox h2 { text-align: center; font-size: 15px; color: #fff; letter-spacing: .06em; }
@@ -697,6 +709,12 @@
         <button id="lcAddBtn" class="auto">Dodaj jako grę</button>
       </div>
     </div>
+    <div class="launch">
+      <div class="lbl2">Start streamu</div>
+      <label class="check"><input id="launchObs" type="checkbox"> uruchamiaj OBS razem z GameRadarem</label>
+      <div class="row" style="gap:6px;flex-wrap:wrap"><button id="lnkMake">🖥 Skrót „Start streamu” na pulpicie</button><button id="grRestart">↻ Uruchom GameRadar ponownie</button></div>
+      <p class="hint" id="launchInfo" style="margin:0"></p>
+    </div>
     <details>
       <summary>Adres wykrywacza</summary>
       <input id="localUrl" type="text" placeholder="http://localhost:7777">
@@ -1015,6 +1033,33 @@
   document.querySelector('.tabs button[data-tab="make"]').addEventListener('click', () => setTimeout(() => renderPages(true), 60));
   window.addEventListener('storage', e => { if (e.key === PAGES_KEY) renderPages(); });
   setInterval(() => renderPages(), 3000);
+  // start streamu: GameRadar → OBS
+  async function launch(q) {
+    try {
+      const j = await (await fetch(hubUrl() + '/launch' + (q ? '?' + q : ''), { cache: 'no-store' })).json();
+      if (j.obs === undefined) { $('launchInfo').textContent = 'GameRadar działa w starszej wersji – uruchom go ponownie (przycisk wyżej albo restart komputera).'; return; }
+      $('launchObs').checked = !!j.obs;
+      $('launchInfo').textContent = [j.msg, j.obsPath ? 'OBS: ' + j.obsPath.split('\\').slice(-4).join('\\') : 'nie widzę OBS Studio na tym komputerze', j.shortcut ? 'skrót na pulpicie: jest' : '', j.version ? 'GameRadar ' + j.version : ''].filter(Boolean).join(' · ');
+      $('lnkMake').textContent = j.shortcut ? '🖥 Skrót „Start streamu” ✓ (utwórz ponownie)' : '🖥 Skrót „Start streamu” na pulpicie';
+    } catch { $('launchInfo').textContent = 'GameRadar nie odpowiada.'; }
+  }
+  $('launchObs').onchange = () => launch('obs=' + ($('launchObs').checked ? 1 : 0));
+  $('lnkMake').onclick = async () => { try { const j = await (await fetch(hubUrl() + '/shortcut', { cache: 'no-store' })).json(); $('launchInfo').textContent = j.ok ? 'Skrót „Start streamu” jest na pulpicie: uruchamia GameRadar w tle, a potem OBS.' : (j.error || 'GameRadar w starszej wersji – uruchom go ponownie.'); if (j.ok) vmPulse($('lnkMake')); } catch { $('launchInfo').textContent = 'GameRadar nie odpowiada.'; } setTimeout(() => launch(''), 1500); };
+  $('grRestart').onclick = async () => {
+    try { const r = await fetch(hubUrl() + '/restart', { cache: 'no-store' }); const j = await r.json().catch(() => ({})); $('launchInfo').textContent = j.ok ? 'Uruchamiam GameRadar ponownie… za kilka sekund wróci.' : r.status === 404 || j.ok === undefined ? 'Ta wersja GameRadara nie umie się sama zrestartować – zrób to raz: Menedżer zadań → Windows PowerShell → Zakończ, potem Menu Start → Vincent-Media → Wykrywacz gier.' : j.error; }
+    catch { $('launchInfo').textContent = 'GameRadar nie odpowiada.'; }
+  };
+  setTimeout(() => launch(''), 1200);
+  // porządek sekcji w „Więcej”: najpierw stan połączeń, potem start i pilot, na końcu podgląd, wykrywanie i wersja
+  // (po złożeniu zakładek – sekcje z „Połączeń” i „Ustawień” trafiają do „Więcej” chwilę później)
+  setTimeout(() => {
+    const more = document.querySelector('.tab[data-tab="more"]'); if (!more) return;
+    const IC = { GameRadar: '📡', 'OBS (WebSocket)': '🎥', Twitch: '💜', 'Pilot z telefonu': '🎛', 'GameRadar – podgląd na żywo': '🖥', 'Wykrywanie gier': '🎮', Wersja: '⬆' };
+    const name = sec => { const h = sec.querySelector(':scope > h2'); const t = h && [...h.childNodes].find(n => n.nodeType === 3 && n.textContent.trim()); return t ? t.textContent.trim() : ''; };
+    const secs = [...more.querySelectorAll(':scope > section')];
+    for (const n of Object.keys(IC)) { const sec = secs.find(x => name(x) === n); if (!sec) continue; more.appendChild(sec); const h = sec.querySelector(':scope > h2'); if (!h.querySelector('.ic')) h.insertAdjacentHTML('afterbegin', `<span class="ic">${IC[n]}</span>`); }
+    for (const sec of secs) if (sec.hasAttribute('data-gone') || !Object.keys(IC).includes(name(sec))) more.appendChild(sec);
+  }, 0);
   $('dirOpen').onclick = async () => { const b = $('dirOpen'); try { const j = await (await fetch(hubUrl() + '/folder/open', { cache: 'no-store' })).json(); b.textContent = j.ok ? '✓ otwarte' : '✗ ' + (j.error || j.msg || ''); } catch { b.textContent = '✗ GameRadar nie odpowiada'; } setTimeout(() => b.textContent = '📂 Otwórz folder Vincent-Media', 3000); };
   // pilot z telefonu przez przekaźnik: GameRadar trzyma losowy klucz (temat ntfy.sh), strona pilota na GitHub Pages wysyła na niego polecenia
   const PILOT_PAGE = 'https://v-cancrosa.github.io/Vincent-Media/obs-game-overlay/site/pilot.html';
@@ -1022,6 +1067,7 @@
   async function relay(q) {
     try {
       const j = await (await fetch(hubUrl() + '/relay' + (q ? '?' + q : ''), { cache: 'no-store' })).json();
+      if (j.on === undefined) { $('rlStatus').textContent = 'GameRadar działa jeszcze w starszej wersji (bez pilota). Kliknij „↻ Uruchom GameRadar ponownie” w sekcji GameRadar – albo zrobi to sam, gdy nie trwa transmisja ani nagrywanie.'; return; }
       pill('rlPill', j.on, 'WŁ.', 'WYŁ.');
       $('rlOn').hidden = j.on; $('rlOff').hidden = !j.on; $('rlNew').hidden = !j.on; $('rlBox').hidden = !j.on;
       $('rlStatus').textContent = j.on ? (j.last ? 'Ostatnie polecenie z telefonu: ' + j.last : 'Czekam na polecenia z telefonu.') : '';
@@ -1596,7 +1642,7 @@
     $('detStartMsg').hidden = false;
     $('detStartMsg').textContent = 'Uruchamiam… Jeśli po kilku sekundach nadal nie działa: Menu Start → Vincent-Media → Wykrywacz gier (albo uruchom instalator jeszcze raz i zgódź się na „uruchamianie z OBS”).';
   };
-  $('stStatus').addEventListener('click', e => { const d = e.target.closest('[data-goto]'); if (!d) return; openGroup(d.dataset.goto === 'twPill' ? 'Twitch' : d.dataset.goto === 'obsPill' ? 'OBS' : 'Lokalny wykrywacz'); });
+  $('stStatus').addEventListener('click', e => { const d = e.target.closest('[data-goto]'); if (!d) return; openGroup(d.dataset.goto === 'twPill' ? 'Twitch' : d.dataset.goto === 'obsPill' ? 'OBS' : 'GameRadar'); });
   let capLast = '', capBusy = false;
   const CAP_NAME = 'VM · Gra (automatycznie)';
   const CAP_SCENES = { 'VM · Gra – pełny ekran': 'full', 'VM · Gra – w ramce': 'frame', 'VM · Stream': 'stream' };
@@ -2538,7 +2584,7 @@
     chat: [['Na ekranie', ['Czat na ekranie']], ['Moderacja', ['Napisz na czat (test)', 'Słowa zakazane', 'Cenzura ekranu', 'Podejrzane konta']], ['Statystyki', ['Statystyki streamów']], ['Nagrywanie', ['Nagrywanie']]],
   };
   // Więcej: zamiast podzakładek jedna strona ze zwijanymi grupami (kliknięcie nagłówka rozwija)
-  const ACC_OPEN = ['Wykrywacz – podgląd na żywo'];
+  const ACC_OPEN = ['GameRadar – podgląd na żywo', 'GameRadar'];
   function initAcc() {
     for (const sec of document.querySelectorAll('.tab[data-tab="more"] > section')) {
       if (sec.classList.contains('acc')) continue;
@@ -2552,7 +2598,7 @@
   }
   const SUB_KEY = 'obsGameOverlay.panelSub';
   const subState = (() => { try { return JSON.parse(localStorage.getItem(SUB_KEY)) || {}; } catch { return {}; } })();
-  const h2name = sec => { const h = sec.querySelector(':scope > h2'); return h ? h.firstChild.textContent.trim() : ''; };
+  const h2name = sec => { const h = sec.querySelector(':scope > h2'); const t = h && [...h.childNodes].find(n => n.nodeType === 3 && n.textContent.trim()); return t ? t.textContent.trim() : ''; };
   for (const tab of document.querySelectorAll('.tab')) {
     const def = SUBS[tab.dataset.tab]; if (!def) continue;
     const nav = document.createElement('nav'); nav.className = 'subtabs'; nav.setAttribute('role', 'tablist');

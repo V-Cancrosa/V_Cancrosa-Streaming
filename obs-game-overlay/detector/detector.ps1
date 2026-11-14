@@ -15,8 +15,22 @@ param(
     [double]$Interval = 3,
     [int]$DbMaxAgeDays = 7,
     [switch]$Hidden,          # uruchomiony bez okna (start-detector-hidden.bat)
-    [int]$WaitStart = 0       # po aktualizacji: poczekaj, aż poprzednia wersja zwolni port
+    [int]$WaitStart = 0,      # po aktualizacji: poczekaj, aż poprzednia wersja zwolni port
+    [switch]$StartObs         # start streamu jednym kliknięciem: GameRadar, a zaraz po nim OBS (start-stream.vbs)
 )
+# OBS z rejestru albo z typowych folderów; uruchamiany z własnego folderu (inaczej OBS nie znajdzie swoich plików)
+function Find-Obs {
+    foreach ($k in 'HKLM:\SOFTWARE\OBS Studio', 'HKLM:\SOFTWARE\WOW6432Node\OBS Studio') {
+        try { $d = (Get-ItemProperty $k -ErrorAction Stop).'(default)'; if ($d) { $e = Join-Path $d 'bin\64bit\obs64.exe'; if (Test-Path $e) { return $e } } } catch {}
+    }
+    foreach ($d in @("$env:ProgramFiles\obs-studio", "${env:ProgramFiles(x86)}\obs-studio")) { $e = Join-Path $d 'bin\64bit\obs64.exe'; if (Test-Path $e) { return $e } }
+    return ''
+}
+function Start-Obs {
+    if (Get-Process -Name obs64, obs32 -ErrorAction SilentlyContinue) { return 'OBS już działa' }
+    $e = Find-Obs; if (-not $e) { return 'nie znalazłem OBS (zainstaluj OBS Studio)' }
+    Start-Process -FilePath $e -WorkingDirectory (Split-Path $e); return 'uruchamiam OBS'
+}
 if ($WaitStart -gt 0) { Start-Sleep -Seconds $WaitStart }
 # jedna kopia naraz: gdy wykrywacz już działa, kolejne uruchomienie (np. z panelu w OBS) od razu się kończy.
 # Po aktualizacji nowa wersja czeka, aż stara się zamknie.
@@ -39,7 +53,7 @@ function Stop-StaleDetector {
     return $true
 }
 if (-not $gotMutex) {
-    if (-not (Stop-StaleDetector)) { exit 0 }      # działa już poprawna kopia
+    if (-not (Stop-StaleDetector)) { if ($StartObs) { [void](Start-Obs) }; exit 0 }      # działa już poprawna kopia (ze skrótu «Start streamu» – tylko OBS)
     try { $gotMutex = $script:Mutex.WaitOne([TimeSpan]::FromSeconds(5)) } catch [Threading.AbandonedMutexException] { $gotMutex = $true }
     if (-not $gotMutex) { exit 0 }
 }
@@ -876,7 +890,7 @@ function Get-VoteStatus {
         }
     }
     return [pscustomobject]@{ id = $v.id; active = $v.active; a = $v.a; b = $v.b; va = $va; vb = $vb; winner = $v.winner
-        endsIn = [int][Math]::Max(0, ($v.ends - (Get-Date)).TotalSeconds) }
+        endsIn = [int][Math]::Min([double]86400, [Math]::Max([double]0, ($v.ends - (Get-Date)).TotalSeconds)) }
 }
 function Add-Vote([string]$login, [string]$text) {
     $v = $script:Vote; if (-not $v.active) { return }
@@ -1014,7 +1028,7 @@ function Get-AccountAgeDays($rec, [string]$userId) {
         } catch {}
     }
     if (-not $rec.created) { return -1 }
-    try { return [Math]::Max(0, ((Get-Date).ToUniversalTime() - [datetime]::Parse($rec.created).ToUniversalTime()).TotalDays) } catch { return -1 }
+    try { return [Math]::Max([double]0, ((Get-Date).ToUniversalTime() - [datetime]::Parse($rec.created).ToUniversalTime()).TotalDays) } catch { return -1 }
 }
 
 # ocena wiadomości: świeże konto, link w pierwszej wiadomości, typowe teksty botów i «fajnie grasz», gdy nikt nie gra
@@ -1559,7 +1573,7 @@ function Test-Live { return ((Get-Date) -lt $script:Live.until) -and ($script:Li
 function Get-UpdateStatus {
     $live = Test-Live
     return [pscustomobject]@{
-        nextIn = [int][Math]::Max(0, ($script:UP.nextCheck - (Get-Date)).TotalSeconds); everyMin = 10
+        nextIn = [int][Math]::Min([double]86400, [Math]::Max([double]0, ($script:UP.nextCheck - (Get-Date)).TotalSeconds)); everyMin = 10
         paused = [bool]$live; pausedWhy = $(if (-not $live) { '' } elseif ($script:Live.stream -and $script:Live.rec) { 'transmisja i nagrywanie' } elseif ($script:Live.stream) { 'transmisja' } else { 'nagrywanie' })
         pending = [bool]$script:RestartPending
         installed = $script:AppVersion; latest = $script:UP.latest; notes = $script:UP.notes; auto = $script:UP.auto
@@ -2050,6 +2064,29 @@ function Invoke-Request($ctx) {
                 Log ("Automatyczne aktualizacje: " + $(if ($script:UP.auto) { 'włączone' } else { 'wyłączone' }))
                 Send-Json $ctx (Get-UpdateStatus)
             }
+            '/launch' {
+                if ($q.ContainsKey('obs')) { $script:LaunchObs = $q['obs'] -eq '1'; [IO.File]::WriteAllText($LaunchFile, (@{ obs = $script:LaunchObs } | ConvertTo-Json), $Utf8NoBom); Log ("OBS razem z GameRadarem: " + $(if ($script:LaunchObs) { 'tak' } else { 'nie' })) }
+                $msg = ''; if ($q['start'] -eq '1') { $msg = Start-Obs; Log "Panel: $msg" }
+                $lnk = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Start streamu.lnk'
+                Send-Json $ctx ([pscustomobject]@{ ok = $true; obs = $script:LaunchObs; obsPath = (Find-Obs); shortcut = (Test-Path $lnk); msg = $msg; version = $script:AppVersion })
+            }
+            '/shortcut' {
+                # skrót «Start streamu» na pulpicie (tylko po kliknięciu w panelu): GameRadar w tle, a po nim OBS
+                try {
+                    $vbs = Join-Path $Root 'start-stream.vbs'; $lnk = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Start streamu.lnk'
+                    $sh = New-Object -ComObject WScript.Shell; $l = $sh.CreateShortcut($lnk)
+                    $l.TargetPath = "$env:WINDIR\System32\wscript.exe"; $l.Arguments = '"' + $vbs + '"'; $l.WorkingDirectory = $Root
+                    $o = Find-Obs; if ($o) { $l.IconLocation = "$o,0" }
+                    $l.Description = 'Vincent-Media: GameRadar w tle, a potem OBS'; $l.Save()
+                    Log 'Utworzono skrót «Start streamu» na pulpicie' 'Green'
+                    Send-Json $ctx @{ ok = $true }
+                } catch { Send-Json $ctx @{ ok = $false; error = $_.Exception.Message } }
+            }
+            '/restart' {
+                # ponowne uruchomienie (np. żeby wczytać nową wersję) – nigdy w trakcie transmisji i nagrywania
+                if (Test-Live) { Send-Json $ctx @{ ok = $false; error = 'trwa transmisja albo nagrywanie – uruchomię się ponownie po zakończeniu' }; $script:RestartPending = $true; return }
+                Send-Json $ctx @{ ok = $true }; Log 'Panel: uruchamiam GameRadar ponownie' 'Cyan'; $script:RestartPending = $true
+            }
             '/folder/open' {
                 # folder z instalacją Vincent-Media w Eksploratorze (tam są pliki nakładek, GameRadar i dziennik)
                 try { Start-Process explorer.exe -ArgumentList ('"' + (Split-Path $AppDir -Parent) + '"'); Send-Json $ctx @{ ok = $true } } catch { Send-Json $ctx @{ ok = $false; error = $_.Exception.Message } }
@@ -2260,6 +2297,10 @@ catch {
     }
 }
 Log "Nasłuchuję na http://localhost:$Port/" 'Green'
+# OBS razem z GameRadarem: ze skrótu «Start streamu» albo gdy włączone w panelu (GameRadar → «Uruchamiaj OBS»)
+$LaunchFile = Join-Path $DataDir 'launch.json'
+$script:LaunchObs = $false; try { $script:LaunchObs = [bool]((Get-Content $LaunchFile -Raw -Encoding UTF8) | ConvertFrom-Json).obs } catch {}
+if ($StartObs -or $script:LaunchObs) { try { Log ('Start streamu: ' + (Start-Obs)) 'Green' } catch { Log "Nie udało się uruchomić OBS: $($_.Exception.Message)" 'Yellow' } }
 if ($script:LanMode) {
     foreach ($ip in Get-LanAddresses) { Log "Pilot z telefonu: http://${ip}:$Port/ui/panel.html?key=$($script:RemoteKey)" 'Cyan' }
 } else {

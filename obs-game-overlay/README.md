@@ -88,6 +88,14 @@ Instalator można uruchomić ponownie, np. po zmianie kolekcji scen. Nie tworzy 
 
 Usuń sceny `VM · …` i dok w OBS, folder `%LOCALAPPDATA%\Vincent-Media`, folder *Vincent-Media* w menu Start i skrót *Vincent-Media wykrywacz* w autostarcie (`Win+R` → `shell:startup`).
 
+## Start streamu jednym kliknięciem
+
+**Start streamu** to skrót w Menu Start → Vincent-Media. Na pulpicie tworzysz go przyciskiem w panelu: Więcej → GameRadar → *Skrót „Start streamu” na pulpicie*. Skrót uruchamia GameRadar w tle, bez okna, a zaraz po nim OBS. Gdy GameRadar już działa, włącza tylko OBS.
+
+Zaznacz **„uruchamiaj OBS razem z GameRadarem”** i ustaw w instalatorze autostart GameRadara z Windowsem. Wtedy po włączeniu komputera wszystko startuje samo: najpierw GameRadar, potem OBS. Panel w OBS łączy się z oboma, a pierwsze 45 s pokazuje „łączę…”.
+
+**↻ Uruchom GameRadar ponownie** wczytuje nową wersję od razu, bez czekania. W trakcie transmisji i nagrywania GameRadar zrestartuje się dopiero po zakończeniu.
+
 ## Pilot z telefonu (przekaźnik)
 
 Więcej → **Pilot z telefonu** → **Włącz pilota**. Panel pokaże kod QR. Skanujesz go telefonem i dostajesz stronę `site/pilot.html` z dużymi przyciskami:
