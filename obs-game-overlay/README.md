@@ -160,6 +160,16 @@ Nazwy z tego pliku mają pierwszeństwo przed bazą Discorda, więc możesz w ni
 Jeśli wpiszesz ręcznie tę samą nazwę co wykryta gra, Twój podtytuł i okładka mają pierwszeństwo.
 Licznik czasu przy wykrytej grze liczy od uruchomienia gry, przy wpisanej ręcznie – od chwili jej ustawienia.
 
+## Start streamu jako jeden ciąg
+
+**Przygotowania → Stream za… → Zaraz zaczynamy (→ spóźnienie) → Głosowanie → Gra**. Na karcie Start łańcuch pokazuje, gdzie jesteś, a przycisk **Dalej** (albo `!vm dalej` z czatu) przechodzi do następnego kroku:
+- **start transmisji w OBS** sam przechodzi z przygotowań dalej: na „Stream za…”, jeśli w Ekranach jest termin w przyszłości, w przeciwnym razie na „Zaraz zaczynamy” z odliczaniem;
+- **koniec odliczania** bez przejścia dalej sam zmienia ekran w „Spóźnienie”;
+- **Dalej** uruchamia głosowanie, a bez gry albo bez Twitcha od razu przechodzi do gry;
+- **wynik głosowania** ustawia motyw i po 8 sekundach przełącza na grę.
+
+Pojedyncze przyciski scen zostają do ręcznego przeskoku.
+
 ## Fuzje szyte na miarę
 
 Niektóre pary postać + gra mają zamiast ogólnych „sąsiadów” własny pomysł (`themes/combos.js`). Działa to w trybie *Sąsiedzi*. Na razie Townscaper:

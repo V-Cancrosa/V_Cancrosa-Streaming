@@ -79,6 +79,13 @@
   .term { background: #07080a; border: 1px solid #23262e; border-radius: 6px; padding: 8px 10px; height: 220px; overflow-y: auto; font: 12px/1.45 'Cascadia Mono', Consolas, 'JetBrains Mono', monospace; color: #c8ccd4; display: flex; flex-direction: column; }
   .term.small { height: auto; gap: 2px; color: #7dff9a; }
   .term .l-Green { color: #5ee08a; } .term .l-Red { color: #ff6b6b; } .term .l-Yellow, .term .l-DarkYellow { color: #ffd166; } .term .l-Cyan { color: #5ad6ff; } .term .l-DarkCyan { color: #3fa7c9; } .term .l-DarkGray, .term .tdim { color: #6b7080; } .term .l-Magenta { color: #ff7ae0; }
+  .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 2px; font-size: 11.5px; }
+  .flow span { padding: 4px 8px; border-radius: 999px; border: 1px solid var(--line); background: #1d2027; color: var(--muted); white-space: nowrap; }
+  .flow span.done { color: #cfd3dc; border-color: color-mix(in srgb, var(--ok) 50%, var(--line)); }
+  .flow span.now { color: #fff; background: #e91916; border-color: #e91916; font-weight: 700; }
+  .flow span.branch { font-style: italic; }
+  .flow i { font-style: normal; color: var(--muted); }
+  #flowNext { width: 100%; padding: 10px; font-weight: 800; }
   .lgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 5px; }
   .lsec + .lsec { margin-top: 8px; }
   .lib { display: block !important; padding: 0 !important; border-radius: 8px; overflow: hidden; }
@@ -226,6 +233,8 @@
   </section>
   <section>
     <h2>Sceny</h2>
+    <div class="flow" id="flow"></div>
+    <div class="row"><button class="primary" id="flowNext">Dalej ▶</button></div>
     <div id="stScenes"></div>
     <p class="hint" style="margin:0">Jedyne miejsce do zmiany scen: ekrany VM i Twoje sceny z OBS (z przejściem). Odliczanie i napisy ekranów – Sterowanie → Ekrany.</p>
   </section>
@@ -692,7 +701,7 @@
   <section data-feature="twitch">
     <h2>Pilot z telefonu – przez czat Twitcha</h2>
     <p class="hint" style="margin:0">Bez Wi‑Fi i bez otwierania portów: napisz na swoim czacie (np. z aplikacji Twitch na telefonie) – działa tylko z Twojego konta, a polecenie nie pojawia się na ekranie.</p>
-    <div class="term small"><span>!vm przerwa · !vm start · !vm koniec · !vm przygotowania · !vm spoznienie</span><span>!vm gra · !vm ramka · !vm rozmowa</span><span>!vm scena &lt;nazwa sceny OBS&gt;</span><span>!vm gra &lt;nazwa gry z listy&gt; · !vm auto</span><span>!vm ukryj · !vm pokaz · !vm test</span></div>
+    <div class="term small"><span>!vm przerwa · !vm start · !vm koniec · !vm przygotowania · !vm spoznienie</span><span>!vm gra · !vm ramka · !vm rozmowa</span><span>!vm scena &lt;nazwa sceny OBS&gt;</span><span>!vm gra &lt;nazwa gry z listy&gt; · !vm auto</span><span>!vm ukryj · !vm pokaz · !vm test</span><span>!vm dalej – następny krok startu streamu</span></div>
     <div class="status" id="ctlStatus"></div>
   </section>
 
@@ -1095,6 +1104,7 @@
       // nagrywanie razem ze streamem: start po starcie streama, stop po końcu (jeśli włączone)
       onOutput: async (t, d) => {
         if (t === 'RecordStateChanged') { obsRecStatus(); return; }
+        if (t === 'StreamStateChanged' && d.outputState === 'OBS_WEBSOCKET_OUTPUT_STARTED' && window.vmFlowStreamStarted) window.vmFlowStreamStarted();
         if (!s.autoRecord || !obs) return;
         try {
           const rec = await obs.call('GetRecordStatus');
@@ -1919,6 +1929,7 @@
       s.game = it ? prettyName(it.name) : arg; s.gameSteam = it && it.steam || ''; s.gameId = it ? it.id : ''; s.gameKind = it ? it.kind || '' : ''; s.gameExe = it ? it.exe || '' : ''; capLast = ''; s.mode = 'manual'; s.since = Date.now(); s.visible = true; save(); return say('gra: ' + s.game);
     }
     if (k === 'auto') { s.mode = 'auto'; save(); return say('wykrywanie automatyczne'); }
+    if (k === 'dalej' || k === 'next') { $('flowNext').click(); return say('następny krok startu'); }
     if (k === 'ukryj' || k === 'pokaz') { s.visible = k === 'pokaz'; save(); return say(k === 'pokaz' ? 'karta widoczna' : 'karta ukryta'); }
     if (k === 'test') { runTest('follow', 0); return say('test alertu'); }
     const target = k === 'scena' ? obsSceneList.find(n => plain(n) === plain(arg)) || obsSceneList.find(n => plain(n).includes(plain(arg))) : SCENE_CMD[k];
@@ -1974,7 +1985,9 @@
       if (v.id === voteId && !v.active && v.winner) {
         voteId = null;
         s.gameMode = v.winner === 'a' ? 'off' : 'game'; s.gameThemes = v.winner !== 'a'; save();
-        $('capStatus').textContent = `Wynik głosowania: prowadzi ${v.winner === 'a' ? v.a : v.b} (${v.va}:${v.vb}). Motyw ustawiony.`;
+        $('capStatus').textContent = `Wynik głosowania: prowadzi ${v.winner === 'a' ? v.a : v.b} (${v.va}:${v.vb}). Motyw ustawiony – za chwilę gra.`;
+        // ciąg startu: po 8 s pokazywania wyniku – na grę
+        if (s.flowAuto !== false) setTimeout(() => { if (obsCurrent === VOTE_SCENE) flowGo('game'); }, 8000);
       }
     } catch {}
   }, 2000);
@@ -1993,6 +2006,49 @@
     } catch {}
   }
   setInterval(audPoll, 20000); document.querySelector('.tabs button[data-tab="chat"]').addEventListener('click', () => setTimeout(audPoll, 100));
+
+
+  // --- start streamu jako ciąg: Przygotowania → Stream za… → Zaraz zaczynamy (→ Spóźnienie) → Głosowanie → Gra ---
+  // Start transmisji w OBS sam przechodzi dalej, koniec odliczania zmienia ekran w „Spóźnienie”,
+  // „Dalej” (albo !vm dalej) uruchamia głosowanie, a jego wynik sam przełącza na grę.
+  const FLOW = [['prep', 'Przygotowania'], ['soon', 'Stream za…'], ['start', 'Zaraz zaczynamy'], ['vote', 'Głosowanie'], ['game', 'Gra']];
+  function flowNow() {
+    if (obsCurrent === VOTE_SCENE || (voteId != null)) return 'vote';
+    if (/^VM · (Gra|Rozmowa)/.test(obsCurrent) || (obsCurrent && obsCurrent.indexOf('VM · ') !== 0)) return 'game';
+    const k = s.scene === 'late' ? 'start' : s.scene;
+    return ['prep', 'soon', 'start'].includes(k) ? k : 'prep';
+  }
+  const late = () => s.scene === 'late' || (s.scene === 'start' && s.sceneUntil && s.sceneUntil < Date.now());
+  function renderFlow() {
+    const now = flowNow(), idx = FLOW.findIndex(f => f[0] === now);
+    $('flow').innerHTML = FLOW.map(([k, n], i) => `<span class="${i < idx ? 'done' : i === idx ? 'now' : ''}">${esc(n)}</span>` + (k === 'start' ? `<i>→</i><span class="branch ${late() ? 'now' : ''}">spóźnienie?</span>` : '') + (i < FLOW.length - 1 ? '<i>→</i>' : '')).join('');
+    const nx = flowNextStep(now);
+    $('flowNext').textContent = nx ? `Dalej: ${nx[1]} ▶` : 'Stream trwa – sceny niżej';
+    $('flowNext').disabled = !nx;
+  }
+  function flowNextStep(now) {
+    if (now === 'prep') return s.sceneAt && s.sceneAt > Date.now() ? FLOW[1] : FLOW[2];
+    if (now === 'soon') return FLOW[2];
+    if (now === 'start') return FLOW[3];
+    if (now === 'vote') return FLOW[4];
+    return null;
+  }
+  function flowGo(step) {
+    const scr = k => { const b = document.querySelector(`#sceneBtns button[data-s="${k}"]`); if (b) b.click(); };
+    if (step === 'soon') scr('soon');
+    else if (step === 'start') { if (!(s.sceneUntil > Date.now())) { const m = parseFloat(String($('sceneMin').value).replace(',', '.')) || 5; s.sceneUntil = Date.now() + Math.round(m * 60000); save(); } scr('start'); }
+    else if (step === 'vote') {
+      const persona = String(s.theme || '').startsWith('g-'), det = load(DETECTED_KEY, null) || {};
+      const game = (s.mode === 'manual' && s.game) || (det.local && det.local.game && det.local.game.name) || s.game;
+      if (persona && game && feats().twitch !== false) startVote(); else flowGo('game');   // bez gry albo bez Twitcha – od razu gra
+    } else if (step === 'game') { const sc = 'VM · Gra – pełny ekran'; if (obs) goScene('game', () => obs.setSceneCut(sc).catch(() => {})); }
+    setTimeout(renderFlow, 1200);
+  }
+  $('flowNext').onclick = () => { const nx = flowNextStep(flowNow()); if (nx) flowGo(nx[0]); };
+  window.vmFlowNext = () => $('flowNext').click();
+  setInterval(() => { if (!document.querySelector('.tab[data-tab="start"]').hidden) renderFlow(); }, 1500);
+  // start transmisji w OBS: z przygotowań od razu dalej
+  window.vmFlowStreamStarted = () => { if (s.flowAuto !== false && flowNow() === 'prep') flowGo(flowNextStep('prep')[0]); };
 
   // --- czat na ekranie, moderacja, statystyki, nagrywanie ---
   document.querySelectorAll('[data-ct]').forEach(b => b.onclick = () => runTest(b.dataset.ct, 0));
