@@ -701,7 +701,8 @@
       <button class="auto" id="upCheck">Sprawdź aktualizacje</button>
       <button class="primary auto" id="upRun" hidden>Aktualizuj teraz</button>
     </div>
-    <label class="check"><input id="upAuto" type="checkbox"> aktualizuj automatycznie (co 6 godzin, gdy działa wykrywacz)</label>
+    <label class="check"><input id="upAuto" type="checkbox"> aktualizuj automatycznie – sprawdzanie co 10 minut, wstrzymane w trakcie transmisji i nagrywania</label>
+    <div class="term small" id="upTimer">—</div>
   </section>
   <section>
     <h2>Link bez panelu</h2>
@@ -1081,6 +1082,17 @@
       }
     });
   }
+  // transmisja / nagrywanie → meldunek dla wykrywacza (wstrzymuje aktualizacje i restart) i dla nakładek (bez przeładowania)
+  async function liveBeat() {
+    if (!obs || isRemote) return;
+    try {
+      const st = await obs.call('GetStreamStatus'), rc = await obs.call('GetRecordStatus');
+      const L = { stream: !!st.outputActive, rec: !!rc.outputActive, at: Date.now() };
+      localStorage.setItem('obsGameOverlay.live', JSON.stringify(L));
+      if (s.local) fetch(hubUrl() + '/live?stream=' + (L.stream ? 1 : 0) + '&rec=' + (L.rec ? 1 : 0), { cache: 'no-store' }).catch(() => {});
+    } catch {}
+  }
+  setInterval(liveBeat, 5000);
   async function obsRecStatus() {
     try { const r = await obs.call('GetRecordStatus'); pill('recPill', r.outputActive, 'NAGRYWA ' + (r.outputTimecode || '').slice(0, 8), 'NIE NAGRYWA'); } catch {}
   }
@@ -2134,9 +2146,19 @@
     setStatus($('upStatus'), parts);
   }
   async function upPoll() {
-    try { upState = await hub('/update/status'); if (window.vmCheckVersion) window.vmCheckVersion(upState.installed); } catch { upState = null; }
-    upRender(); setTimeout(upPoll, 60000);
+    try { upState = await hub('/update/status'); upAt = Date.now(); if (window.vmCheckVersion) window.vmCheckVersion(upState.installed); } catch { upState = null; }
+    upRender(); setTimeout(upPoll, 15000);
   }
+  // licznik do następnego sprawdzenia (co sekundę, z ostatniego stanu wykrywacza)
+  let upAt = 0;
+  setInterval(() => {
+    const st = upState, el = $('upTimer'); if (!el) return;
+    if (!st) { el.textContent = 'wykrywacz nie działa – aktualizacje czekają'; return; }
+    if (!st.auto) { el.textContent = 'automatyczne aktualizacje wyłączone'; return; }
+    if (st.paused) { el.textContent = `⏸ wstrzymane – trwa ${st.pausedWhy}. Sprawdzę i zaktualizuję zaraz po zakończeniu.` + (st.pending ? ' (nowa wersja czeka na restart)' : ''); return; }
+    const left = Math.max(0, (st.nextIn || 0) - Math.round((Date.now() - upAt) / 1000));
+    el.textContent = left > 0 ? `następne sprawdzenie za ${String(Math.floor(left / 60)).padStart(2, '0')}:${String(left % 60).padStart(2, '0')}` : 'sprawdzam…';
+  }, 1000);
   $('upCheck').onclick = async () => { upRender('sprawdzam…'); try { upState = await hub('/update/check'); upRender(); } catch { upState = null; upRender('Uruchom wykrywacz, żeby sprawdzić aktualizacje.'); } };
   $('upRun').onclick = async () => {
     upRender('pobieram…');

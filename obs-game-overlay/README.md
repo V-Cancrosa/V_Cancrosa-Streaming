@@ -79,7 +79,7 @@ Instalator można uruchomić ponownie, np. po zmianie kolekcji scen. Nie tworzy 
 
 ### Aktualizacje
 
-- Gdy działa wykrywacz, co 6 godzin sprawdza na GitHubie, czy jest nowa wersja. Jeśli jest, podmienia zmienione pliki i uruchamia się od nowa. Nakładki i panel w OBS same się odświeżają.
+- Gdy działa wykrywacz, co 10 minut sprawdza na GitHubie, czy jest nowa wersja. Jeśli jest, podmienia zmienione pliki i uruchamia się od nowa. Nakładki i panel w OBS same się odświeżają. **W trakcie transmisji albo nagrywania nic się nie aktualizuje ani nie restartuje** (panel w OBS melduje to wykrywaczowi). Aktualizacja odbywa się zaraz po zakończeniu. Odliczanie do następnego sprawdzenia widać w *Więcej → Wersja*.
 - Twoje dane zostają: logowanie Twitcha, baza gier i `my-games.txt`. Ustawienia panelu są w OBS, więc aktualizacja ich nie rusza.
 - W panelu, w sekcji **Wersja**, widać zainstalowaną wersję, jest przycisk *Sprawdź aktualizacje* / *Aktualizuj teraz* i można wyłączyć automatyczne aktualizacje.
 - Ręcznie: *Menu Start → Vincent-Media → Aktualizuj* (albo `update.bat` w folderze nakładek).

@@ -93,6 +93,13 @@ try {
     if (-not $Force -and -not (Test-VMNewer ([string]$remote.version) $local)) {
         Write-Host '  Masz najnowszą wersję.' -ForegroundColor Green
     } else {
+        # trwa transmisja albo nagrywanie? (wie o tym wykrywacz od panelu w OBS) – wtedy tylko za wyraźną zgodą
+        $live = $null
+        try { $live = Invoke-RestMethod -UseBasicParsing -TimeoutSec 3 -Uri 'http://localhost:7777/update/status' } catch {}
+        if ($live -and $live.paused) {
+            Write-Host "  Uwaga: trwa $($live.pausedWhy). Wykrywacz sam zaktualizuje wszystko zaraz po zakończeniu." -ForegroundColor Yellow
+            if ($Quiet -or (Read-Host '  Zaktualizować mimo to teraz? [t/N]') -notmatch '^[tTyY]') { Write-Host '  Pominięto.'; if (-not $Quiet) { Read-Host '  Enter = zamknij' }; exit 0 }
+        }
         $n = Install-VMFiles $dir
         Write-Host "  Zaktualizowano do $($remote.version) – podmienione pliki: $n." -ForegroundColor Green
         if ($remote.notes) { Write-Host "  Co nowego: $($remote.notes)" }

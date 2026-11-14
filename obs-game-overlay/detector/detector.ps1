@@ -1426,8 +1426,15 @@ $script:UP = [pscustomobject]@{
 if (Test-Path $UpdateCfg) { try { $script:UP.auto = [bool]((Get-Content $UpdateCfg -Raw) | ConvertFrom-Json).auto } catch {} }
 $script:RestartPending = $false
 
+# transmisja albo nagrywanie (panel w OBS melduje co kilka sekund): wtedy żadnej instalacji ani restartu – dopiero po zakończeniu
+$script:Live = [pscustomobject]@{ stream = $false; rec = $false; until = [DateTime]::MinValue }
+function Test-Live { return ((Get-Date) -lt $script:Live.until) -and ($script:Live.stream -or $script:Live.rec) }
 function Get-UpdateStatus {
+    $live = Test-Live
     return [pscustomobject]@{
+        nextIn = [int][Math]::Max(0, ($script:UP.nextCheck - (Get-Date)).TotalSeconds); everyMin = 10
+        paused = [bool]$live; pausedWhy = $(if (-not $live) { '' } elseif ($script:Live.stream -and $script:Live.rec) { 'transmisja i nagrywanie' } elseif ($script:Live.stream) { 'transmisja' } else { 'nagrywanie' })
+        pending = [bool]$script:RestartPending
         installed = $script:AppVersion; latest = $script:UP.latest; notes = $script:UP.notes; auto = $script:UP.auto
         error = $script:UP.error; canUpdate = $script:CanUpdate
         lastCheck = $(if ($script:UP.lastCheck) { $script:UP.lastCheck.ToString('HH:mm') } else { '' })
@@ -1464,6 +1471,7 @@ function Update-Updater {
         if (Test-Path $RestartFlag) { Remove-Item $RestartFlag -Force -ErrorAction SilentlyContinue; $script:RestartPending = $true }
     }
     if ($script:UP.auto -and $now -ge $script:UP.nextCheck) {
+        if (Test-Live) { $script:UP.nextCheck = $now.AddSeconds(30); return }   # na żywo: czekamy, sprawdzimy zaraz po zakończeniu
         $script:UP.nextCheck = $now.AddMinutes(10)      # automatyczna aktualizacja: sprawdzenie co 10 minut
         Invoke-UpdateCheck -Install
     }
@@ -1745,7 +1753,13 @@ function Invoke-Request($ctx) {
             }
             '/update/status' { Send-Json $ctx (Get-UpdateStatus) }
             '/update/check' { Invoke-UpdateCheck; Send-Json $ctx (Get-UpdateStatus) }
+            '/live' {
+                $script:Live.stream = ([string]$q['stream']) -eq '1'; $script:Live.rec = ([string]$q['rec']) -eq '1'
+                $script:Live.until = (Get-Date).AddSeconds(30)
+                Send-Json $ctx @{ ok = $true; live = (Test-Live) }
+            }
             '/update/run' {
+                if (Test-Live) { $script:UP.error = 'trwa transmisja albo nagrywanie – aktualizacja zaczeka do końca'; Send-Json $ctx ([pscustomobject]@{ ok = $false; restarting = $false; status = (Get-UpdateStatus) }); return }
                 Invoke-UpdateCheck -Install
                 $st = Get-UpdateStatus
                 Send-Json $ctx ([pscustomobject]@{ ok = -not $st.error; restarting = $script:RestartPending; status = $st })
@@ -1966,12 +1980,12 @@ try {
             $next = [DateTime]::Now.AddSeconds($Interval)
         }
         try { Update-Updater } catch { Log "Aktualizacja: $($_.Exception.Message)" 'DarkYellow' }
-        if ($script:RestartPending) { Restart-Detector }
+        if ($script:RestartPending -and -not (Test-Live)) { Restart-Detector }   # restart (nowa wersja) nigdy w trakcie transmisji/nagrywania
         try { Update-Archive } catch {}
         try { Update-Twitch } catch { Log "Twitch: $($_.Exception.Message)" 'Red'; Stop-TwitchSocket; $script:TW.reconnectAt = (Get-Date).AddSeconds(20) }
         if ($task.Wait(200)) {
             Invoke-Request $task.Result
-            if ($script:RestartPending) { Restart-Detector }
+            if ($script:RestartPending -and -not (Test-Live)) { Restart-Detector }
             $task = $listener.GetContextAsync()
         }
     }

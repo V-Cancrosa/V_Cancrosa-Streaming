@@ -1,8 +1,10 @@
 // Wersja plików nakładki. Nakładki porównują ją z wersją zgłaszaną przez wykrywacz
 // i same się odświeżają, gdy wykrywacz zainstalował aktualizację.
-window.VM_VERSION = '1.23.4';
+window.VM_VERSION = '1.23.5';
 window.vmCheckVersion = function (v) {
   if (!v || v === window.VM_VERSION) return;
+  // w trakcie transmisji albo nagrywania nakładki się nie przeładowują – zrobią to po zakończeniu
+  try { var L = JSON.parse(localStorage.getItem('obsGameOverlay.live') || 'null'); if (L && Date.now() - L.at < 20000 && (L.stream || L.rec)) return; } catch (e) {}
   try { if (sessionStorage.getItem('vmReloadedFor') === v) return; sessionStorage.setItem('vmReloadedFor', v); } catch (e) {}
   setTimeout(function () { location.reload(); }, 1500);
 };
