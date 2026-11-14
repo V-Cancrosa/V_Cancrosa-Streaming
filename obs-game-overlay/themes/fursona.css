@@ -243,3 +243,49 @@
 .theme-g-myr.side-r #card { padding: 16px 70px 16px 40px; }
 .side-r .fm-head { left: auto; right: -34px; }
 .face-flip .fm-head { scale: -1 1; }
+
+/* ============================================================ karta u góry ekranu i na środku
+   Góra (vt): postać pod górną krawędzią karty; to, co by wystawało, siedzi w dobudowanym okienku (L) w stylu karty.
+   Ozdoby postaci (ramka, polaroid, głowa, tabliczka, latarnia) przechodzą pod kartę.
+   Środek (side-c): postać i ozdoby symetrycznie na środku – nad kartą (dół ekranu) albo pod nią w okienku (T). */
+.f-theme.pos-tl #stage, .f-theme.pos-tc #stage, .f-theme.pos-tr #stage { padding-top: 40px; }
+#popbox { display: none; position: absolute; z-index: 2; pointer-events: none; box-sizing: border-box; }
+.vt.has-pop #popbox { display: block; top: calc(100% - 4px); width: 206px; height: 116px; border-top-width: 0 !important; border-top-left-radius: 0 !important; border-top-right-radius: 0 !important; }
+.vt.side-l.has-pop #popbox { left: 0; } .vt.side-r.has-pop #popbox { right: 0; }
+.vt.has-pop #pop { bottom: auto; top: 8px; height: calc(100% + 98px); clip-path: inset(0 -200px 4px -200px); }
+.vt.has-pop #pop img { bottom: 0; }
+/* środek, dół ekranu: postać wygląda zza górnej krawędzi karty, na środku */
+.side-c.has-pop #pop { left: 50%; right: auto; transform: translateX(-50%); }
+.vb.side-c.has-pop #pop { bottom: calc(100% - 50px); height: 200px; clip-path: none; z-index: 0; }
+.vb.side-c.has-pop #card { position: relative; z-index: 1; }
+/* środek, góra ekranu: okienko w kształcie T pod środkiem karty */
+.vt.side-c.has-pop #popbox { left: 50%; transform: translateX(-50%); top: calc(100% - 12px); width: 214px; height: 184px; border-top-width: 0 !important; border-radius: 0 0 18px 18px !important; }
+.vt.side-c.has-pop #pop { top: calc(100% - 4px); height: 168px; clip-path: inset(0 -100px 6px -100px); }
+.side-c.has-pop .fr-eq { left: auto; right: 26px; transform: none; top: auto; bottom: 16px; height: 44px; }
+
+/* ozdoby pod kartą, gdy karta jest u góry */
+.vt .fv-frame { top: auto; bottom: -34px; } .vt .fv-dim { bottom: auto; top: -22px; }
+.vt .fc-polaroid { top: auto; bottom: -40px; } .vt .fc-bell { bottom: auto; top: -46px; transform: rotate(180deg); }
+.vt .fm-head { top: auto; bottom: -74px; }
+.vt .fz-plate { top: auto; bottom: -54px; } .vt .fz-fan { top: auto; bottom: -30px; }
+.vt .ft-lantern { top: auto; bottom: -58px; }
+.vt.has-pop .fr-eq { top: auto; bottom: -34px; }
+.vt.fuse-patch #gbadge { top: auto; bottom: -58px; border-radius: 0 0 10px 10px; border-width: 0 3px 3px; }
+.vt.fuse-patch #gbadge.logo { top: auto; bottom: -64px; }
+.vt.fuse-patch #fusebar { bottom: auto; top: -8px; border-radius: 4px 4px 0 0; }
+
+/* środek: ozdoby postaci symetrycznie nad (dół) albo pod (góra) środkiem karty */
+.side-c .fv-frame { left: 50%; right: auto; margin-left: -64px; top: -152px; }
+.vt.side-c .fv-frame { top: auto; bottom: -152px; }
+.theme-g-vince.side-c #card { padding: 18px 40px 26px; } .side-c .fv-dual { left: 20px; width: calc(100% - 40px); }
+.side-c .fc-polaroid { right: auto; left: 50%; margin-left: -68px; top: -176px; }
+.vt.side-c .fc-polaroid { top: auto; bottom: -186px; }
+.theme-g-chip.side-c #card { padding: 16px; }
+.side-c .fm-head { left: 50%; right: auto; margin-left: -66px; top: -104px; }
+.vt.side-c .fm-head { top: auto; bottom: -104px; }
+.theme-g-myr.side-c #card { padding: 16px 40px; }
+.side-c .fz-plate { right: auto; left: 50%; margin-left: -75px; top: -76px; }
+.vt.side-c .fz-plate { top: auto; bottom: -76px; }
+/* Toro: ceglany pasek dołu karty kończy się przy okienku z postacią (nie przecina jej) */
+.vt.side-l.has-pop.theme-g-toro #card::after { left: 206px; }
+.vt.side-r.has-pop.theme-g-toro #card::after { right: 206px; }

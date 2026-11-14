@@ -135,7 +135,7 @@
       id: 'toro', name: 'Toro', group: 'fursona', match: [],
       accent: ['#ffc864', '#5aa63f'],
       label: '灯籠 · teraz gram',
-      side: 'l', face: 'right', pop: IMG('toro'),
+      side: 'l', face: 'left', pop: IMG('toro'),
       // kamienna latarnia tōrō z migoczącym światłem
       emblem: svg(70, 110, `
         <defs><radialGradient id="ftg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#ffe9a8"/><stop offset=".5" stop-color="#ffc864" stop-opacity=".55"/><stop offset="1" stop-color="#ffc864" stop-opacity="0"/></radialGradient></defs>

@@ -37,7 +37,7 @@
   #ticker.vchat { top: 110px; bottom: 110px; left: auto; right: 30px; width: 440px; display: flex; }
   #ticker.vchat.vs-left { left: 30px; right: auto; }
   .pos-bl #ticker.vchat.vs-left, .pos-br #ticker.vchat.vs-right { bottom: 300px; }
-  .pos-tl #ticker.vchat.vs-left, .pos-tr #ticker.vchat.vs-right { top: 300px; }
+  .pos-tl #ticker.vchat.vs-left, .pos-tr #ticker.vchat.vs-right { top: 360px; }   /* pod kartą i jej ozdobami (okienko L, głowa Myr) */
 </style>
 </head>
 <body class="theme-neon pos-bl">
@@ -54,6 +54,7 @@
       </div>
     </div>
     <div id="emblem" aria-hidden="true"></div>
+    <div id="popbox" aria-hidden="true"></div>
     <div id="pop" aria-hidden="true"></div>
   </div>
 </div>
@@ -304,12 +305,13 @@
     const reduced = settings.motion === 'reduced';
     // postać: po stronie rogu, w którym stoi karta, i patrzy do środka ekranu (themes/fursona.js → side, face)
     const pd = th.persona || (def && def.group === 'fursona' ? def : null);
-    const pos = String(settings.position || 'bl'), side = pos[1] === 'l' ? 'l' : pos[1] === 'r' ? 'r' : (pd && pd.side) || 'l';
-    const flip = pd && pd.face && pd.face !== (side === 'l' ? 'right' : 'left');
+    // środek (góra/dół) – postać symetrycznie na środku; vt = karta u góry ekranu (postać i ozdoby idą pod kartę)
+    const pos = String(settings.position || 'bl'), side = pos[1] === 'l' ? 'l' : pos[1] === 'r' ? 'r' : 'c', vt = pos[0] === 't';
+    const flip = side !== 'c' && pd && pd.face && pd.face !== (side === 'l' ? 'right' : 'left');
     const popSrc = pd && pd.pop && !th.persona ? pd.pop : '';
     // tk-top (pasek czatu u góry) ustawia mountTicker – nie gubić go przy odświeżeniu stylu
     const keepTop = document.body.classList.contains('tk-top');
-    document.body.className = (keepTop ? 'tk-top ' : '') + `theme-${th.cls} pos-${settings.position} side-${side}` + (flip ? ' face-flip' : '') + (popSrc ? ' has-pop' : '') + (GT.bodyClasses ? GT.bodyClasses(th) : '') +
+    document.body.className = (keepTop ? 'tk-top ' : '') + `theme-${th.cls} pos-${settings.position} side-${side} ${vt ? 'vt' : 'vb'}` + (flip ? ' face-flip' : '') + (popSrc ? ' has-pop' : '') + (GT.bodyClasses ? GT.bodyClasses(th) : '') +
       (reduced ? ' reduced-motion' : '') + (settings.icon ? '' : ' no-icon') + (settings.showLabel ? '' : ' no-label');
     const key = th.cls + '|' + (th.game ? th.game.id : '') + '|' + (th.persona ? th.persona.id : '') + '|' + th.mode + '|' + (th.variant || '');
     if (emblemFor !== key) {
@@ -321,6 +323,13 @@
     }
     const popEl = $('pop');
     if (popEl.dataset.src !== popSrc) { popEl.dataset.src = popSrc; popEl.innerHTML = popSrc ? `<img src="${popSrc}" alt="">` : ''; }
+    // dobudowane okienko (L albo T) w tym samym stylu co karta – tło, ramka, zaokrąglenie skopiowane z karty
+    requestAnimationFrame(() => {
+      const box = $('popbox'), cs = getComputedStyle($('card'));
+      for (const k of ['backgroundColor', 'backgroundImage', 'backgroundSize', 'borderTopColor', 'borderTopStyle', 'borderTopWidth', 'borderRadius', 'boxShadow'])
+        box.style[k] = cs[k];
+      box.style.borderColor = cs.borderTopColor; box.style.borderStyle = cs.borderTopStyle; box.style.borderWidth = cs.borderTopWidth;
+    });
     // logo gry (Steam – z pamięci Steama na tym komputerze przez wykrywacz, inaczej z CDN Steama) na naszywce
     th.logo = g && g.steam && settings.local !== false && settings.gameLogo !== false ? window.vmHub(settings.localUrl) + '/art?id=' + encodeURIComponent(g.steam) + '&k=logo' : '';
     if (GT.applyFusion) GT.applyFusion(wrap, th);
