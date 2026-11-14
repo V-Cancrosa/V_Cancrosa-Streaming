@@ -50,12 +50,19 @@
     async function refreshScenes() {
       try { const r = await request('GetSceneList'); opts.onScenes && opts.onScenes(r.scenes.map(s => s.sceneName).reverse(), r.currentProgramSceneName); } catch (e) {}
     }
+    // mikrofon do „mówienia”: wybrany w panelu, a bez tego – ten mikrofon z OBS, który naprawdę nadaje
+    // (najpierw globalny Mic/Aux, potem «VM · Mikrofon», potem pierwszy mikrofon; martwy wybór zmienia się sam)
+    const fixedMic = !!opts.mic, kinds = {};
+    let micSeen = 0;
     async function pickMic() {
-      if (mic) return;
       try {
         const r = await request('GetInputList');
-        const m = r.inputs.find(i => MIC_KINDS.includes(i.inputKind)) || r.inputs.find(i => /mic|mikro|wej[sś]cie|input/i.test(i.inputName));
-        if (m) mic = m.inputName;
+        for (const i of r.inputs) kinds[i.inputName] = i.inputKind;
+        if (mic) return;
+        let sp = {}; try { sp = await request('GetSpecialInputs'); } catch (e) {}
+        const mics = r.inputs.filter(i => MIC_KINDS.includes(i.inputKind)).map(i => i.inputName);
+        mic = (sp.mic1 && mics.includes(sp.mic1) ? sp.mic1 : '') || mics.find(n => n === 'VM · Mikrofon') || mics[0] ||
+          ((r.inputs.find(i => /mic|mikro|wej[sś]cie|input/i.test(i.inputName)) || {}).inputName) || '';
       } catch (e) {}
     }
     function open() {
@@ -78,12 +85,16 @@
         } else if (m.op === 5) {
           const t = m.d.eventType, data = m.d.eventData;
           if (t === 'InputVolumeMeters') {
+            const now0 = Date.now();
             for (const inp of data.inputs) {
-              if (mic && inp.inputName !== mic) continue;
               let peak = 0; for (const ch of inp.inputLevelsMul || []) peak = Math.max(peak, ch[1] || 0);
               const db = peak > 0 ? 20 * Math.log10(peak) : -100;
-              if (opts.onLevel) opts.onLevel(db, inp.inputName);
-              if (!mic) continue;
+              const isMic = MIC_KINDS.includes(kinds[inp.inputName]);
+              if (opts.onLevel && (isMic || inp.inputName === mic)) opts.onLevel(db, inp.inputName, isMic);
+              if (inp.inputName === mic) { micSeen = now0; }
+              // wybrany automatycznie mikrofon milczy w OBS (nieaktywny), a inny mikrofon nadaje – przełącz na ten, który gra
+              else if (!fixedMic && isMic && db > -60 && now0 - micSeen > 3000) { mic = inp.inputName; micSeen = now0; }
+              if (inp.inputName !== mic) continue;
               const now = Date.now();
               if (db > (opts.threshold ?? -38)) lastLoud = now;
               const next = now - lastLoud < 280;

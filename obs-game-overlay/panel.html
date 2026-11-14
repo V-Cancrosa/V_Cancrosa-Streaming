@@ -755,7 +755,7 @@
     <h2>OBS (WebSocket) <span id="obsPill" class="pill off">…</span></h2>
     <div class="status" id="obsStatus" hidden>Łączę…</div>
     <label>Mikrofon – avatar ożywa, gdy mówisz
-      <select id="obsMic"><option value="">automatycznie (pierwsze wejście audio)</option></select>
+      <select id="obsMic"><option value="">automatycznie (mikrofon, który gra)</option></select>
     </label>
     <div class="lbl2">Kiedy avatar „mówi” <span id="thrVal" class="hint"></span></div>
     <div class="seg3" id="thrSeg">
@@ -1486,9 +1486,10 @@
       ...cfg, mic: s.obsMic || '', threshold: s.micThreshold ?? -38,
       onStatus: (t, ok) => { pill('obsPill', ok, 'POŁĄCZONO', 'BRAK'); setStatus($('obsStatus'), [t + (ok ? '' : '. Uruchom OBS albo włącz WebSocket (instalator robi to sam).')]); },
       onScenes: obsRenderScenes,
-      onLevel: (db, name) => {
-        if (!obsMics.has(name)) { obsMics.add(name); const o = document.createElement('option'); o.value = o.textContent = name; $('obsMic').appendChild(o); $('obsMic').value = s.obsMic || ''; }
-        if (!s.obsMic || name === s.obsMic) obsLevel = db;
+      onLevel: (db, name, isMic) => {
+        // na liście tylko mikrofony; pasek pokazuje wybrany albo najgłośniejszy z mikrofonów
+        if (isMic && !obsMics.has(name)) { obsMics.add(name); const o = document.createElement('option'); o.value = o.textContent = name; $('obsMic').appendChild(o); $('obsMic').value = s.obsMic || ''; }
+        if (s.obsMic ? name === s.obsMic : isMic) obsLevel = Math.max(obsLevel, db);
       },
       onTalking: t => { obsTalk = t; },
       onReady: () => { wrapCut(); setTimeout(syncSourceBase, 800); obsRecStatus(); setTimeout(ensureMic, 1500); setTimeout(readStreamDelay, 1000); },
