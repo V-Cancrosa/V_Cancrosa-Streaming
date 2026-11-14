@@ -585,6 +585,15 @@ Po otwarciu OBS karta Start od razu pokazuje to, co już działa. Wykrywacz, OBS
 
 Soundtracki, artbooki, *Bonus Content*, DLC, season passy, serwery dedykowane, SDK, narzędzia do modów i biblioteki (Redistributable, Proton, Steamworks) nie trafiają na listę „Co dziś?”. Gra ze Steama musi mieć w swoim folderze plik `.exe`, więc np. ścieżka dźwiękowa w `steamapps\music` odpada sama.
 
+## Panel w wąskim i szerokim doku
+
+Progi szerokości są w jednym miejscu: `themes/bp.js` ustawia `html[data-bp]` na `sm`, `md`, `lg` albo `xl`, a CSS panelu tylko z tego korzysta.
+- **sm** (< 420 px): zakładki przewijają się w bok i nic się nie zgniata.
+- **md** (420–759 px): jak dotąd.
+- **lg** (760–1199 px) i **xl** (≥ 1200 px): ustawienia układają się w 2 albo 3 kolumny, a podgląd stoi obok zakładek.
+
+Rozciągnięty albo odpięty dok w OBS przestaje więc być jedną długą kolumną. Pomysł pochodzi z pena „Responsive Grid with @custom-media” (CodePen): aliasy zapytań o szerokość definiuje się raz. Przeglądarki nie znają jeszcze `@custom-media`, a projekt nie ma kroku budowania (PostCSS), dlatego alias ustawia mały skrypt.
+
 ## Ruch i animacje
 
 Panel, edytor ułożenia, czat i karta trzymają się wspólnych zasad ruchu (`themes/motion.css`):

@@ -175,6 +175,19 @@
   details[open] summary { margin-bottom: 8px; }
 </style>
 <link rel="stylesheet" href="themes/motion.css">
+<script src="themes/bp.js"></script>
+<style>
+  /* progi szerokości z themes/bp.js (jedno miejsce): wąski dok → zakładki przewijane; szeroki → kolumny */
+  html[data-bp="sm"] .tabs { grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: max-content; overflow-x: auto; scrollbar-width: none; }
+  html[data-bp="sm"] .tabs button { padding: 8px 10px; }
+  html[data-bp="sm"] .hostgrid { grid-template-columns: repeat(3, 1fr); }
+  html[data-bp="lg"] main, html[data-bp="xl"] main { max-width: none; }
+  html[data-bp="lg"] .tab:not([hidden]) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+  html[data-bp="xl"] .tab:not([hidden]) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; }
+  html[data-bp="lg"] .sticky-top, html[data-bp="xl"] .sticky-top { flex-direction: row; align-items: flex-end; }
+  html[data-bp="lg"] .sticky-top .preview-sec, html[data-bp="xl"] .sticky-top .preview-sec { width: 360px; flex: none; }
+  html[data-bp="lg"] .sticky-top .tabs, html[data-bp="xl"] .sticky-top .tabs { flex: 1; }
+</style>
 <script src="version.js"></script>
 <script src="themes/games.js"></script>
 <script src="themes/fursona.js"></script>
@@ -820,7 +833,7 @@
     m.style.width = b.offsetWidth + 'px'; m.style.height = b.offsetHeight + 'px'; m.style.transform = `translate(${b.offsetLeft}px, ${b.offsetTop}px)`;
     m.parentElement.classList.add('marked');
   }
-  window.addEventListener('resize', () => markTab());
+  window.addEventListener('resize', () => markTab()); window.addEventListener('vm-bp', () => setTimeout(markTab, 50));
   if (new URLSearchParams(location.search).get('slow') === '1') document.documentElement.style.setProperty('--k', 4);
   function save() {
     try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {}
