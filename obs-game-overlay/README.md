@@ -520,6 +520,24 @@ file:///C:/OBS/obs-game-overlay/overlay.html?panel=0&game=Elden%20Ring&theme=esp
 
 Z `panel=0` możesz zrobić kilka źródeł z różnymi stałymi ustawieniami. Bez `panel=0` ustawienia z panelu nadpisują te z adresu.
 
+## Ruch i animacje
+
+Panel, edytor ułożenia, czat i karta trzymają się wspólnych zasad ruchu (`themes/motion.css`):
+- wejście ease-out ok. 250 ms, wyjście o 20% krótsze i ease-in;
+- przycisk przy wciśnięciu zmniejsza się do 0,97;
+- treść zakładki i rozwijanej grupy wchodzi z rozłożeniem co 30 ms;
+- okienka zaczynają od skali 0,95;
+- wybraną zakładkę pokazuje jeden znacznik, który przesuwa się między przyciskami;
+- udane kopiowanie i zapis potwierdza krótki puls;
+- w edytorze element wyciągnięty za krawędź ekranu stawia opór jak guma, zamiast stanąć w miejscu;
+- wiadomości czatu nie odbijają się (bez sprężyny), bo to codzienny element.
+
+`panel.html?slow=1` albo `editor.html?slow=1` zwalnia wszystko 4×, żeby obejrzeć krzywe.
+
+Źródło i podziękowania:
+- pen **„20 UI Animation Rules”** autorstwa [web-strategist](https://codepen.io/web-strategist/pen/XJMOdGw), CodePen, licencja MIT;
+- zasady według artykułu [Pixic Studio – UI animation best practices: 20 rules](https://pixicstudio.medium.com/ui-animation-best-practices-20-rules-e855e845f7e5).
+
 ## Wskazówki
 
 - Nakładka ma przezroczyste tło, więc nie trzeba dodawać żadnego CSS w ustawieniach źródła.
