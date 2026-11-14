@@ -654,6 +654,21 @@ file:///C:/OBS/obs-game-overlay/overlay.html?panel=0&game=Elden%20Ring&theme=esp
 
 Z `panel=0` możesz zrobić kilka źródeł z różnymi stałymi ustawieniami. Bez `panel=0` ustawienia z panelu nadpisują te z adresu.
 
+## Panel 1.45: porządki
+
+- **Start → Teraz.** Gdy wszystko działa, widać jedną zieloną belkę. Lista pokazuje się przy uruchamianiu albo przy kłopocie i zawiera cztery najważniejsze rzeczy: **GameRadar, OBS, Twitch, Przechwytywanie gry**. Reszta (wersja, lista gier, sceny, mikrofon, cenzura, nakładki) pojawia się tylko wtedy, gdy coś z nią nie gra, albo po kliknięciu belki. Kafelki stanu i sekcja „Automatyka” zniknęły: przechwytywanie gry i mikrofon zawsze działają same.
+- **Mikrofon.** Pod listą jest wybór urządzenia, które nagrywa OBS i na które reaguje avatar. Jeśli OBS ma ustawiony „domyślny w Windows”, a w komputerze jest dokładnie jeden mikrofon USB (np. DGM20 USB Microphone), panel raz sam przełącza na niego.
+- **Wersje.** Jeśli GameRadar jest nowszy niż panel, panel sam się odświeża (nie w trakcie streamu). Nie każe już restartować GameRadara.
+- **Sceny** to pulpit stanów:
+  - łańcuch startu z przyciskiem *Dalej*; klikniesz etap, to do niego przeskoczysz;
+  - **Na wizji**: Gra, Gra w ramce, Rozmowa;
+  - **Przerwa i koniec**: Przerwa, Przedłuża się, Koniec.
+  
+  Bez dodatkowych przycisków i podpowiedzi. Przełącznik „to okno jako pilot” przeszedł do Więcej → Wersja.
+- **Co dziś?** Każda gra ma kropkę: kolorowa (w kolorze motywu) – ma swój motyw; przerywana – czeka na motyw; szara – ręcznie ustawiona „sama postać”. Przy nagłówku „Gry” jest licznik: ile z motywem, ile czeka.
+- **Motywy: trzy tryby.** **Fuzja 50:50** (domyślny), **Sam motyw gry** i **Sama postać**. „Sąsiedzi” i eksperymenty 66:33 / 33:66 usunięte – kto je miał, dostaje fuzję 50:50. Dla pojedynczej gry wybierasz inny tryb w jej kafelku („motyw: … / bez motywu gry”).
+- **Czat i Sterowanie** bez podzakładek – wszystko widać naraz, w szerokim oknie w kolumnach.
+
 ## Start panelu: animowany przebieg
 
 Karta Start pokazuje uruchamianie krok po kroku: GameRadar, OBS, sceny, mikrofon, nakładki, Twitch. Każdy krok ma kółko, które kręci się, dopóki trwa łączenie. Gdy krok zadziała, kółko rysuje ✓, a wiersz na chwilę się podświetla. Pasek w nagłówku pokazuje postęp (np. 4/6). Przez pierwsze 45 s brak połączenia to „uruchamiam”, a nie błąd. Gdy wszystko działa, lista zostaje na moment, żeby było widać ostatni ✓, potem sama się zwija do zielonego „✓ Wszystko działa”. Jeśli coś nie zadziała, lista zostaje otwarta, a przy kroku jest przycisk **Napraw**.

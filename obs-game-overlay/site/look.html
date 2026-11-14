@@ -34,14 +34,15 @@
   const S = window.VMSite, $ = S.$, esc = S.esc, GT = window.OverlayGameThemes;
   const IMG = { vince: '../themes/fursona/vince.webp', chip: '../themes/fursona/chip.webp', ragnar: '../themes/fursona/ragnar.webp', toro: '../themes/fursona/toro.webp' };
   const POS = [['tl', '↖ lewy górny'], ['tc', '↑ góra'], ['tr', '↗ prawy górny'], ['bl', '↙ lewy dolny'], ['bc', '↓ dół'], ['br', '↘ prawy dolny']];
-  const MODE = [['patch', 'Sąsiedzi', 'postać i gra obok siebie – każde w swoim stylu'], ['game', 'Sama gra', 'motyw gry, postać tylko podpisuje'], ['off', 'Sama postać', 'bez motywu gry']];
+  const MODE = [['fuse-half', 'Fuzja 50:50', 'postać i gra po równo – kolory, czcionki i teksty z obu'], ['game', 'Sam motyw gry', 'karta w całości w motywie gry'], ['off', 'Sama postać', 'tylko motyw postaci, gra z nazwy']];
+  const modeOf = s => s.gameThemes === false ? 'off' : (['game', 'off'].includes(s.gameMode) ? s.gameMode : 'fuse-half');
   const CHAT = [['v|right', 'pionowo z prawej'], ['v|left', 'pionowo z lewej'], ['h|bottom', 'pasek u dołu'], ['h|top', 'pasek u góry'], ['off|', 'bez czatu']];
   function render() {
     const s = S.get(), list = (GT ? GT.list : []).filter(t => t.group === 'fursona');
     $('hosts').innerHTML = list.map(t => `<button class="tile ${s.theme === 'g-' + t.id ? 'on' : ''}" data-host="${esc(t.id)}"><div class="art" style="aspect-ratio:1;background:#0b0b10">${IMG[t.id] ? `<img src="${IMG[t.id]}" alt="" style="width:100%;height:100%;object-fit:cover">` : `<div style="width:70%;height:70%">${t.emblem || ''}</div>`}</div><b>${esc(t.name)}</b><small>${s.theme === 'g-' + t.id ? '✓ prowadzi' : ''}</small></button>`).join('');
     $('pos').innerHTML = POS.map(([v, n]) => `<button data-pos="${v}" aria-pressed="${(s.position || 'bl') === v && !s.cardXY}">${n}</button>`).join('');
-    $('mode').innerHTML = MODE.map(([v, n]) => `<button data-mode="${v}" aria-pressed="${(s.gameMode || 'patch') === v}">${n}</button>`).join('');
-    $('modeHint').textContent = (MODE.find(m => m[0] === (s.gameMode || 'patch')) || MODE[0])[2];
+    $('mode').innerHTML = MODE.map(([v, n]) => `<button data-mode="${v}" aria-pressed="${modeOf(s) === v}">${n}</button>`).join('');
+    $('modeHint').textContent = (MODE.find(m => m[0] === modeOf(s)) || MODE[0])[2];
     const cd = (s.chatDir || 'v') + '|' + ((s.chatDir || 'v') === 'off' ? '' : s.chatSide || ((s.chatDir || 'v') === 'h' ? 'bottom' : 'right'));
     $('chat').innerHTML = CHAT.map(([v, n]) => `<button data-chat="${v}" aria-pressed="${cd === v}">${n}</button>`).join('');
   }

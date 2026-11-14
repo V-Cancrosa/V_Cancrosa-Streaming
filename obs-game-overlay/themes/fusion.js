@@ -17,8 +17,9 @@
 
   function modeOf(settings) {
     if (settings.gameThemes === false) return 'off';
-    const m = settings.gameMode || 'patch';
-    return ['patch', 'fuse', 'fuse-half', 'fuse-game', 'game', 'off'].includes(m) ? m : 'patch';
+    // zostały trzy tryby: fuzja 50:50 (domyślny), sam motyw gry, sama postać; „Sąsiedzi” i eksperymenty 66:33 / 33:66 → fuzja 50:50
+    const m = settings.gameMode || 'fuse-half';
+    return ['game', 'off'].includes(m) ? m : 'fuse-half';
   }
 
   // r = { cls, def (styl karty), game (gra jako dodatek), persona (postać jako dodatek), mode, mix (udział gry w tekstach) }

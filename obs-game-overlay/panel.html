@@ -106,15 +106,18 @@
   .tab[data-tab="more"] .term:not(.small) { height: 180px; }
   .tab[data-tab="more"] .row button { white-space: normal; flex: 1 1 auto; }
   /* Więcej i Sterowanie w szerokim oknie: kolumny jak w gazecie – karty jedna pod drugą, bez dziur */
-  html[data-bp="lg"] .tab:is([data-tab="more"], [data-tab="live"]):not([hidden]), html[data-bp="xl"] .tab:is([data-tab="more"], [data-tab="live"]):not([hidden]) { display: block; column-gap: 12px; }
-  html[data-bp="lg"] .tab:is([data-tab="more"], [data-tab="live"]):not([hidden]) { columns: 2; }
-  html[data-bp="xl"] .tab:is([data-tab="more"], [data-tab="live"]):not([hidden]) { columns: 3; }
-  html[data-bp="lg"] .tab:is([data-tab="more"], [data-tab="live"]) > section, html[data-bp="xl"] .tab:is([data-tab="more"], [data-tab="live"]) > section { break-inside: avoid; margin: 0 0 12px; display: flex; flex-direction: column; }
+  html[data-bp="lg"] .tab:is([data-tab="more"], [data-tab="live"], [data-tab="chat"]):not([hidden]), html[data-bp="xl"] .tab:is([data-tab="more"], [data-tab="live"], [data-tab="chat"]):not([hidden]) { display: block; column-gap: 12px; }
+  html[data-bp="lg"] .tab:is([data-tab="more"], [data-tab="live"], [data-tab="chat"]):not([hidden]) { columns: 2; }
+  html[data-bp="xl"] .tab:is([data-tab="more"], [data-tab="live"], [data-tab="chat"]):not([hidden]) { columns: 3; }
+  html[data-bp="lg"] .tab:is([data-tab="more"], [data-tab="live"], [data-tab="chat"]) > section, html[data-bp="xl"] .tab:is([data-tab="more"], [data-tab="live"], [data-tab="chat"]) > section { break-inside: avoid; margin: 0 0 12px; display: flex; flex-direction: column; }
   html[data-bp="lg"] .tab[data-tab="more"] > section.shut > :not(h2), html[data-bp="xl"] .tab[data-tab="more"] > section.shut > :not(h2) { display: revert !important; }
   html[data-bp="lg"] .tab[data-tab="more"] > section.shut > [hidden], html[data-bp="xl"] .tab[data-tab="more"] > section.shut > [hidden] { display: none !important; }
+  /* Czat: bez długich stałych opisów (komunikaty o stanie mają id i zostają) */
+  .tab[data-tab="chat"] > section > p.hint:not([id]), .tab[data-tab="chat"] > section > details > p.hint:not([id]) { display: none; }
+  .microw { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 10px; background: #14161b; border: 1px solid #20232b; font-size: 12.5px; }
   .tidy { display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: 10px; border: 1px solid var(--warn); background: color-mix(in srgb, var(--warn) 10%, #14161b); }
   /* tryb pilota (to okno, np. dok w OBS): tylko Start i Sterowanie – konfiguracja jest w serwisie w przeglądarce */
-  body.compact .tabs button[data-tab="look"], body.compact .tabs button[data-tab="chat"], body.compact .tabs button[data-tab="make"], body.compact .tabs button[data-tab="more"] { display: none; }
+  body.compact .tabs button[data-tab="look"], body.compact .tabs button[data-tab="chat"], body.compact .tabs button[data-tab="make"] { display: none; }
   .layedit { padding: 0; z-index: 60; } .layclose { position: absolute; right: 10px; top: 10px; z-index: 2; } .layedit iframe { width: 100%; height: 100%; border: 0; }
   .hostpick { position: fixed; inset: 0; z-index: 50; background: rgba(8,9,12,.92); display: grid; place-items: center; padding: 14px; }
   .hostbox { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 12px; } .hostbox h2 { text-align: center; justify-content: center; font-size: 15px; color: #fff; letter-spacing: .06em; }
@@ -145,6 +148,9 @@
   .lib.gone { opacity: .55; }
   .lhead { display: flex; align-items: center; gap: 8px; width: 100%; padding: 5px 8px; background: none; border: 0; border-radius: 0; text-align: left; font: inherit; color: inherit; min-width: 0; }
   .lhead b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; }
+  .thd { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--c, var(--accent)); box-shadow: 0 0 8px var(--c, var(--accent)); display: inline-block; }
+  .thd.wait { background: none; border: 1.5px dashed #6b6f7c; box-shadow: none; } .thd.off { background: #3a3e4a; box-shadow: none; }
+  .thlegend { text-transform: none; letter-spacing: 0; display: inline-flex; gap: 5px; align-items: center; }
   .lhead em { font-style: normal; font-size: 10px; color: var(--ok); white-space: nowrap; } .lhead em.run { color: #ff5a5a; }
   .lic { position: relative; flex: none; width: 26px; height: 26px; border-radius: 6px; overflow: hidden; background: #2e323d; display: grid; place-items: center; }
   .lic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
@@ -295,7 +301,8 @@
     <div class="row" id="detStartRow" hidden><button class="primary" id="detStart">▶ Uruchom wykrywacz</button></div>
     <div class="status" id="detStartMsg" hidden></div>
     <div class="now"><b id="stGame">—</b><small id="stGameSub"></small></div>
-    <details id="autoBox"><summary id="autoSum">Automatyka</summary>
+    <div class="microw" id="micRow" hidden><span>🎙 Mikrofon</span><select id="micDev" title="Mikrofon, który OBS nagrywa (i na który reaguje avatar)"></select></div>
+    <details id="autoBox" hidden><summary id="autoSum">Automatyka</summary>
     <label class="check"><input id="autoCapture" type="checkbox"> OBS sam łapie okno wykrytej gry</label>
     <label class="check"><input id="autoMic" type="checkbox"> dodaj mikrofon do scen, jeśli OBS go nie ma</label>
     <div class="status" id="micStatus"></div>
@@ -319,17 +326,14 @@
     <h2>Co dziś? <span class="pill" id="pickPill"></span></h2>
     <div class="row"><input id="libFilter" type="search" placeholder="Szukaj gry albo programu…" autocomplete="off"><button class="auto" id="libAuto" title="Wróć do automatycznego wykrywania">↺ auto</button></div>
     <div class="slist" id="libList"></div>
-    <p class="hint" style="margin:0">Kliknij grę: <b>Wybierz</b> = jest na nakładce, ▶ uruchamia, niżej jej motyw. Gry z Steam, Epic, GOG, Ubisoft, EA, Battle.net i Xbox są tu same; programy dopisują się, gdy ich używasz.</p>
+    <p class="hint" hidden style="margin:0">Kliknij grę: <b>Wybierz</b> = jest na nakładce, ▶ uruchamia, niżej jej motyw. Gry z Steam, Epic, GOG, Ubisoft, EA, Battle.net i Xbox są tu same; programy dopisują się, gdy ich używasz.</p>
   </section>
   <section>
     <h2>Sceny</h2>
     <div class="flow" id="flow"></div>
     <div class="row"><button class="primary" id="flowNext">Dalej ▶</button></div>
     <div id="stScenes"></div>
-    <p class="hint" style="margin:0">Jedyne miejsce do zmiany scen: ekrany VM i Twoje sceny z OBS (z przejściem). Odliczanie i napisy ekranów – Sterowanie → Ekrany.</p>
     <div class="tidy" id="tidyBox" hidden><b>🧹 W OBS są stare sceny VM</b><span class="hint" id="tidyList"></span><button class="primary" id="tidyBtn">Uporządkuj OBS – zostaw jedną scenę „VM · Stream”</button></div>
-    <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:4px"><label class="check" style="margin:0"><input id="compact" type="checkbox"> to okno jako pilot (tylko Start i Sterowanie)</label></div>
-    <p class="hint" id="compactHint" hidden style="margin:0">Ustawiasz w przeglądarce: <a href="https://v-cancrosa.github.io/Vincent-Media/" target="_blank">v-cancrosa.github.io/Vincent-Media</a> – zmiany przychodzą tu same.</p>
   </section>
   <section>
     <h2>Szybki test</h2>
@@ -489,7 +493,7 @@
     <div class="sclabel">Gdzie stoi karta „Teraz gram”</div>
     <div class="posgrid" id="posGrid"></div>
     <div class="sclabel">Gra obok postaci</div>
-    <div class="seg3" id="modeSeg"><button data-m="patch">Sąsiedzi</button><button data-m="off">Tylko postać</button><button data-m="game">Tylko gra</button></div>
+    <div class="seg3" id="modeSeg"><button data-m="fuse-half">Fuzja 50:50</button><button data-m="off">Sama postać</button><button data-m="game">Sam motyw gry</button></div>
     <p class="hint" style="margin:0" id="modeHint"></p>
     <div class="sclabel">Na karcie</div>
     <div class="checks chipset">
@@ -542,14 +546,9 @@
     <div class="checks">
       <label style="flex-basis:100%">Tryb łączenia z grą (pełna lista)
         <select id="gameMode">
-          <option value="patch">Sąsiedzi – postać prowadzi, gra obok ze swoimi elementami (logo, tabliczka, wstążka, cząsteczki)</option>
-          <option value="fuse-half">Fuzja pół na pół (50:50) – wymieszane kolory i teksty</option>
+          <option value="fuse-half">Fuzja – postać i gra pół na pół</option>
           <option value="game">Sam motyw gry</option>
-          <option value="off">Ignoruj motywy gier</option>
-          <optgroup label="Eksperymentalne (do dopracowania)">
-            <option value="fuse">Postać bazą, gra dodatkiem (66:33)</option>
-            <option value="fuse-game">Gra bazą, postać dodatkiem (33:66)</option>
-          </optgroup>
+          <option value="off">Sama postać</option>
         </select>
       </label>
     </div>
@@ -861,6 +860,8 @@
     <label class="check"><input id="upAuto" type="checkbox"> aktualizuj automatycznie – sprawdzanie co 10 minut, wstrzymane w trakcie transmisji i nagrywania</label>
     <div class="term small" id="upTimer">—</div>
     <p class="hint" id="bpInfo" hidden></p>
+    <label class="check" style="margin:0"><input id="compact" type="checkbox"> to okno jako pilot – tylko Start i Sterowanie</label>
+    <p class="hint" id="compactHint" hidden style="margin:0">Ustawienia: <a href="https://v-cancrosa.github.io/Vincent-Media/" target="_blank">v-cancrosa.github.io/Vincent-Media</a></p>
   </section>
   <section hidden data-gone="1">
     <h2>Link bez panelu</h2>
@@ -895,7 +896,8 @@
   const $ = id => document.getElementById(id);
   const load = (k, fb) => { try { return JSON.parse(localStorage.getItem(k)) ?? fb; } catch { return fb; } };
   // v1.15: domyślna fuzja to 50:50; proporcje 66:33 / 33:66 są eksperymentalne (zostają tylko, jeśli ktoś wybrał je świadomie)
-  const migrate = st => { if (st.fuseV !== 3) { if (!st.gameMode || st.gameMode === 'fuse' || st.gameMode === 'fuse-half') st.gameMode = 'patch'; st.fuseV = 3; } return st; };
+  // v1.45: zostały trzy tryby – „Sąsiedzi” i eksperymenty 66:33 / 33:66 przechodzą na fuzję 50:50
+  const migrate = st => { if (st.fuseV !== 4) { if (!['game', 'off'].includes(st.gameMode)) st.gameMode = 'fuse-half'; st.fuseV = 4; } return st; };
   let s = { ...DEFAULTS, ...migrate(load(KEY, {})) };
   try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {}
   let history = load(HISTORY_KEY, []);
@@ -1096,7 +1098,7 @@
     setTimeout(() => { b.disabled = false; b.textContent = 'Uporządkuj OBS – zostaw jedną scenę „VM · Stream”'; tidyCheck(); }, 5000);
   };
   // tryb pilota – zapamiętany w tym oknie (dok w OBS ma swój, przeglądarka swój)
-  const setCompact = on => { document.body.classList.toggle('compact', on); $('compact').checked = on; $('compactHint').hidden = !on; if (on && !['start', 'live'].includes((document.querySelector('.tab:not([hidden])') || {}).dataset?.tab)) setTimeout(() => showTab('start'), 0); setTimeout(() => { markTab(); tabArrows(); }, 50); };
+  const setCompact = on => { document.body.classList.toggle('compact', on); $('compact').checked = on; $('compactHint').hidden = !on; if (on && !['start', 'live', 'more'].includes((document.querySelector('.tab:not([hidden])') || {}).dataset?.tab)) setTimeout(() => showTab('start'), 0); setTimeout(() => { markTab(); tabArrows(); }, 50); };
   $('compact').onchange = () => { try { localStorage.setItem('vm.panelCompact', $('compact').checked ? '1' : '0'); } catch {} setCompact($('compact').checked); };
   setTimeout(() => { let on = false; try { on = localStorage.getItem('vm.panelCompact') === '1'; } catch {} setCompact(on); }, 0);
   // start streamu: GameRadar → OBS
@@ -1813,14 +1815,31 @@
       $('micStatus').textContent = n ? `Mikrofon: dodałem «${MIC_NAME}» (domyślny mikrofon Windows) w ${n} scenach. Zmienisz go w jego właściwościach w OBS.` : '';
     } catch (e) { $('micStatus').textContent = 'Mikrofon: OBS odmówił – ' + e.message; }
   }
+  // wybór mikrofonu: urządzenie źródła mikrofonu w OBS (globalny Mic/Aux albo «VM · Mikrofon»);
+  // przy „domyślnym” Windows sam wybiera mikrofon USB, jeśli jest dokładnie jeden
+  let micInput = '', micDevKey = '';
+  async function micDevices() {
+    if (!obs || isRemote) { $('micRow').hidden = true; return; }
+    try {
+      const sp = await obs.call('GetSpecialInputs'), inputs = ((await obs.call('GetInputList')).inputs || []).map(i => i.inputName);
+      micInput = sp.mic1 || (inputs.includes(MIC_NAME) ? MIC_NAME : ''); if (!micInput) { $('micRow').hidden = true; return; }
+      const items = (await obs.call('GetInputPropertiesListPropertyItems', { inputName: micInput, propertyName: 'device_id' })).propertyItems || [];
+      let cur = ((await obs.call('GetInputSettings', { inputName: micInput })).inputSettings || {}).device_id || 'default';
+      const usb = items.filter(i => i.itemValue !== 'default' && /usb|dgm/i.test(i.itemName) && /mic|mikrofon/i.test(i.itemName));
+      if (cur === 'default' && usb.length === 1 && !s.micAutoPicked) { cur = usb[0].itemValue; s.micAutoPicked = true; save(); await obs.call('SetInputSettings', { inputName: micInput, inputSettings: { device_id: cur } }); }
+      const key = JSON.stringify([micInput, cur, items.map(i => i.itemValue)]); $('micRow').hidden = false; if (key === micDevKey) return; micDevKey = key;
+      $('micDev').innerHTML = items.map(i => `<option value="${esc(i.itemValue)}"${i.itemValue === cur ? ' selected' : ''}>${esc(i.itemValue === 'default' ? 'domyślny w Windows' : i.itemName)}</option>`).join('');
+    } catch { $('micRow').hidden = true; }
+  }
+  $('micDev').onchange = async () => { try { await obs.call('SetInputSettings', { inputName: micInput, inputSettings: { device_id: $('micDev').value } }); s.micAutoPicked = true; save(); micDevKey = ''; } catch {} };
+  setInterval(() => { if (!document.querySelector('.tab[data-tab="start"]').hidden) micDevices(); }, 8000); setTimeout(micDevices, 3500);
   $('autoMic').onchange = () => { s.autoMic = $('autoMic').checked; save(); ensureMic(); };
   $('autoCapture').onchange = () => { s.autoCapture = $('autoCapture').checked; capLast = ''; save(); };
   $('captureKind').onchange = () => { s.captureKind = $('captureKind').value; capLast = ''; save(); };
   // --- jedna lista scen: ekrany VM i sceny z OBS ---
   const SCENE_GROUPS = [
-    ['Przed streamem – jedna scena, etapy wyżej', [['f:start', 'Start streamu ▶']]],
-    ['W trakcie', [['o:VM · Gra – pełny ekran', 'Gra'], ['o:VM · Gra – w ramce', 'Gra w ramce'], ['o:VM · Rozmowa', 'Rozmowa']]],
-    ['Przerwa i koniec', [['s:brb', 'Przerwa'], ['s:brb-late', 'Przerwa się przedłuża'], ['s:end', 'Koniec + napisy']]]
+    ['Na wizji', [['o:VM · Gra – pełny ekran', '🎮 Gra'], ['o:VM · Gra – w ramce', '▣ Gra w ramce'], ['o:VM · Rozmowa', '💬 Rozmowa']]],
+    ['Przerwa i koniec', [['s:brb', '⏸ Przerwa'], ['s:brb-late', '⏳ Przedłuża się'], ['s:end', '■ Koniec']]]
   ];
   let scenesKey = '';
   function renderStartScenes() {
@@ -1865,6 +1884,18 @@
   // kafelek: ikona + nazwa; kliknięcie rozwija (Wybierz, uruchom, ukryj, motyw)
   let libOpen = '';
   const SRC_NAME = { steam: 'Steam' };
+  // czy gra/program ma własny motyw: wybrany ręcznie albo rozpoznany po nazwie (themes/games.js) – kropka w kolorze motywu
+  function themeOf(e) {
+    const k = prettyName(e.name).toLowerCase(), tf = (s.themeFor || {})[k];
+    if (tf === 'none') return { none: true };
+    const def = tf ? (GT && GT.byId ? GT.byId(tf) : null) : (GT && GT.find ? GT.find(prettyName(e.name)) : null);
+    return def && def.group !== 'fursona' ? def : null;
+  }
+  function themeDot(e) {
+    const t = themeOf(e);
+    if (t && t.none) return '<i class="thd off" title="sama postać – bez motywu gry"></i>';
+    return t ? `<i class="thd" style="--c:${esc((t.accent || ['#7c5cff'])[0])}" title="motyw: ${esc(t.name)}"></i>` : '<i class="thd wait" title="czeka na motyw – na razie postać + kolory z okładki"></i>';
+  }
   function libRow(e, inst) {
     const ago = t => { const m = Math.round((Date.now() - new Date(t)) / 60000); return !t ? '' : m < 2 ? 'teraz' : m < 60 ? m + ' min temu' : m < 1440 ? Math.round(m / 60) + ' h temu' : Math.round(m / 1440) + ' dni temu'; };
     const src = e.source || (e.steam ? 'Steam' : '');
@@ -1874,7 +1905,7 @@
     const icon = e.live && !e.steam ? '' : hubUrl() + '/icon?id=' + encodeURIComponent(e.id);
     return `<div class="lib ${picked ? 'cur' : ''} ${open ? 'open' : ''} ${e.installed === false ? 'gone' : ''}" data-id="${esc(e.id)}">
       <button class="lhead" data-open="${esc(e.id)}"><span class="lic">${icon ? `<img src="${esc(icon)}" alt="" loading="lazy" onerror="this.remove()">` : ''}<i>${esc(String(e.name).slice(0, 1).toUpperCase())}</i></span>
-        <b>${esc(prettyName(e.name))}</b>${picked ? '<em>✓ na nakładce</em>' : running ? '<em class="run">●</em>' : ''}</button>
+        <b>${esc(prettyName(e.name))}</b>${picked ? '<em>✓ na nakładce</em>' : running ? '<em class="run">●</em>' : ''}${themeDot(e)}</button>
       ${open ? `<div class="lbody"><small>${esc(meta)}</small>
         <div class="lbtn"><button class="${picked ? '' : 'primary'}" data-pick="${esc(e.id)}">${picked ? '✓ Na nakładce' : 'Wybierz'}</button>${e.live || e.installed === false ? '' : `<button data-run="${esc(e.id)}" title="Uruchom">▶ Uruchom</button>`}${e.live || inst ? '' : `<button data-hide="${esc(e.id)}" title="Ukryj na liście">✕</button>`}</div>
         <select data-theme="${esc(e.id)}">${themeOpts(e.name)}</select></div>` : ''}</div>`;
@@ -1891,7 +1922,7 @@
     const list = all.concat(inst.map(e => ({ ...e, _inst: true }))).filter(ok);
     const isProg = e => e.kind === 'app' || e.kind === 'make';
     const games = list.filter(e => !isProg(e)), progs = list.filter(isProg);
-    const sec = (title, arr, n) => `<div class="lsec"><div class="sclabel">${title} (${arr.length})</div><div class="lgrid">${arr.slice(0, n).map(e => libRow(e, !!e._inst)).join('')}</div>${arr.length > n ? `<p class="hint" style="margin:4px 0 0">…i ${arr.length - n} więcej – wpisz nazwę w wyszukiwarce.</p>` : ''}</div>`;
+    const sec = (title, arr, n) => `<div class="lsec"><div class="sclabel">${title} (${arr.length})${title === 'Gry' ? ` · <span class="thlegend"><i class="thd" style="--c:var(--ok)"></i> ${arr.filter(e => { const t = themeOf(e); return t && !t.none; }).length} z motywem <i class="thd wait"></i> ${arr.filter(e => !themeOf(e)).length} czeka</span>` : ''}</div><div class="lgrid">${arr.slice(0, n).map(e => libRow(e, !!e._inst)).join('')}</div>${arr.length > n ? `<p class="hint" style="margin:4px 0 0">…i ${arr.length - n} więcej – wpisz nazwę w wyszukiwarce.</p>` : ''}</div>`;
     $('libList').innerHTML = (libErr ? `<p class="hint" style="margin:0;color:var(--warn)">Wykrywacz: ${esc(libErr)}</p>` : '') +
       (list.length ? sec('Gry', games, f ? 60 : 30) + (progs.length ? sec('Programy', progs, f ? 40 : 16) : '')
         : `<p class="hint" style="margin:0">${f ? 'Nic nie pasuje.' : 'Jeszcze pusto – uruchom grę albo program, a dopisze się sam.'}</p>`);
@@ -2126,8 +2157,8 @@
 
 
   // --- autotest: co działa samo, jest sprawdzane co kilka sekund i chowane; widać tylko to, co wymaga uwagi ---
-  const CHECK_NAMES = { pages: 'Nakładki w OBS pokazują to, co ustawione', det: 'GameRadar działa', ver: 'GameRadar w tej samej wersji co panel', lib: 'Lista gier i programów', obs: 'Połączenie z OBS', scenes: 'Sceny VM w OBS',
-    cap: 'Przechwytywanie uruchomionej gry', mic: 'Mikrofon w OBS', censor: 'Cenzura ekranu', twitch: 'Twitch' };
+  const CHECK_NAMES = { pages: 'Nakładki w OBS pokazują to, co ustawione', det: 'GameRadar', ver: 'Wersja GameRadara', lib: 'Lista gier i programów', obs: 'OBS', scenes: 'Sceny VM w OBS',
+    cap: 'Przechwytywanie gry', mic: 'Mikrofon w OBS', censor: 'Cenzura ekranu', twitch: 'Twitch' };
   let checks = {}, checksOpen = false, testBusy = false;
   // odśwież wszystkie źródła przeglądarki VM w OBS (bez pamięci podręcznej) – nowa wersja i świeży stan
   let pagesRefreshed = false;
@@ -2172,7 +2203,11 @@
       catch { c.det = booting('det') ? { ok: 'wait', msg: 'uruchamiam się…' } : { ok: false, msg: 'nie odpowiada' + (await detLogTail()) }; }
       if (c.det.ok === true) everOk.det = 1;
       step();
-      if (c.det.ok === true) c.ver = ver && window.VM_VERSION && ver !== window.VM_VERSION ? { ok: false, msg: `wykrywacz ${ver}, panel ${window.VM_VERSION} – zamknij wykrywacz i uruchom ponownie` } : { ok: true };
+      const vnum = v => String(v || '').split('.').map(n => +n || 0).reduce((a, n) => a * 1000 + n, 0);
+      if (c.det.ok === true) {
+        if (ver && window.VM_VERSION && vnum(ver) > vnum(window.VM_VERSION)) { c.ver = { ok: 'wait', msg: `nowa wersja ${ver} – odświeżam panel` }; if (window.vmCheckVersion) window.vmCheckVersion(ver, true); }
+        else c.ver = ver && window.VM_VERSION && ver !== window.VM_VERSION ? { ok: false, msg: `GameRadar ${ver}, panel ${window.VM_VERSION} – uruchom GameRadar ponownie (Więcej → GameRadar)` } : { ok: true };
+      }
       if (c.det.ok === true) {
         try { const r = await fetch(hubUrl() + '/library', { cache: 'no-store' }); const j = r.ok ? await r.json() : null; c.lib = !j ? { ok: false, msg: 'HTTP ' + r.status } : j.error ? { ok: false, msg: j.error } : { ok: true, msg: arr(j.items).length + ' zapisanych, ' + arr(j.installed).length + ' ze Steama' }; }
         catch (e) { c.lib = { ok: false, msg: e.message }; }
@@ -2261,7 +2296,10 @@
     $('stChecks').hidden = !open; h.setAttribute('aria-expanded', open);
     // wiersze aktualizowane w miejscu – animacje (kręcenie, rysowanie ✓) nie zaczynają się od nowa co 2 s
     const box = $('stChecks'), keep = new Set();
-    list.forEach(([k, v], i) => {
+    const CORE = ['det', 'obs', 'twitch', 'cap'];
+    const shown = list.filter(([k, v]) => checksOpen || CORE.includes(k) || v.ok === false || v.ok === 'wait')
+      .sort((a, b) => (CORE.includes(a[0]) ? CORE.indexOf(a[0]) : 10) - (CORE.includes(b[0]) ? CORE.indexOf(b[0]) : 10));
+    shown.forEach(([k, v], i) => {
       keep.add(k);
       let row = box.querySelector(`[data-k="${k}"]`);
       if (!row) { row = document.createElement('div'); row.dataset.k = k; row.innerHTML = ICO + '<div class="ctx"></div><span class="cfix"></span>'; row.style.setProperty('--i', i); row.className = 'chk enter'; box.appendChild(row); }
@@ -2275,11 +2313,11 @@
       if (row.querySelector('.cfix').innerHTML !== fx) row.querySelector('.cfix').innerHTML = fx;
     });
     for (const r of [...box.children]) if (!keep.has(r.dataset.k)) r.remove();
+    shown.forEach(([k]) => box.appendChild(box.querySelector(`[data-k="${k}"]`)));
     // to, co działa, chowamy: karty stanu i ustawienia automatyki
-    $('stStatus').hidden = !open;
+    $('stStatus').hidden = true;      // stan GameRadar / OBS / Twitch jest już w liście wyżej
     const autoBad = ['cap', 'mic'].some(k => checks[k] && checks[k].ok === false);
-    $('autoSum').textContent = autoBad ? 'Automatyka – wymaga uwagi' : 'Automatyka (przechwytywanie gry, mikrofon) – działa sama';
-    if (autoBad) $('autoBox').open = true;
+    $('autoSum').textContent = autoBad ? 'Automatyka – wymaga uwagi' : 'Automatyka';
   }
   $('stHealth').onclick = () => { checksOpen = !checksOpen; renderChecks(); };
   $('stChecks').addEventListener('click', e => { const b = e.target.closest('[data-fix]'); if (!b) return; b.textContent = '…'; try { FIX[b.dataset.fix](); } catch {} setTimeout(selfTest, 2500); });
@@ -2327,8 +2365,8 @@
   const renderPos = () => { $('posGrid').innerHTML = POS.map(([v, a]) => `<button data-pos="${v}" aria-pressed="${s.position === v}" title="${esc($('position').querySelector(`option[value="${v}"]`).textContent)}">${a}</button>`).join(''); };
   $('posGrid').addEventListener('click', e => { const b = e.target.closest('[data-pos]'); if (!b) return; delete s.cardXY; $('position').value = b.dataset.pos; $('position').dispatchEvent(new Event('change')); setTimeout(renderPos, 50); });
   // gra obok postaci: trzy przyciski (pełna lista trybów w „Więcej opcji karty”)
-  const MODE_HINT = { patch: 'Postać prowadzi. Gra stoi obok ze swoimi elementami – tabliczka z logo, wstążka w jej kolorach, cząsteczki – bez mieszania kolorów.', off: 'Tylko motyw postaci, gra tylko z nazwy.', game: 'Na czas gry karta w całości w motywie gry.' };
-  const renderMode = () => { const m = s.gameThemes === false ? 'off' : (s.gameMode || 'patch'); for (const b of $('modeSeg').children) b.setAttribute('aria-pressed', b.dataset.m === m); $('modeHint').textContent = MODE_HINT[m] || 'Tryb eksperymentalny (wybrany w „Więcej opcji karty”).'; };
+  const MODE_HINT = { 'fuse-half': 'Postać i gra po równo: kolory, czcionki i teksty z obu motywów.', off: 'Tylko motyw postaci – gra tylko z nazwy.', game: 'Na czas gry karta w całości w motywie gry.' };
+  const renderMode = () => { const m = s.gameThemes === false ? 'off' : (['game', 'off'].includes(s.gameMode) ? s.gameMode : 'fuse-half'); for (const b of $('modeSeg').children) b.setAttribute('aria-pressed', b.dataset.m === m); $('modeHint').textContent = MODE_HINT[m] || 'Tryb eksperymentalny (wybrany w „Więcej opcji karty”).'; };
   $('modeSeg').addEventListener('click', e => { const b = e.target.closest('[data-m]'); if (!b) return; $('gameMode').value = b.dataset.m; $('gameMode').dispatchEvent(new Event('change')); setTimeout(renderMode, 50); });
   setTimeout(() => { renderPos(); renderMode(); }, 0);
   setInterval(() => { if (!document.querySelector('.tab[data-tab="look"]').hidden) { renderPos(); renderMode(); renderHosts(); } }, 2000);
@@ -2672,7 +2710,6 @@
   // --- podzakładki (zakładki w zakładkach) ---
   const SUBS = {
 
-    chat: [['Na ekranie', ['Czat na ekranie']], ['Moderacja', ['Napisz na czat (test)', 'Słowa zakazane', 'Cenzura ekranu', 'Podejrzane konta']], ['Statystyki', ['Statystyki streamów']], ['Nagrywanie', ['Nagrywanie']]],
   };
   // Więcej: zamiast podzakładek jedna strona ze zwijanymi grupami (kliknięcie nagłówka rozwija)
   const ACC_OPEN = ['GameRadar – podgląd na żywo', 'GameRadar'];
