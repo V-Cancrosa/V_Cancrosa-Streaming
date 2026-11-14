@@ -587,12 +587,12 @@ Soundtracki, artbooki, *Bonus Content*, DLC, season passy, serwery dedykowane, S
 
 ## Panel w wąskim i szerokim doku
 
-Progi szerokości są w jednym miejscu: `themes/bp.js` ustawia `html[data-bp]` na `sm`, `md`, `lg` albo `xl`, a CSS panelu tylko z tego korzysta.
+Progi szerokości są w jednym miejscu: `themes/bp.js` ustawia `html[data-bp]` na `sm`, `md`, `lg` albo `xl`, a CSS panelu tylko z tego korzysta. Więcej → Wersja pokazuje na żywo szerokość panelu i aktywny próg.
 - **sm** (< 420 px): zakładki przewijają się w bok i nic się nie zgniata.
 - **md** (420–759 px): jak dotąd.
 - **lg** (760–1199 px) i **xl** (≥ 1200 px): ustawienia układają się w 2 albo 3 kolumny, a podgląd stoi obok zakładek.
 
-Rozciągnięty albo odpięty dok w OBS przestaje więc być jedną długą kolumną. Pomysł pochodzi z pena „Responsive Grid with @custom-media” (CodePen): aliasy zapytań o szerokość definiuje się raz. Przeglądarki nie znają jeszcze `@custom-media`, a projekt nie ma kroku budowania (PostCSS), dlatego alias ustawia mały skrypt.
+Rozciągnięty albo odpięty dok w OBS przestaje więc być jedną długą kolumną. Pomysł pochodzi z pena „Responsive Grid with @custom-media” autorstwa [Chrisa Coyiera](https://codepen.io/chriscoyier) (CodePen, MIT): aliasy zapytań o szerokość definiuje się raz. Przeglądarki nie znają jeszcze `@custom-media`, a projekt nie ma kroku budowania (PostCSS), dlatego alias ustawia mały skrypt.
 
 ## Ruch i animacje
 

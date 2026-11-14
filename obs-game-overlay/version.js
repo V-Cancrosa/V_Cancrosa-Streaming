@@ -1,6 +1,6 @@
 // Wersja plików nakładki. Nakładki porównują ją z wersją zgłaszaną przez wykrywacz
 // i same się odświeżają, gdy wykrywacz zainstalował aktualizację.
-window.VM_VERSION = '1.38.1';
+window.VM_VERSION = '1.38.2';
 window.VM_ON_PAGES = /^https:$/.test(location.protocol) && /\.github\.io$/i.test(location.hostname);
 window.vmCheckVersion = function (v, own) {
   if (!v || v === window.VM_VERSION) return;

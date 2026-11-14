@@ -1,6 +1,6 @@
 /*
   Progi szerokości – zdefiniowane raz, używane w CSS przez html[data-bp="…"].
-  Pomysł z pena „Responsive Grid with @custom-media” (CodePen): aliasy zapytań o szerokość w jednym miejscu
+  Pomysł z pena „Responsive Grid with @custom-media” Chrisa Coyiera (CodePen, MIT): aliasy zapytań o szerokość w jednym miejscu
   zamiast liczb rozsianych po arkuszach. Przeglądarki (i OBS) nie znają jeszcze @custom-media, a my nie mamy
   kroku budowania (PostCSS), więc alias ustawia ten skrypt – reszta to zwykły CSS.
 

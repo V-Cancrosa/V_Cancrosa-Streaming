@@ -793,6 +793,7 @@
     </div>
     <label class="check"><input id="upAuto" type="checkbox"> aktualizuj automatycznie – sprawdzanie co 10 minut, wstrzymane w trakcie transmisji i nagrywania</label>
     <div class="term small" id="upTimer">—</div>
+    <p class="hint" id="bpInfo" style="margin:4px 0 0"></p>
   </section>
   <section>
     <h2>Link bez panelu</h2>
@@ -841,6 +842,10 @@
     m.style.width = b.offsetWidth + 'px'; m.style.height = b.offsetHeight + 'px'; m.style.transform = `translate(${b.offsetLeft}px, ${b.offsetTop}px)`;
     m.parentElement.classList.add('marked');
   }
+  // szerokość doku na żywo i aktywny próg (wg odczytu szerokości z pena Chrisa Coyiera)
+  const BP_NAME = { sm: 'wąski dok – zakładki przewijane', md: 'zwykły dok', lg: 'szeroki – 2 kolumny', xl: 'duże okno – 3 kolumny' };
+  const bpInfo = () => { const e = $('bpInfo'); if (e) e.textContent = `Szerokość panelu: ${document.documentElement.clientWidth} px · próg ${document.documentElement.dataset.bp || '?'} (${BP_NAME[document.documentElement.dataset.bp] || ''})`; };
+  window.addEventListener('resize', bpInfo); window.addEventListener('vm-bp', bpInfo); setTimeout(bpInfo, 0);
   window.addEventListener('resize', () => markTab()); window.addEventListener('vm-bp', () => setTimeout(markTab, 50));
   if (new URLSearchParams(location.search).get('slow') === '1') document.documentElement.style.setProperty('--k', 4);
   function save() {
