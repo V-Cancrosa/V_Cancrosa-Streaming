@@ -262,7 +262,9 @@
   }
   function current() {
     const manual = settings.game.trim()
-      ? { name: settings.game.trim(), sub: settings.subtitle, start: settings.since, images: settings.cover ? [settings.cover] : settings.gameSteam && settings.local !== false ? [window.vmHub(settings.localUrl) + '/art?id=' + encodeURIComponent(settings.gameSteam) + '&k=cover'] : [], source: 'manual', steam: settings.gameSteam || '' }
+      ? { name: settings.game.trim(), sub: settings.subtitle, start: settings.since, images: settings.cover ? [settings.cover] : settings.gameSteam && settings.local !== false ? [window.vmHub(settings.localUrl) + '/art?id=' + encodeURIComponent(settings.gameSteam) + '&k=cover']
+        : settings.gameId && settings.local !== false ? [window.vmHub(settings.localUrl) + '/icon?id=' + encodeURIComponent(settings.gameId)] : [],
+        source: 'manual', steam: settings.gameSteam || '', kind: settings.gameKind || '', exe: settings.gameExe || '' }
       : null;
     // kolejność: lokalny wykrywacz > Discord
     const det = [localGame, discordGame].find(x => x && !ignored(x.name));
@@ -328,11 +330,19 @@
     root.setProperty('--margin', settings.margin + 'px');
     // motyw postaci ma własny napis, dopóki w panelu zostaje domyślny „Teraz gram”
     const lab = th.persona || th.game;   // napis postaci także wtedy, gdy bazą jest gra
-    labelText.textContent = lab && lab.label && settings.label === DEFAULTS.label ? lab.label : settings.label;
+    labelText.textContent = lab && lab.label && (!settings.label || settings.label === DEFAULTS.label) ? lab.label : (settings.label || DEFAULTS.label);
     // angielski stream: domyślny napis i napisy motywów po angielsku (własny napis z panelu zostaje bez zmian)
-    if (window.VMi18n && settings.label === DEFAULTS.label) labelText.textContent = VMi18n.lang() === 'en' && labelText.textContent === DEFAULTS.label ? VMi18n.t('nowPlaying') : VMi18n.label(labelText.textContent);
+    if (window.VMi18n && (!settings.label || settings.label === DEFAULTS.label)) labelText.textContent = VMi18n.lang() === 'en' && labelText.textContent === DEFAULTS.label ? VMi18n.t('nowPlaying') : VMi18n.label(labelText.textContent);
+    // program wybrany z listy (nie gra): napis pasujący do tego, co robisz – przeglądarka „Przeglądam”, Notatnik „Piszę”…
+    if (g && g.kind === 'app' && (!settings.label || settings.label === DEFAULTS.label)) {
+      const en = window.VMi18n && VMi18n.lang() === 'en', hay = (g.exe || '') + ' ' + (g.name || '');
+      const APP_LABEL = [[/chrome|msedge|edge|firefox|opera|brave|vivaldi|browser|przegl/i, 'Przeglądam', 'Browsing'], [/notepad|notatnik|winword|word|obsidian|notion|code|sublime|writer/i, 'Piszę', 'Writing'],
+        [/discord|telegram|whatsapp|signal|teams|slack/i, 'Rozmawiam', 'Chatting'], [/spotify|music|foobar|vlc|winamp/i, 'Słucham', 'Listening'], [/snipping|wycinanie|paint|photoshop|krita|gimp|clip ?studio|affinity|inkscape/i, 'Tworzę', 'Creating']];
+      const hit = APP_LABEL.find(([re]) => re.test(hay));
+      labelText.textContent = hit ? (en ? hit[2] : hit[1]) : (en ? 'Now using' : 'Teraz używam');
+    }
     // Blender, Krita itp.: nie „gram”, tylko „tworzę” (także gdy postać ma własny napis z „gram”)
-    if (making && settings.label === DEFAULTS.label && /gram|teraz gram|playing/i.test(labelText.textContent)) labelText.textContent = window.VMi18n ? VMi18n.label(gameDef && gameDef.label ? gameDef.label : 'TERAZ TWORZĘ') : (gameDef && gameDef.label ? gameDef.label : 'Teraz tworzę');
+    if (making && (!settings.label || settings.label === DEFAULTS.label) && /gram|teraz gram|playing/i.test(labelText.textContent)) labelText.textContent = window.VMi18n ? VMi18n.label(gameDef && gameDef.label ? gameDef.label : 'TERAZ TWORZĘ') : (gameDef && gameDef.label ? gameDef.label : 'Teraz tworzę');
   }
 
   // długa nazwa gry: mniejsza czcionka, a w ostateczności dwie linijki (bez ucinania „…”)

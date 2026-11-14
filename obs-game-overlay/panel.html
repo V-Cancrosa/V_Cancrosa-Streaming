@@ -418,7 +418,7 @@
     </div>
     <div class="row">
       <label>Napis nad nazwą
-        <input id="label" type="text" placeholder="Teraz gram">
+        <input id="label" type="text" placeholder="puste = automatycznie (Teraz gram / Przeglądam / Piszę / napis postaci)">
       </label>
       <label class="auto">Kolor
         <input id="accent" type="color" value="#7c5cff">
@@ -805,6 +805,7 @@
   function setGame() {
     const g = $('game').value.trim();
     if (g !== s.game) s.since = Date.now();
+    if (g !== s.game) { s.gameId = ''; s.gameKind = ''; s.gameExe = ''; s.gameSteam = ''; }
     s.game = g;
     s.subtitle = $('subtitle').value.trim();
     s.cover = $('cover').value.trim();
@@ -1287,6 +1288,12 @@
   async function startGame() {
     let g = null;
     try { const j = await (await fetch(hubUrl() + '/game', { cache: 'no-store' })).json(); g = j && j.game; } catch {}
+    // gra albo program wybrany z listy: przechwytuj jego okno (także gdy wykrywacz go nie uważa za grę, np. Notatnik, Opera)
+    if (s.mode === 'manual' && s.gameId && (!g || prettyName(g.name).toLowerCase() !== String(s.game).toLowerCase())) {
+      try { const w = await (await fetch(hubUrl() + '/window?id=' + encodeURIComponent(s.gameId), { cache: 'no-store' })).json(); g = { name: s.game, window: w.window || '', via: 'list', exe: s.gameExe || '' }; }
+      catch { g = { name: s.game, window: '' }; }
+      if (!g.window) $('capStatus').textContent = `„${s.game}” nie jest teraz otwarte – uruchom ▶, a OBS złapie okno.`;
+    }
     const picked = s.mode === 'manual' && s.game;
     $('stGame').textContent = picked ? s.game : g ? g.name : (s.game || 'nic nie wykryto');
     $('stGameSub').textContent = picked ? 'wybrana z listy' + (g && g.name !== s.game ? ' · uruchomione: ' + g.name : '') + ' · ↺ auto wraca do wykrywania'
@@ -1389,7 +1396,7 @@
   let libData = { items: [], installed: [], current: '' }, libLive = null, libErr = '';
   // Windows PowerShell 5.1 bywa, że zapisze tablicę jako {"value":[…],"Count":n} albo jeden element bez tablicy
   const arr = v => Array.isArray(v) ? v : v && Array.isArray(v.value) ? v.value : v && typeof v === 'object' ? [v] : [];
-  const themeOpts = (name) => {
+  const themeOpts = (name0) => { const name = prettyName(name0);
     const tf = (s.themeFor || {})[String(name).toLowerCase()] || '';
     const auto = GT && GT.find ? GT.find(name) : null;
     const games = (GT ? GT.list : []).filter(t => t.group !== 'fursona').slice().sort((a, b) => a.name.localeCompare(b.name));
@@ -1397,7 +1404,14 @@
       games.map(t => `<option value="${esc(t.id)}"${tf === t.id ? ' selected' : ''}>motyw: ${esc(t.name)}</option>`).join('') +
       `<option value="none"${tf === 'none' ? ' selected' : ''}>bez motywu gry (sama postać)</option>`;
   };
-  const isPicked = e => s.mode === 'manual' && s.game && s.game.toLowerCase() === String(e.name).toLowerCase();
+  const isPicked = e => s.mode === 'manual' && s.game && (s.gameId ? s.gameId === e.id : s.game.toLowerCase() === prettyName(e.name).toLowerCase());
+  // nazwa bez „.exe” i oczywistości („Opera GX Internet Browser” → „Opera GX”, „SnippingTool.exe” → „Snipping Tool”)
+  function prettyName(n) {
+    let t = String(n || '').trim(); const file = /\.exe$/i.test(t) || !/\s/.test(t);
+    t = t.replace(/\.exe$/i, '').replace(/\s+(internet\s+|web\s+)?browser$/i, '').replace(/\s*\((x64|x86|64-bit|32-bit)\)$/i, '').replace(/\s+(for windows|application|desktop app|desktop)$/i, '');
+    if (file && /^[A-Z][a-z]+[A-Z]/.test(t)) t = t.replace(/([a-z])([A-Z])/g, '$1 $2');
+    return t.trim() || String(n || '');
+  }
   // kafelek: ikona + nazwa; kliknięcie rozwija (Wybierz, uruchom, ukryj, motyw)
   let libOpen = '';
   const SRC_NAME = { steam: 'Steam' };
@@ -1410,7 +1424,7 @@
     const icon = e.live && !e.steam ? '' : hubUrl() + '/icon?id=' + encodeURIComponent(e.id);
     return `<div class="lib ${picked ? 'cur' : ''} ${open ? 'open' : ''} ${e.installed === false ? 'gone' : ''}" data-id="${esc(e.id)}">
       <button class="lhead" data-open="${esc(e.id)}"><span class="lic">${icon ? `<img src="${esc(icon)}" alt="" loading="lazy" onerror="this.remove()">` : ''}<i>${esc(String(e.name).slice(0, 1).toUpperCase())}</i></span>
-        <b>${esc(e.name)}</b>${picked ? '<em>✓ na nakładce</em>' : running ? '<em class="run">●</em>' : ''}</button>
+        <b>${esc(prettyName(e.name))}</b>${picked ? '<em>✓ na nakładce</em>' : running ? '<em class="run">●</em>' : ''}</button>
       ${open ? `<div class="lbody"><small>${esc(meta)}</small>
         <div class="lbtn"><button class="${picked ? '' : 'primary'}" data-pick="${esc(e.id)}">${picked ? '✓ Na nakładce' : 'Wybierz'}</button>${e.live || e.installed === false ? '' : `<button data-run="${esc(e.id)}" title="Uruchom">▶ Uruchom</button>`}${e.live || inst ? '' : `<button data-hide="${esc(e.id)}" title="Ukryj na liście">✕</button>`}</div>
         <select data-theme="${esc(e.id)}">${themeOpts(e.name)}</select></div>` : ''}</div>`;
@@ -1457,7 +1471,7 @@
     const r = e.target.closest('[data-run]'), h = e.target.closest('[data-hide]'), p = e.target.closest('[data-pick]');
     if (p) {
       const it = libFind(p.dataset.pick); if (!it) return;
-      if (!isPicked(it)) { s.game = it.name; s.gameSteam = it.steam || ''; s.since = Date.now(); s.subtitle = ''; s.cover = ''; }
+      if (!isPicked(it)) { s.game = prettyName(it.name); s.gameSteam = it.steam || ''; s.gameId = it.live ? '' : it.id; s.gameKind = it.kind || ''; s.gameExe = it.exe || ''; s.since = Date.now(); s.subtitle = ''; s.cover = ''; capLast = ''; }
       s.mode = 'manual'; s.visible = true; remember(it.name); save(); renderLibrary();
     }
     if (r) { r.textContent = '…'; try { const j = await (await fetch(hubUrl() + '/library/launch?id=' + encodeURIComponent(r.dataset.run), { cache: 'no-store' })).json(); r.textContent = j.ok ? '✓' : '!'; if (!j.ok) r.title = j.error; } catch { r.textContent = '!'; } }
@@ -1466,7 +1480,7 @@
   const libTheme = e => {
     const sel = e.target.closest('[data-theme]'); if (!sel) return;
     const it = libFind(sel.dataset.theme); if (!it) return;
-    s.themeFor = { ...(s.themeFor || {}) }; const k = String(it.name).toLowerCase();
+    s.themeFor = { ...(s.themeFor || {}) }; const k = prettyName(it.name).toLowerCase();
     if (sel.value) s.themeFor[k] = sel.value; else delete s.themeFor[k];
     save();
   };
@@ -1821,7 +1835,7 @@
     if (k === 'gra' && arg) {
       const all = libData.items.concat(libData.installed);
       const it = all.find(e => plain(e.name) === plain(arg)) || all.find(e => plain(e.name).includes(plain(arg)));
-      s.game = it ? it.name : arg; s.gameSteam = it && it.steam || ''; s.mode = 'manual'; s.since = Date.now(); s.visible = true; save(); return say('gra: ' + s.game);
+      s.game = it ? prettyName(it.name) : arg; s.gameSteam = it && it.steam || ''; s.gameId = it ? it.id : ''; s.gameKind = it ? it.kind || '' : ''; s.gameExe = it ? it.exe || '' : ''; capLast = ''; s.mode = 'manual'; s.since = Date.now(); s.visible = true; save(); return say('gra: ' + s.game);
     }
     if (k === 'auto') { s.mode = 'auto'; save(); return say('wykrywanie automatyczne'); }
     if (k === 'ukryj' || k === 'pokaz') { s.visible = k === 'pokaz'; save(); return say(k === 'pokaz' ? 'karta widoczna' : 'karta ukryta'); }

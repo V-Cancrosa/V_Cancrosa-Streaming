@@ -322,6 +322,22 @@ function Get-WindowSpec([int]$procId) {
     } catch { return $null }
 }
 
+# okno dowolnej pozycji z listy (gra albo program wybrany ręcznie) – do przechwytywania w OBS
+function Find-ItemWindow([string]$id) {
+    $e = $script:GameLib[$id]
+    $path = if ($e -and $e.path) { [string]$e.path } else { '' }
+    $dir = ''
+    if (-not $path) { $o = @(Get-OtherGames | Where-Object { $_.id -eq $id }) | Select-Object -First 1; if ($o -and $o.exe) { $path = $o.exe } }
+    if (-not $path -and $id -match '^steam:(\d+)$') { $g = @(Get-SteamInstalled | Where-Object { $_.id -eq $id }) | Select-Object -First 1; if ($g) { $dir = $g.dir } }
+    $cands = @()
+    if ($path) { $n = [IO.Path]::GetFileNameWithoutExtension($path); $cands = @(Get-Process -Name $n -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne [IntPtr]::Zero }) }
+    elseif ($dir) { $cands = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne [IntPtr]::Zero -and $_.Path -and $_.Path.StartsWith($dir, [StringComparison]::OrdinalIgnoreCase) }) }
+    $pr = @($cands | Where-Object { $_.MainWindowTitle } | Sort-Object StartTime -Descending) | Select-Object -First 1
+    if (-not $pr) { $pr = $cands | Select-Object -First 1 }
+    if (-not $pr) { return $null }
+    return Get-WindowSpec ([int]$pr.Id)
+}
+
 function Get-ForegroundPid {
     $h = [VMGameDetector.Win]::GetForegroundWindow()
     $fgPid = [uint32]0
@@ -555,6 +571,11 @@ function Update-AppSeen([string]$path) {
         try { $vi = [Diagnostics.FileVersionInfo]::GetVersionInfo($path); if ($vi.FileDescription) { $name = $vi.FileDescription } elseif ($vi.ProductName) { $name = $vi.ProductName } } catch {}
         $name = ([string](Clean $name)).Trim()
         if (-not $name) { $name = [IO.Path]::GetFileNameWithoutExtension($path) }
+        # bez «.exe» i oczywistości («Opera GX Internet Browser» → «Opera GX», «SnippingTool» → «Snipping Tool»)
+        $wasFile = $name -match '(?i)\.exe$' -or $name -notmatch ' '
+        $name = $name -replace '(?i)\.exe$', '' -replace '(?i)\s+(internet\s+|web\s+)?browser$', '' -replace '(?i)\s*\((x64|x86|64-bit|32-bit)\)$', '' -replace '(?i)\s+(for windows|application|desktop app|desktop)$', ''
+        if ($wasFile -and $name -cmatch '^[A-Z][a-z]+[A-Z]') { $name = $name -creplace '([a-z])([A-Z])', '$1 $2' }   # nazwa z pliku: SnippingTool → Snipping Tool
+        $name = $name.Trim()
         $e = [pscustomobject]@{ id = $id; name = $name; path = $path; exe = [IO.Path]::GetFileName($path).ToLowerInvariant(); steam = ''; kind = 'app'; first = $now.ToString('o'); last = ''; plays = 1; minutes = 0; hidden = $false }
         $script:GameLib[$id] = $e
         Log "Biblioteka: zapisano program $name" 'DarkCyan'
@@ -1765,6 +1786,10 @@ function Invoke-Request($ctx) {
                 if (-not $r) { Send-Json $ctx @{ at = 0; status = $script:Censor.status; error = $script:Censor.err }; return }
                 if (([string]$q['since']) -eq [string]$r.at) { Send-Json $ctx @{ at = $r.at; same = $true }; return }
                 Send-Raw $ctx ([string]$script:Censor.json) 'application/json'
+            }
+            '/window' {
+                $ws = $null; try { $ws = Find-ItemWindow ([string]$q['id']) } catch {}
+                Send-Json $ctx ([pscustomobject]@{ window = $(if ($ws) { $ws.spec } else { '' }); title = $(if ($ws) { $ws.title } else { '' }) })
             }
             '/icon' {
                 $id = [string]$q['id']; $res = $ctx.Response
