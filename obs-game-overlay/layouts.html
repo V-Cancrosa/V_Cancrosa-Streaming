@@ -133,8 +133,12 @@
   .cl-h.cl-top #chat.chat-ticker { top: 0; bottom: auto; border-top: 0; border-bottom: 2px solid var(--accent); transform: translateY(-100%); }
   .cl-h.cl-top #chat.chat-ticker.on { transform: none; }
   .l-game-frame.cl-h #bar { height: 130px; }
+  /* pasek czatu na dole: linki większe pod oknem gry (alerty idą pod avatara) */
+  .l-game-frame.cl-h.cl-bottom #bar .socials { grid-template-columns: repeat(3, auto); gap: 10px 34px; font-size: 22px; }
+  /* pasek czatu u góry: ostatnie zdarzenia i linki pod avatarem, pod oknem gry miejsce na alerty */
+  .l-game-frame.cl-h.cl-top #bar { left: 1510px; top: 470px; width: 370px; height: auto; flex-direction: column; align-items: flex-start; gap: 18px; padding: 20px; }
+  .l-game-frame.cl-h.cl-top #bar .socials { margin-left: 0; grid-template-columns: 1fr; font-size: 19px; }
   .l-game-frame.cl-h.cl-top #gameFrame, .l-game-frame.cl-h.cl-top #avatar { top: 70px; }
-  .l-game-frame.cl-h.cl-top #bar { top: 905px; }
   .l-game-frame.cl-h #avatar { height: 370px; }
   .mirror.l-game-frame #gameFrame, .mirror.l-game-frame #bar { left: 440px; }
   .mirror.l-game-frame #avatar, .mirror.l-game-frame #chat { left: 40px; }
@@ -193,7 +197,8 @@
     const box = $('chat'); box.className = ''; box.textContent = ''; box.removeAttribute('data-skin');
     // rozmowa: pasek wychodzi z kolumny i leży na całej szerokości ekranu
     if (layout === 'talk') { if (mode === 'ticker') document.body.appendChild(box); else $('col').appendChild(box); }
-    chat = mode === 'off' ? { add() {} } : window.OverlayChat.mount(box, mode === 'ticker' ? { mode: 'ticker' } : { mode, life: 14 });
+    // sociale są już w pasku pod grą / w kolumnie – bez rotującej plakietki na końcu paska czatu
+    chat = mode === 'off' ? { add() {} } : window.OverlayChat.mount(box, mode === 'ticker' ? { mode: 'ticker', socials: false } : { mode, life: 14 });
   }
   mountChat(C.settings());
 
@@ -321,7 +326,8 @@
   pollSession();
   // alerty jako część czatu (w ramce i w rozmowie) – karta alertu wtedy nie zasłania gry ani avatara
   const ALERTS = ['follow', 'sub', 'resub', 'gift', 'cheer', 'raid', 'redeem'];
-  const alertsInChat = () => layout !== 'game-full' && C.settings().alertsInChat !== false;
+  // alerty w czacie tylko przy czacie pionowym (panel) – pasek nie ma na nie miejsca, wtedy dostają własną strefę
+  const alertsInChat = () => layout !== 'game-full' && C.settings().alertsInChat !== false && chatLay(C.settings()).dir === 'v';
   const seenAlerts = new Set();
   function alertToChat(ev) {
     const key = ev.id != null ? 'a' + ev.id : JSON.stringify(ev); if (seenAlerts.has(key)) return; seenAlerts.add(key);
@@ -335,6 +341,9 @@
   if (window.VMZone) window.VMZone.announce(() => {
     if (layout === 'game-full') return { mode: 'card', rect: [420, 24, 1080, 300] };
     if (alertsInChat()) return { mode: 'chat' };
+    const L = chatLay(C.settings());
+    // ramka + pasek czatu: na dole → alerty pod avatarem (prawa kolumna); u góry → alerty pod oknem gry (linki idą pod avatara)
+    if (layout === 'game-frame' && L.dir === 'h') return L.side === 'top' ? { mode: 'card', rect: [40, 895, 1440, 170] } : { mode: 'card', rect: [1500, 440, 390, 540] };
     return layout === 'game-frame' ? { mode: 'card', rect: [40, 858, 1440, 200] } : { mode: 'card', rect: [1000, 30, 840, 340] };
   });
 

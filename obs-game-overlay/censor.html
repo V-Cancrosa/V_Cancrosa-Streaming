@@ -68,7 +68,8 @@
     const s = settings();
     if (!s.censor || s.local === false) return;
     try {
-      const j = await (await fetch(hub() + '/censor/config?on=1&exes=' + encodeURIComponent(s.censorAll ? '' : (s.censorExes || DEF_EXES)), { cache: 'no-store' })).json();
+      const m = read(MAP), it = m && (m.items || []).find(i => i.exe && i.kind !== 'monitor_capture');
+      const j = await (await fetch(hub() + '/censor/config?on=1&target=' + encodeURIComponent(it ? it.exe : '') + '&exes=' + encodeURIComponent(s.censorAll ? '' : (s.censorExes || DEF_EXES)), { cache: 'no-store' })).json();
       st.textContent = 'OCR: ' + j.status + (j.fps ? ' · ' + j.fps + '/s' : '') + (j.error ? ' · ' + j.error : '');
     } catch { st.textContent = 'wykrywacz nie odpowiada'; }
   }

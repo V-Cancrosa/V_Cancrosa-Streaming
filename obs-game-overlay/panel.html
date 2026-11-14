@@ -1584,7 +1584,9 @@
   async function censorTick() {
     pill('censorPill', !!s.censor, 'WŁ.', 'WYŁ.');
     if (!s.censor || isRemote) return;
-    try { const j = await (await fetch(hubUrl() + '/censor/config?on=1&exes=' + encodeURIComponent(s.censorAll ? '' : (s.censorExes || DEF_EXES).replace(/\s/g, '')), { cache: 'no-store' })).json();
+    // cel skanu: okno, które OBS przechwytuje w bieżącej scenie (najwyżej położone przechwytywanie okna/gry)
+    let target = ''; try { const m = JSON.parse(localStorage.getItem('obsGameOverlay.censorMap') || 'null'); const it = m && (m.items || []).find(i => i.exe && i.kind !== 'monitor_capture'); target = it ? it.exe : ''; } catch {}
+    try { const j = await (await fetch(hubUrl() + '/censor/config?on=1&target=' + encodeURIComponent(target) + '&exes=' + encodeURIComponent(s.censorAll ? '' : (s.censorExes || DEF_EXES).replace(/\s/g, '')), { cache: 'no-store' })).json();
       $('censorStatus').textContent = 'Rozpoznawanie tekstu: ' + j.status + (j.fps ? ` (${j.fps} skanów/s)` : '') + (j.lang ? ' · język ' + j.lang : '') + (j.error ? ' · ' + j.error : ''); }
     catch { $('censorStatus').textContent = 'Wykrywacz nie odpowiada – cenzura ekranu nie działa.'; }
     if (!obs || censorBusy) return;
