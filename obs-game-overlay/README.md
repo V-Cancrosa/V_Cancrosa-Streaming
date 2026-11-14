@@ -99,6 +99,29 @@ Ikony, okładki gier i stan aktualizacji są dostępne dla wszystkich, bo nic ni
 
 Dziennik: Więcej → Wykrywacz → **📄 Otwórz pełny dziennik** (Notatnik; folder i plik zakładają się same) albo **⬇ Pobierz dziennik**.
 
+## Serwis na GitHub Pages: ustawiasz w przeglądarce, OBS tylko pokazuje
+
+Adres: **https://v-cancrosa.github.io/Vincent-Media/** (przekierowuje do `obs-game-overlay/site/`). To zwykła strona w Twojej przeglądarce, bez ograniczeń doku w OBS. Ma menu po lewej i osobne strony:
+
+| Strona | Co tam robisz | Podgląd (prawdziwy widok 1920×1080) |
+|---|---|---|
+| **Start** | stan, co jest na wizji, adresy widoków do OBS | `stage.html` – cała scena „VM · Stream” |
+| **Gry i programy** | lista z wykrywacza z okładkami/logo Steama i ikonami, wybór gry, motyw dla gry, uruchamianie | karta „Teraz gram”, gra w ramce |
+| **Postać i wygląd** | kto prowadzi, gdzie stoi karta, Sąsiedzi / sama gra / sama postać, czat | pełny ekran, ramka, rozmowa, ekran |
+| **Ekrany** | który ekran, odliczanie, termin, podpisy, sociale, „Pokaż na streamie” | wybrany ekran |
+| **Ułożenie scen** | edytor ułożenia na całą szerokość | – |
+| **Kreator stron** | Kreator jak Bubble na całą szerokość | – |
+| **Wszystkie ustawienia** | pełny panel (czat, alerty, cenzura, Twitch, OBS) w kolumnach | – |
+
+Każdy podgląd ma **⤢ 1920×1080** (otwiera widok w pełnym rozmiarze) i **⧉ Adres do OBS**, czyli adres źródła przeglądarki. Pod widokami z grą podgląd podkłada „obraz gry”, bo w OBS w tym miejscu jest przechwytywanie.
+
+**Jak zmiany trafiają do OBS.** Przeglądarka i OBS mają osobne pamięci, więc łączy je wykrywacz na Twoim komputerze (`themes/sync.js`):
+- ustawienia idą kanałem `/settings`;
+- strony z Kreatora, stany i widoczność idą kanałem `/kv` (zapis w `detector\data\kv.json`);
+- w OBS odbierają je `stage.html` i `page.html`, więc dok z panelem nie musi być otwarty.
+
+W lewym dolnym rogu serwisu widać, czy wykrywacz działa i czy zmiany idą do OBS.
+
 ## Z GitHub Pages zamiast z dysku
 
 Strony mogą iść prosto z repo: każdy push na `main` jest na streamie po kilku minutach i nic nie trzeba pobierać.

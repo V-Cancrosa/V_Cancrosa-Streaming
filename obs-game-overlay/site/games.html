@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gry i programy · Vincent-Media</title>
+<link rel="stylesheet" href="../themes/fonts.css">
+<link rel="stylesheet" href="site.css">
+<script src="../version.js"></script>
+<script src="../themes/games.js"></script>
+<script src="../themes/fursona.js"></script>
+<script src="../themes/library.js"></script>
+<script src="../themes/fusion.js"></script>
+<script src="../themes/chat.js"></script>
+<script src="../themes/sync.js"></script>
+<script src="site.js"></script>
+</head>
+<body>
+<div class="app"><nav class="nav"></nav><main>
+
+<h1>Gry i programy</h1>
+<p class="lead">Lista z wykrywacza: zainstalowane gry (Steam, Epic, GOG, Ubisoft, EA…) i programy, których używasz. Kliknij, żeby pokazać na streamie. Okładki i logo idą z pamięci Steama na Twoim komputerze.</p>
+<div class="split">
+  <div class="stack">
+    <div class="card stack">
+      <div class="row"><input id="q" placeholder="Szukaj…" style="flex:1"><button id="auto">↺ Wykrywaj sam</button></div>
+      <p class="hint" id="cur"></p>
+      <div id="sel" class="stack" hidden></div>
+    </div>
+    <div class="card"><h2 id="hG">Gry</h2><div class="grid" id="games"></div></div>
+    <div class="card"><h2 id="hP">Programy</h2><div class="grid" id="progs"></div></div>
+  </div>
+  <div id="pv"></div>
+</div>
+<script>
+(() => {
+  const S = window.VMSite, $ = S.$, esc = S.esc;
+  const arr = v => Array.isArray(v) ? v : v && Array.isArray(v.value) ? v.value : v && typeof v === 'object' ? [v] : [];
+  const EXTRA = /soundtrack|\bOST\b|art ?book|digital (deluxe )?(extras|content)|bonus content|wallpapers?\b|\bDLC\b|season pass|expansion pass|dedicated server|\bSDK\b|mod tools|creation kit|redistributable|steamworks|proton|runtime|benchmark tool|\bplaytest\b/i;
+  function prettyName(n) {
+    let t = String(n || '').trim(); const file = /\.exe$/i.test(t) || !/\s/.test(t);
+    t = t.replace(/\.exe$/i, '').replace(/\s+(internet\s+|web\s+)?browser$/i, '').replace(/\s*\((x64|x86|64-bit|32-bit)\)$/i, '').replace(/\s+(for windows|application|desktop app|desktop)$/i, '');
+    if (file && /^[A-Z][a-z]+[A-Z]/.test(t)) t = t.replace(/([a-z])([A-Z])/g, '$1 $2');
+    return t.trim() || String(n || '');
+  }
+  let lib = { items: [], installed: [], current: '' }, open = '';
+  async function load() {
+    try { const j = await (await fetch(S.hub() + '/library', { cache: 'no-store' })).json(); lib = { items: arr(j.items), installed: arr(j.installed), current: j.current || '' }; }
+    catch { $('games').innerHTML = '<p class="hint">Wykrywacz nie odpowiada – lista gier przychodzi z Twojego komputera. Uruchom OBS (wykrywacz startuje razem z nim).</p>'; }
+    render();
+  }
+  const isProg = e => e.kind === 'app' || e.kind === 'make';
+  function tile(e) {
+    const s = S.get(), picked = s.mode === 'manual' && (s.gameId ? s.gameId === e.id : String(s.game || '').toLowerCase() === prettyName(e.name).toLowerCase());
+    const art = e.steam ? `background-image:url('${S.hub()}/art?id=${encodeURIComponent(e.steam)}&k=header')` : '';
+    return `<button class="tile ${picked ? 'on' : ''}" data-id="${esc(e.id)}"><div class="art" style="${art}">${e.steam ? '' : `<img src="${S.hub()}/icon?id=${encodeURIComponent(e.id)}" alt="" onerror="this.replaceWith(document.createTextNode('${esc(prettyName(e.name)).slice(0, 1).toUpperCase()}'))">`}</div>
+      <b>${esc(prettyName(e.name))}</b><small>${[e.id === lib.current ? '● uruchomione' : '', e.source || (e.steam ? 'Steam' : ''), picked ? '✓ na streamie' : ''].filter(Boolean).join(' · ')}</small></button>`;
+  }
+  function render() {
+    const f = $('q').value.trim().toLowerCase(), seen = new Set();
+    const all = lib.items.concat(lib.installed).filter(e => { const k = String(e.name).toLowerCase(); if (!e.name || seen.has(k) || EXTRA.test(e.name)) return false; seen.add(k); return !f || k.includes(f); });
+    const g = all.filter(e => !isProg(e)), p = all.filter(isProg);
+    $('hG').textContent = `Gry (${g.length})`; $('hP').textContent = `Programy (${p.length})`;
+    $('games').innerHTML = g.map(tile).join('') || '<p class="hint">Brak.</p>'; $('progs').innerHTML = p.map(tile).join('') || '<p class="hint">Brak.</p>';
+    const s = S.get(); $('cur').innerHTML = s.mode === 'manual' && s.game ? `Na streamie: <b>${esc(s.game)}</b> (wybrana ręcznie)` : 'Na streamie: <b>to, co wykrywacz złapie</b> (automatycznie)';
+    sel();
+  }
+  function sel() {
+    const e = all().find(x => x.id === open); if (!e) { $('sel').hidden = true; return; }
+    const s = S.get(), k = prettyName(e.name).toLowerCase(), tf = (s.themeFor || {})[k] || '';
+    $('sel').hidden = false;
+    $('sel').innerHTML = `<div class="row"><b style="font-size:16px">${esc(prettyName(e.name))}</b><span style="flex:1"></span><button class="primary" id="pick">Pokaż na streamie</button><button id="run">▶ Uruchom</button></div>
+      <label>Wygląd przy tej grze<select id="tf"><option value="">automatycznie</option><option value="none"${tf === 'none' ? ' selected' : ''}>sama postać (bez motywu gry)</option>${(window.OverlayGameThemes ? window.OverlayGameThemes.list : []).filter(t => t.group !== 'fursona').map(t => `<option value="${esc(t.id)}"${tf === t.id ? ' selected' : ''}>${esc(t.name)}</option>`).join('')}</select></label>`;
+    $('pick').onclick = () => { S.set({ game: prettyName(e.name), gameSteam: e.steam || '', gameId: e.id, gameKind: e.kind || '', gameExe: e.exe || '', since: Date.now(), subtitle: '', cover: '', mode: 'manual', visible: true }); render(); S.toast('Na streamie: ' + prettyName(e.name)); };
+    $('run').onclick = async () => { try { const j = await (await fetch(S.hub() + '/library/launch?id=' + encodeURIComponent(e.id), { cache: 'no-store' })).json(); S.toast(j.ok ? 'Uruchamiam…' : 'Nie udało się: ' + (j.error || '')); } catch { S.toast('Wykrywacz nie odpowiada'); } };
+    $('tf').onchange = () => { const m = { ...(S.get().themeFor || {}) }; if ($('tf').value) m[k] = $('tf').value; else delete m[k]; S.set({ themeFor: m }); };
+  }
+  const all = () => lib.items.concat(lib.installed);
+  for (const id of ['games', 'progs']) $(id).onclick = e => { const b = e.target.closest('[data-id]'); if (b) { open = b.dataset.id; sel(); $('sel').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } };
+  $('q').oninput = render;
+  $('auto').onclick = () => { S.set({ mode: 'auto' }); render(); S.toast('Gra wykrywana automatycznie'); };
+  S.onChange(render);
+  load(); setInterval(load, 20000);
+  S.preview($('pv'), [
+    { id: 'full', name: 'Gra – pełny ekran', urls: ['../layouts.html?layout=game-full', '../overlay.html'], game: true, obs: '../stage.html', hint: 'Karta „Teraz gram” z wybraną grą i jej motywem.' },
+    { id: 'frame', name: 'Gra w ramce', urls: ['../layouts.html?layout=game-frame'], game: true, obs: '../stage.html' },
+  ]);
+})();
+</script>
+</main></div>
+</body>
+</html>

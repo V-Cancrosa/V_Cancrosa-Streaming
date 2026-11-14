@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ekrany · Vincent-Media</title>
+<link rel="stylesheet" href="../themes/fonts.css">
+<link rel="stylesheet" href="site.css">
+<script src="../version.js"></script>
+<script src="../themes/sync.js"></script>
+<script src="site.js"></script>
+</head>
+<body>
+<div class="app"><nav class="nav"></nav><main>
+
+<h1>Ekrany</h1>
+<p class="lead">Ekrany przed streamem, w przerwie i na koniec. Wybierz ekran, żeby go zobaczyć – „Pokaż na streamie” przełącza go naprawdę.</p>
+<div class="split">
+  <div class="stack">
+    <div class="card stack"><h2>Który ekran</h2><div class="seg" id="which"></div><div class="row"><button class="primary" id="live">▶ Pokaż na streamie</button><span class="hint" id="liveNow"></span></div></div>
+    <div class="card stack"><h2>Odliczanie</h2>
+      <div class="row"><label>Minut<input id="min" type="number" min="1" value="5" style="width:90px"></label><button class="primary" id="go">Start</button><button id="stop">Stop</button><span class="hint" id="left"></span></div>
+      <label>Termin streama (ekran „Stream za…”)<input id="at" type="datetime-local"></label>
+      <label class="chk"><input id="autoLate" type="checkbox"> po końcu odliczania sam przełącz na „spóźnienie” / „przerwa się przedłuża”</label>
+    </div>
+    <div class="card stack"><h2>Napisy</h2>
+      <label>Podpis pod odliczaniem (pusty = „Dziś: [gra]”)<input id="sub" placeholder="np. Dziś: boss Malenia"></label>
+      <label>Temat rozmowy (układ „Rozmowa”)<input id="topic" placeholder="np. Q&amp;A, plany na weekend"></label>
+      <label>Sociale (puste = Twoje konta, „-” = bez)<input id="soc" placeholder="telegram: @…, x: @…"></label>
+      <label class="chk"><input id="hero" type="checkbox"> duża postać obok odliczania</label>
+    </div>
+  </div>
+  <div id="pv"></div>
+</div>
+<script>
+(() => {
+  const S = window.VMSite, $ = S.$;
+  const SCR = [['prep', 'Przygotowania'], ['soon', 'Stream za…'], ['start', 'Zaraz zaczynamy'], ['late', 'Spóźnienie'], ['vote', 'Głosowanie'], ['brb', 'Przerwa'], ['brb-late', 'Przerwa się przedłuża'], ['end', 'Koniec + napisy']];
+  let pick = S.get().scene || 'prep';
+  const pv = S.preview($('pv'), SCR.map(([id, n]) => ({ id, name: n, urls: ['../scenes.html?scene=' + id], obs: '../stage.html' })), pick);
+  // pasek wyboru w podglądzie robi to samo co lista po lewej
+  function render() {
+    const s = S.get();
+    $('which').innerHTML = SCR.map(([v, n]) => `<button data-s="${v}" aria-pressed="${pick === v}">${n}</button>`).join('');
+    $('liveNow').textContent = s.stage === 'screen' ? 'na wizji: ' + ((SCR.find(x => x[0] === s.scene) || [, s.scene])[1]) : 'na wizji jest teraz gra / inny widok';
+    const set = (id, v) => { if (document.activeElement !== $(id)) $(id)[typeof v === 'boolean' ? 'checked' : 'value'] = v; };
+    set('sub', s.sceneSub || ''); set('topic', s.talkTopic || ''); set('soc', s.socials || ''); set('hero', s.sceneHero !== false); set('autoLate', s.autoLate !== false);
+    set('at', s.sceneAt ? new Date(s.sceneAt - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '');
+    const left = Math.max(0, (s.sceneUntil || 0) - Date.now()); $('left').textContent = s.sceneUntil ? (left ? `zostało ${Math.floor(left / 60000)}:${String(Math.floor(left / 1000) % 60).padStart(2, '0')}` : 'czas minął') : '';
+  }
+  $('which').onclick = e => { const b = e.target.closest('[data-s]'); if (!b) return; pick = b.dataset.s; pv.show(pick); render(); };
+  $('live').onclick = () => { S.set({ stage: 'screen', scene: pick, ...(pick === 'late' || pick === 'brb-late' ? { sceneLateAt: Date.now() } : {}) }); render(); S.toast('Na streamie: ' + SCR.find(x => x[0] === pick)[1]); };
+  $('go').onclick = () => { const m = parseFloat($('min').value); if (m > 0) S.set({ sceneUntil: Date.now() + Math.round(m * 60000) }); render(); };
+  $('stop').onclick = () => { S.set({ sceneUntil: 0 }); render(); };
+  $('at').onchange = () => { const t = new Date($('at').value).getTime(); S.set({ sceneAt: isNaN(t) ? 0 : t }); };
+  $('autoLate').onchange = () => S.set({ autoLate: $('autoLate').checked });
+  $('hero').onchange = () => S.set({ sceneHero: $('hero').checked });
+  for (const [id, k] of [['sub', 'sceneSub'], ['topic', 'talkTopic'], ['soc', 'socials']]) $(id).onchange = () => S.set({ [k]: $(id).value.trim() });
+  S.onChange(render); render(); setInterval(render, 1000);
+  document.addEventListener('click', e => { const b = e.target.closest('#pvSeg [data-v]'); if (b) { pick = b.dataset.v; render(); } });
+})();
+</script>
+</main></div>
+</body>
+</html>

@@ -1636,6 +1636,19 @@ if (-not $script:RemoteKey) {
 }
 $script:LanMode = $false
 
+# wspólny magazyn stron z Kreatora i stanów (strona na GitHub Pages w zwykłej przeglądarce ↔ OBS); wartości trzymamy jako tekst JSON
+$KvFile = Join-Path $DataDir 'kv.json'
+$KvKeys = @('obsGameOverlay.pages', 'obsGameOverlay.pageState', 'obsGameOverlay.pageVis')
+$script:KV = @{}; $script:KvRev = 0
+if (Test-Path $KvFile) {
+    try { $kj = (Get-Content $KvFile -Raw -Encoding UTF8) | ConvertFrom-Json; $script:KvRev = [int]$kj.rev
+          foreach ($pp in $kj.items.PSObject.Properties) { $script:KV[$pp.Name] = @{ rev = [int]$pp.Value.rev; from = [string]$pp.Value.from; val = [string]$pp.Value.val } } } catch {}
+}
+function Save-Kv {
+    $items = [ordered]@{}; foreach ($k in $script:KV.Keys) { if ($k -ne 'obsGameOverlay.pageVis') { $items[$k] = $script:KV[$k] } }
+    try { [IO.File]::WriteAllText($KvFile, (@{ rev = $script:KvRev; items = $items } | ConvertTo-Json -Depth 4 -Compress), $Utf8NoBom) } catch {}
+}
+
 # ---------------------------------------------------------------- zaufany korytarz: kto może rozmawiać z wykrywaczem
 # Wykrywacz zna hasło do OBS i steruje czatem – nie może odpowiadać każdej stronie z internetu.
 #  • Twoje GitHub Pages (i adresy dopisane w data\trusted-origins.txt) – po nagłówku Origin,
@@ -1905,6 +1918,23 @@ function Invoke-Request($ctx) {
                     $res = $ctx.Response; $res.ContentType = 'application/json; charset=utf-8'
                     $res.Headers['Access-Control-Allow-Origin'] = $script:AllowOrigin; $res.Headers['Cache-Control'] = 'no-store'
                     $b = $Utf8NoBom.GetBytes($raw); $res.ContentLength64 = $b.Length; $res.OutputStream.Write($b, 0, $b.Length); $res.OutputStream.Close()
+                }
+            }
+            '/kv' {
+                if ($req.HttpMethod -eq 'POST') {
+                    $body = Read-Body $req
+                    if ($body.Length -gt 3MB) { Send-Json $ctx @{ ok = $false; error = 'za duże' } 413; return }
+                    try { $d = $body | ConvertFrom-Json } catch { Send-Json $ctx @{ ok = $false; error = 'zły JSON' } 400; return }
+                    $k = [string]$d.key
+                    if ($KvKeys -notcontains $k) { Send-Json $ctx @{ ok = $false; error = 'nieznany klucz' } 400; return }
+                    $script:KvRev++; $script:KV[$k] = @{ rev = $script:KvRev; from = [string]$d.client; val = [string]$d.val }
+                    if ($k -ne 'obsGameOverlay.pageVis') { Save-Kv }
+                    Send-Json $ctx ([pscustomobject]@{ ok = $true; rev = $script:KvRev })
+                } else {
+                    # tylko to, co zmieniło się po «since»; wartość idzie jako tekst JSON bez przepuszczania przez obiekty PowerShella
+                    $since = 0; if ($q.ContainsKey('since')) { [void][int]::TryParse([string]$q['since'], [ref]$since) }
+                    $parts = @(); foreach ($k in $script:KV.Keys) { $e = $script:KV[$k]; if ($e.rev -gt $since) { $parts += (($k | ConvertTo-Json) + ':{"rev":' + $e.rev + ',"from":' + ($e.from | ConvertTo-Json) + ',"val":' + ($e.val | ConvertTo-Json) + '}') } }
+                    Send-Raw $ctx ('{"rev":' + $script:KvRev + ',"items":{' + ($parts -join ',') + '}}') 'application/json'
                 }
             }
             '/session' { Send-Json $ctx (Get-Session) }

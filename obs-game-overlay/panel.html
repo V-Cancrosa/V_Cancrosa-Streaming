@@ -2146,7 +2146,7 @@
   setTimeout(() => {
     renderHosts();
     let asked = false; try { asked = !!sessionStorage.getItem('vm.hostPicked'); } catch {}
-    if (!asked && !isRemote && OWN_PAGES) {
+    if (!asked && !isRemote && OWN_PAGES && window.top === window) {
       // każde uruchomienie OBS: postać losowana (inna niż ostatnio), ale można ją od razu zmienić
       const list = hosts().filter(t => 'g-' + t.id !== s.theme), pick = list[Math.floor(Math.random() * list.length)];
       if (pick) { const sel = $('persona'); sel.value = pick.id; sel.dispatchEvent(new Event('change')); renderHosts(); }

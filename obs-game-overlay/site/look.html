@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Postać i wygląd · Vincent-Media</title>
+<link rel="stylesheet" href="../themes/fonts.css">
+<link rel="stylesheet" href="site.css">
+<script src="../version.js"></script>
+<script src="../themes/games.js"></script>
+<script src="../themes/fursona.js"></script>
+<script src="../themes/library.js"></script>
+<script src="../themes/fusion.js"></script>
+<script src="../themes/chat.js"></script>
+<script src="../themes/sync.js"></script>
+<script src="site.js"></script>
+</head>
+<body>
+<div class="app"><nav class="nav"></nav><main>
+
+<h1>Postać i wygląd</h1>
+<p class="lead">Kto prowadzi stream, gdzie stoi karta „Teraz gram”, jak postać łączy się z grą i gdzie jest czat. Podgląd po prawej to prawdziwy widok z OBS.</p>
+<div class="split">
+  <div class="stack">
+    <div class="card"><h2>Kto prowadzi</h2><div class="grid" id="hosts" style="grid-template-columns:repeat(auto-fill,minmax(120px,1fr))"></div></div>
+    <div class="card stack"><h2>Karta „Teraz gram”</h2><div class="seg" id="pos"></div><p class="hint">Dowolne miejsce: <a href="layouts.html">Ułożenie scen</a> → przeciągnij kartę.</p></div>
+    <div class="card stack"><h2>Postać i gra</h2><div class="seg" id="mode"></div><p class="hint" id="modeHint"></p></div>
+    <div class="card stack"><h2>Czat</h2><div class="seg" id="chat"></div></div>
+  </div>
+  <div id="pv"></div>
+</div>
+<script>
+(() => {
+  const S = window.VMSite, $ = S.$, esc = S.esc, GT = window.OverlayGameThemes;
+  const IMG = { vince: '../themes/fursona/vince.webp', chip: '../themes/fursona/chip.webp', ragnar: '../themes/fursona/ragnar.webp', toro: '../themes/fursona/toro.webp' };
+  const POS = [['tl', '↖ lewy górny'], ['tc', '↑ góra'], ['tr', '↗ prawy górny'], ['bl', '↙ lewy dolny'], ['bc', '↓ dół'], ['br', '↘ prawy dolny']];
+  const MODE = [['patch', 'Sąsiedzi', 'postać i gra obok siebie – każde w swoim stylu'], ['game', 'Sama gra', 'motyw gry, postać tylko podpisuje'], ['off', 'Sama postać', 'bez motywu gry']];
+  const CHAT = [['v|right', 'pionowo z prawej'], ['v|left', 'pionowo z lewej'], ['h|bottom', 'pasek u dołu'], ['h|top', 'pasek u góry'], ['off|', 'bez czatu']];
+  function render() {
+    const s = S.get(), list = (GT ? GT.list : []).filter(t => t.group === 'fursona');
+    $('hosts').innerHTML = list.map(t => `<button class="tile ${s.theme === 'g-' + t.id ? 'on' : ''}" data-host="${esc(t.id)}"><div class="art" style="aspect-ratio:1;background:#0b0b10">${IMG[t.id] ? `<img src="${IMG[t.id]}" alt="" style="width:100%;height:100%;object-fit:cover">` : `<div style="width:70%;height:70%">${t.emblem || ''}</div>`}</div><b>${esc(t.name)}</b><small>${s.theme === 'g-' + t.id ? '✓ prowadzi' : ''}</small></button>`).join('');
+    $('pos').innerHTML = POS.map(([v, n]) => `<button data-pos="${v}" aria-pressed="${(s.position || 'bl') === v && !s.cardXY}">${n}</button>`).join('');
+    $('mode').innerHTML = MODE.map(([v, n]) => `<button data-mode="${v}" aria-pressed="${(s.gameMode || 'patch') === v}">${n}</button>`).join('');
+    $('modeHint').textContent = (MODE.find(m => m[0] === (s.gameMode || 'patch')) || MODE[0])[2];
+    const cd = (s.chatDir || 'v') + '|' + ((s.chatDir || 'v') === 'off' ? '' : s.chatSide || ((s.chatDir || 'v') === 'h' ? 'bottom' : 'right'));
+    $('chat').innerHTML = CHAT.map(([v, n]) => `<button data-chat="${v}" aria-pressed="${cd === v}">${n}</button>`).join('');
+  }
+  $('hosts').onclick = e => { const b = e.target.closest('[data-host]'); if (b) { S.set({ theme: 'g-' + b.dataset.host }); render(); } };
+  $('pos').onclick = e => { const b = e.target.closest('[data-pos]'); if (!b) return; const s = S.get(); delete s.cardXY; s.position = b.dataset.pos; localStorage.setItem('obsGameOverlay.v1', JSON.stringify(s)); S.set({}); render(); };
+  $('mode').onclick = e => { const b = e.target.closest('[data-mode]'); if (b) { S.set({ gameMode: b.dataset.mode, gameThemes: b.dataset.mode !== 'off' }); render(); } };
+  $('chat').onclick = e => { const b = e.target.closest('[data-chat]'); if (!b) return; const [d, side] = b.dataset.chat.split('|'); S.set(side ? { chatDir: d, chatSide: side } : { chatDir: d }); render(); };
+  S.onChange(render); render();
+  S.preview($('pv'), [
+    { id: 'full', name: 'Gra – pełny ekran', urls: ['../layouts.html?layout=game-full', '../overlay.html'], game: true, obs: '../stage.html' },
+    { id: 'frame', name: 'Gra w ramce', urls: ['../layouts.html?layout=game-frame'], game: true, obs: '../stage.html' },
+    { id: 'talk', name: 'Rozmowa', urls: ['../layouts.html?layout=talk'], obs: '../stage.html' },
+    { id: 'screen', name: 'Ekran startowy', urls: ['../scenes.html?scene=start'], obs: '../stage.html' },
+  ]);
+})();
+</script>
+</main></div>
+</body>
+</html>

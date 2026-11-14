@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kreator stron · Vincent-Media</title>
+<link rel="stylesheet" href="../themes/fonts.css">
+<link rel="stylesheet" href="site.css">
+<script src="../version.js"></script>
+<script src="../themes/sync.js"></script>
+<script src="site.js"></script>
+</head>
+<body>
+<div class="app"><nav class="nav"></nav><main>
+
+<h1>Kreator stron</h1>
+<p class="lead">Własne strony, liczniki i pilot – jak w Bubble. Stronę 1920×1080 pokażesz na streamie w panelu: Twórz → Na stream.</p>
+<iframe class="full" src="../builder.html?embed=1" title="Kreator stron"></iframe>
+<script>
+  // „Gotowe” w osadzonym edytorze wraca na Start
+  window.addEventListener('message', e => { if (e.data === 'vm-editor-close' || e.data === 'vm-builder-close') location.href = 'index.html'; });
+</script>
+</main></div>
+</body>
+</html>
