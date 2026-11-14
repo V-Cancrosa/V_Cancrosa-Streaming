@@ -164,6 +164,7 @@
 <script src="themes/i18n.js"></script>
 <script src="themes/wordfilter.js"></script>
 <script src="themes/socials.js"></script>
+<script src="themes/chat.js"></script>
 <script src="themes/botcheck.js"></script>
 <script src="themes/testfeed.js"></script>
 </head>
@@ -1660,10 +1661,20 @@
 
 
   // --- autotest: co działa samo, jest sprawdzane co kilka sekund i chowane; widać tylko to, co wymaga uwagi ---
-  const CHECK_NAMES = { det: 'Wykrywacz działa', ver: 'Wykrywacz w tej samej wersji co panel', lib: 'Lista gier i programów', obs: 'Połączenie z OBS', scenes: 'Sceny VM w OBS',
+  const CHECK_NAMES = { pages: 'Nakładki w OBS pokazują to, co ustawione', det: 'Wykrywacz działa', ver: 'Wykrywacz w tej samej wersji co panel', lib: 'Lista gier i programów', obs: 'Połączenie z OBS', scenes: 'Sceny VM w OBS',
     cap: 'Przechwytywanie uruchomionej gry', mic: 'Mikrofon w OBS', censor: 'Cenzura ekranu', twitch: 'Twitch' };
   let checks = {}, checksOpen = false, testBusy = false;
+  // odśwież wszystkie źródła przeglądarki VM w OBS (bez pamięci podręcznej) – nowa wersja i świeży stan
+  let pagesRefreshed = false;
+  async function refreshPages() {
+    if (!obs) return;
+    try {
+      const inputs = ((await obs.call('GetInputList', { inputKind: 'browser_source' })).inputs || []).filter(i => i.inputName.indexOf('VM · ') === 0);
+      for (const i of inputs) { try { await obs.call('PressInputPropertiesButton', { inputName: i.inputName, propertyName: 'refreshnocache' }); } catch {} }
+    } catch {}
+  }
   const FIX = {
+    pages: () => { pagesRefreshed = true; refreshPages(); },
     det: () => $('detStart').click(),
     cap: () => { capLast = ''; startGame(); },
     mic: () => (checks.mic && checks.mic.fix === 'micdup' ? obs.call('RemoveInput', { inputName: MIC_NAME }).then(() => { s.autoMic = false; save(); $('autoMic').checked = false; }) : ensureMic()),
@@ -1731,6 +1742,19 @@
           } catch { c.censor = { ok: false, msg: 'nie mogę sprawdzić' }; }
         }
       }
+    }
+    // meldunki nakładek: stara wersja w pamięci OBS albo stan inny niż ustawienia → odśwież źródła VM
+    if (/^file:/.test(location.protocol)) {
+      const hb = k => { try { const v = JSON.parse(localStorage.getItem('obsGameOverlay.hb.' + k) || 'null'); return v && Date.now() - v.at < 20000 ? v : null; } catch { return null; } };
+      const list = ['overlay', 'scenes', 'layouts-game-frame', 'layouts-talk', 'layouts-game-full'].map(k => [k, hb(k)]).filter(([, v]) => v);
+      const old = list.filter(([, v]) => v.v && window.VM_VERSION && v.v !== window.VM_VERSION).map(([k, v]) => k + ' ' + v.v);
+      const ov = hb('overlay'), CL = window.OverlayChat && window.OverlayChat.layoutOf ? window.OverlayChat.layoutOf(s) : null;
+      const wrongTop = ov && CL && ov.v === window.VM_VERSION && ov.mounted && CL.dir === 'h' && ov.top !== (CL.side === 'top');
+      if (!list.length) c.pages = { ok: null, msg: 'żadna nakładka jeszcze się nie zgłosiła' };
+      else if (old.length) c.pages = { ok: false, msg: 'stara wersja w OBS: ' + old.join(', ') + ' – odświeżam źródła' };
+      else if (wrongTop) c.pages = { ok: false, msg: 'pasek czatu nie jest tam, gdzie ustawiony – Napraw odświeży nakładki' };
+      else c.pages = { ok: true, msg: list.length + ' nakładek w wersji ' + (window.VM_VERSION || '') };
+      if (old.length && !pagesRefreshed) { pagesRefreshed = true; refreshPages(); }
     }
     if (feat.twitch !== false && !/WYŁ/.test($('twPill').textContent)) c.twitch = $('twPill').classList.contains('on') ? { ok: true } : { ok: false, msg: $('twPill').textContent || 'brak połączenia' };
     checks = c; testBusy = false; renderChecks();

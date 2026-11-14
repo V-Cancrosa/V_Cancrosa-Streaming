@@ -260,9 +260,16 @@
   function ignored(name) {
     return settings.ignore.split(',').map(s => s.trim().toLowerCase()).filter(Boolean).includes(name.toLowerCase());
   }
+  // nazwa bez „.exe” i oczywistości (zapisane przed 1.23.1 albo wpisane ręcznie)
+  function prettyName(n) {
+    let t = String(n || '').trim(); const file = /\.exe$/i.test(t);
+    t = t.replace(/\.exe$/i, '').replace(/\s+(internet\s+|web\s+)?browser$/i, '').replace(/\s*\((x64|x86|64-bit|32-bit)\)$/i, '');
+    if (file && /^[A-Z][a-z]+[A-Z]/.test(t)) t = t.replace(/([a-z])([A-Z])/g, '$1 $2');
+    return t.trim() || String(n || '');
+  }
   function current() {
     const manual = settings.game.trim()
-      ? { name: settings.game.trim(), sub: settings.subtitle, start: settings.since, images: settings.cover ? [settings.cover] : settings.gameSteam && settings.local !== false ? [window.vmHub(settings.localUrl) + '/art?id=' + encodeURIComponent(settings.gameSteam) + '&k=cover']
+      ? { name: prettyName(settings.game.trim()), sub: settings.subtitle, start: settings.since, images: settings.cover ? [settings.cover] : settings.gameSteam && settings.local !== false ? [window.vmHub(settings.localUrl) + '/art?id=' + encodeURIComponent(settings.gameSteam) + '&k=cover']
         : settings.gameId && settings.local !== false ? [window.vmHub(settings.localUrl) + '/icon?id=' + encodeURIComponent(settings.gameId)] : [],
         source: 'manual', steam: settings.gameSteam || '', kind: settings.gameKind || '', exe: settings.gameExe || '' }
       : null;
@@ -300,7 +307,9 @@
     const pos = String(settings.position || 'bl'), side = pos[1] === 'l' ? 'l' : pos[1] === 'r' ? 'r' : (pd && pd.side) || 'l';
     const flip = pd && pd.face && pd.face !== (side === 'l' ? 'right' : 'left');
     const popSrc = pd && pd.pop && !th.persona ? pd.pop : '';
-    document.body.className = `theme-${th.cls} pos-${settings.position} side-${side}` + (flip ? ' face-flip' : '') + (popSrc ? ' has-pop' : '') + (GT.bodyClasses ? GT.bodyClasses(th) : '') +
+    // tk-top (pasek czatu u góry) ustawia mountTicker – nie gubić go przy odświeżeniu stylu
+    const keepTop = document.body.classList.contains('tk-top');
+    document.body.className = (keepTop ? 'tk-top ' : '') + `theme-${th.cls} pos-${settings.position} side-${side}` + (flip ? ' face-flip' : '') + (popSrc ? ' has-pop' : '') + (GT.bodyClasses ? GT.bodyClasses(th) : '') +
       (reduced ? ' reduced-motion' : '') + (settings.icon ? '' : ' no-icon') + (settings.showLabel ? '' : ' no-label');
     const key = th.cls + '|' + (th.game ? th.game.id : '') + '|' + (th.persona ? th.persona.id : '') + '|' + th.mode + '|' + (th.variant || '');
     if (emblemFor !== key) {
@@ -441,6 +450,14 @@
     applyStyle(current());
   }
   if (window.VMClient) window.VMClient.events(ev => { if (ev && ev.type === 'chat' && tickerChat) tickerChat.add(ev); });
+  // meldunek dla autotestu w panelu: wersja i to, co naprawdę widać (np. czy pasek czatu jest u góry)
+  setInterval(() => {
+    try {
+      const L = lay(), tk = document.getElementById('ticker');
+      localStorage.setItem('obsGameOverlay.hb.overlay', JSON.stringify({ v: window.VM_VERSION || '', at: Date.now(), dir: L.dir, side: L.side, mounted: !!tickerChat,
+        top: !!(tk && tickerChat && L.dir === 'h' && getComputedStyle(tk).top === '0px'), scene: obsScene }));
+    } catch {}
+  }, 3000);
   try { new BroadcastChannel('obsGameOverlay').addEventListener('message', e => { const m = e.data; if (m && m.type === 'scene' && m.name !== obsScene) { obsScene = m.name; mountTicker(); } }); } catch {}
 
   function reload() {

@@ -257,6 +257,7 @@
   }
   window.vmSetTalking = setTalking;
 
+  setInterval(() => { try { localStorage.setItem('obsGameOverlay.hb.layouts-' + layout, JSON.stringify({ v: window.VM_VERSION || '', at: Date.now(), cls: document.body.className.split(' ').filter(c => /^cl-|^mirror$/.test(c)).join(' ') })); } catch {} }, 3000);
   let fxKey = '';
   function render() {
     const s = C.settings();

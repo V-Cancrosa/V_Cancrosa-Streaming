@@ -349,6 +349,7 @@
   // ---------------------------------------------------------------- treść
   let shownKind = null, bigShown = '';
   let shownFusion = null;
+  setInterval(() => { try { localStorage.setItem('obsGameOverlay.hb.scenes', JSON.stringify({ v: window.VM_VERSION || '', at: Date.now() })); } catch {} }, 3000);
   function setBig(text, animate) {
     if (text === bigShown) return;
     bigShown = text;
