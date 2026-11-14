@@ -192,6 +192,8 @@ Scena **`VM · Stream`** zawiera przechwytywanie gry, jedno źródło przegląda
 - przechwytywanie gry samo przechodzi na pełny ekran albo w ramkę z edytora ułożenia, a na przerwie, w rozmowie i na ekranach jest schowane;
 - alerty i czat dalej wiedzą, co jest na wizji (panel podaje im dawną nazwę sceny).
 
+Przejście **„taśma filmowa”** (Sterowanie → Przejścia → styl) działa tylko w tej jednej scenie. Ekran maleje do klatki, taśma z perforacją przesuwa się o jedną klatkę, a nowy ekran rośnie do pełnego obrazu. Pomysł pochodzi z przejścia `film()` biblioteki [SSGOI](https://github.com/meursyphus/ssgoi) (pen „SSGOI + React Router” na CodePen). Kodu nie kopiowaliśmy, to własna wersja w CSS, bez Reacta.
+
 Działa domyślnie. Wyłączenie: Więcej → OBS → „wszystko w jednej scenie OBS”. Wtedy wraca stary podział na sceny `VM · …`.
 
 Czego HTML nie zrobi: nie złapie obrazu z innego okna, kamerki ani dźwięku. To zawsze robi OBS (źródło przechwytywania), a panel tylko je ustawia.

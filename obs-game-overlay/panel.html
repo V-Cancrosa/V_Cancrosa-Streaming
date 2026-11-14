@@ -320,6 +320,7 @@
           <option value="shutter">stalowe wrota</option><option value="shoji">drzwi shoji</option><option value="thread">jedwab i nić</option>
           <option value="ink">ciemność i pochodnia</option><option value="holo">hologram</option><option value="flash">granat hukowy</option>
           <option value="eq">korektor</option><option value="pixel">piksele</option><option value="blueprint">plan architekta</option>
+          <option value="film">taśma filmowa – ekrany przewijają się jak klatki (tylko w jednej scenie „VM · Stream”)</option>
         </select>
       </label>
       <label class="check"><input id="transitionText" type="checkbox"> napis w trakcie przejścia (tekst postaci / gry – np. narrator)</label>
@@ -1100,7 +1101,7 @@
     if (moved) { const st = $('capStatus'); if (st) st.textContent = `Przepięto ${moved} źródeł VM na ${ON_PAGES ? 'GitHub Pages' : 'pliki z dysku'} – panel i nakładki mają teraz wspólne ustawienia.`; }
   }
   function sendTransition(scene) {
-    const ev = { type: 'transition', scene, style: s.transitionStyle || 'auto', at: Date.now(), tid: Math.random().toString(36).slice(2) };
+    const ev = { type: 'transition', scene, style: (s.transitionStyle === 'film' ? 'auto' : s.transitionStyle) || 'auto', at: Date.now(), tid: Math.random().toString(36).slice(2) };
     if (isRemote) fetch(window.vmHub(s.localUrl || DEFAULTS.localUrl) + '/transition?scene=' + encodeURIComponent(scene) + '&style=' + encodeURIComponent(ev.style), { cache: 'no-store' }).catch(() => {});
     else if (bc) bc.postMessage({ type: 'alert', event: ev });
     // scena przełącza się, gdy obraz jest zasłonięty (czas zasłaniania zależy od długości przejścia)
@@ -1109,6 +1110,8 @@
   }
   function goScene(scene, apply) {
     if (s.transitions === false) { apply(); return; }
+    // taśma filmowa: bez zasłony – przejście robi sama scena (stage.html), gdy zmienia się etap
+    if (s.transitionStyle === 'film' && s.oneScene !== false) { apply(); return; }
     setTimeout(apply, sendTransition(scene));
   }
 

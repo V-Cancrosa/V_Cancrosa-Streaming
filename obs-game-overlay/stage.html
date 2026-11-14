@@ -13,9 +13,26 @@
   html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
   iframe { position: absolute; inset: 0; width: 1920px; height: 1080px; border: 0; background: transparent; display: none; }
   iframe.on { display: block; }
+  /* przejście „taśma filmowa” (pomysł: przejście film() z biblioteki SSGOI; tu własna implementacja w CSS):
+     stary ekran maleje do klatki i odjeżdża w lewo, nowy wjeżdża z prawej i rośnie do pełnego obrazu */
+  #film { position: absolute; inset: 0; display: none; background: #0b0b0d; z-index: 0; }
+  #film::before, #film::after { content: ""; position: absolute; left: 0; right: 0; height: 60px;
+    background: repeating-linear-gradient(90deg, transparent 0 34px, #2a2a2e 34px 70px, transparent 70px 104px); background-size: 104px 26px; background-repeat: repeat-x; background-position: 0 50%;
+    animation: film-roll var(--film) cubic-bezier(.65,0,.35,1) both; }
+  #film::before { top: 28px; } #film::after { bottom: 28px; }
+  @keyframes film-roll { to { background-position: -520px 50%; } }
+  .filming #film { display: block; }
+  .filming iframe.on, .filming iframe.leave { z-index: 1; border-radius: 22px; box-shadow: 0 0 0 4px #1d1d21, 0 30px 80px rgba(0,0,0,.7); }
+  iframe.leave { display: block; animation: film-out var(--film) cubic-bezier(.65,0,.35,1) both; }
+  .filming iframe.on { animation: film-in var(--film) cubic-bezier(.65,0,.35,1) both; }
+  /* obie klatki maleją, przesuwają się razem o jedną klatkę (z przerwą jak na taśmie), nowa rośnie do pełnego obrazu */
+  @keyframes film-out { 0% { transform: none; } 25% { transform: scale(.78); } 75%, 100% { transform: translateX(-85%) scale(.78); } }
+  @keyframes film-in { 0%, 25% { transform: translateX(85%) scale(.78); } 75% { transform: translateX(0) scale(.78); } 100% { transform: none; } }
+  body { --film: 1300ms; }
 </style>
 </head>
 <body>
+<div id="film"></div>
 <script>
 (() => {
   const KEY = 'obsGameOverlay.v1';
@@ -33,9 +50,18 @@
   function render() {
     const s = load(), st = SETS[s.stage] ? s.stage : 'game';
     if (st === cur) return; cur = st;
-    const want = new Set(SETS[st]);
+    const want = new Set(SETS[st]), first = !document.querySelector('iframe.on');
     for (const src of want) frame(src);
-    for (const [src, f] of Object.entries(frames)) f.classList.toggle('on', want.has(src));
+    const film = !first && s.transitions !== false && s.transitionStyle === 'film' && s.motion !== 'reduced';
+    for (const [src, f] of Object.entries(frames)) {
+      const was = f.classList.contains('on'), now = want.has(src);
+      f.classList.toggle('on', now);
+      f.classList.toggle('leave', film && was && !now);
+    }
+    if (film) {
+      clearTimeout(render.t); document.body.classList.add('filming');
+      render.t = setTimeout(() => { document.body.classList.remove('filming'); document.querySelectorAll('iframe.leave').forEach(f => f.classList.remove('leave')); }, 1350);
+    }
     // kolejność: najpierw tło układu, na wierzchu karta „Teraz gram”
     SETS[st].forEach(src => document.body.appendChild(frames[src]));
     tell();
