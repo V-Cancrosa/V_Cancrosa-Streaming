@@ -187,6 +187,7 @@ Czego HTML nie zrobi: nie złapie obrazu z innego okna, kamerki ani dźwięku. T
 Wygląd → **✥ Edytor ułożenia** (albo `editor.html` w przeglądarce). Na podglądzie prawdziwej sceny przeciągasz okno gry, avatara, czat, pasek z linkami i strefę alertów. Elementy przyciągają się do siatki 10 px, krawędzi i środka ekranu oraz do siebie nawzajem (różowe linie). Róg zmienia rozmiar: gra trzyma 16:9, avatar kwadrat, a z Shiftem proporcje są dowolne. Strzałki przesuwają o 1 px.
 
 - Zmiany zapisują się od razu, a scena w OBS układa się na bieżąco. Panel przestawia też przechwytywanie gry w OBS pod nowe okno.
+- W „Gra – pełny ekran” przeciągasz też **kartę „Teraz gram”**. Róg zmienia jej wielkość, a strona postaci i ozdoby idą za tym, w której części ekranu ją postawisz. Kliknięcie rogu w Wygląd → Pozycja wraca do zwykłego ustawienia w rogu.
 - Każdy układ czatu (pionowy, poziomy) ma osobne ułożenie. *Wszystko automatycznie* wraca do układu liczonego samodzielnie.
 
 ## Fuzje szyte na miarę

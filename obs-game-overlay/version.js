@@ -1,6 +1,6 @@
 // Wersja plików nakładki. Nakładki porównują ją z wersją zgłaszaną przez wykrywacz
 // i same się odświeżają, gdy wykrywacz zainstalował aktualizację.
-window.VM_VERSION = '1.30.0';
+window.VM_VERSION = '1.31.0';
 window.vmCheckVersion = function (v) {
   if (!v || v === window.VM_VERSION) return;
   // w trakcie transmisji albo nagrywania nakładki się nie przeładowują – zrobią to po zakończeniu

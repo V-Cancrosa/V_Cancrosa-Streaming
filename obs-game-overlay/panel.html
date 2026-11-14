@@ -1953,7 +1953,7 @@
   // pozycja karty: siatka 3×2 zamiast listy
   const POS = [['tl', '↖'], ['tc', '↑'], ['tr', '↗'], ['bl', '↙'], ['bc', '↓'], ['br', '↘']];
   const renderPos = () => { $('posGrid').innerHTML = POS.map(([v, a]) => `<button data-pos="${v}" aria-pressed="${s.position === v}" title="${esc($('position').querySelector(`option[value="${v}"]`).textContent)}">${a}</button>`).join(''); };
-  $('posGrid').addEventListener('click', e => { const b = e.target.closest('[data-pos]'); if (!b) return; $('position').value = b.dataset.pos; $('position').dispatchEvent(new Event('change')); setTimeout(renderPos, 50); });
+  $('posGrid').addEventListener('click', e => { const b = e.target.closest('[data-pos]'); if (!b) return; delete s.cardXY; $('position').value = b.dataset.pos; $('position').dispatchEvent(new Event('change')); setTimeout(renderPos, 50); });
   // gra obok postaci: trzy przyciski (pełna lista trybów w „Więcej opcji karty”)
   const MODE_HINT = { patch: 'Postać prowadzi. Gra stoi obok ze swoimi elementami – tabliczka z logo, wstążka w jej kolorach, cząsteczki – bez mieszania kolorów.', off: 'Tylko motyw postaci, gra tylko z nazwy.', game: 'Na czas gry karta w całości w motywie gry.' };
   const renderMode = () => { const m = s.gameThemes === false ? 'off' : (s.gameMode || 'patch'); for (const b of $('modeSeg').children) b.setAttribute('aria-pressed', b.dataset.m === m); $('modeHint').textContent = MODE_HINT[m] || 'Tryb eksperymentalny (wybrany w „Więcej opcji karty”).'; };

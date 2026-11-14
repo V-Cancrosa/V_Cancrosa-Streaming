@@ -442,6 +442,20 @@
     timerEl.textContent = settings.timer && start ? fmt(Date.now() - start) : '';
   }
   setInterval(tick, 1000);
+  // edytor ułożenia: karta w dowolnym miejscu (s.cardXY = lewy górny róg karty na obrazie 1920×1080);
+  // róg z panelu zostaje (strona postaci, ozdoby) – tu tylko dosuwamy kartę do wskazanego punktu
+  let cdx = 0, cdy = 0;
+  function placeCard() {
+    const r = card.getBoundingClientRect(); if (!r.width) return;
+    const nx = r.left - cdx, ny = r.top - cdy, xy = Array.isArray(settings.cardXY) ? settings.cardXY : null;
+    const tx = xy ? +xy[0] - nx : 0, ty = xy ? +xy[1] - ny : 0;
+    if (Math.abs(tx - cdx) > 1 || Math.abs(ty - cdy) > 1) {
+      cdx = Math.round(tx); cdy = Math.round(ty);
+      document.documentElement.style.setProperty('--cdx', cdx + 'px'); document.documentElement.style.setProperty('--cdy', cdy + 'px');
+    }
+    if (wrap.classList.contains('show')) try { localStorage.setItem('obsGameOverlay.cardRect', JSON.stringify({ at: Date.now(), x: Math.round(nx + cdx), y: Math.round(ny + cdy), w: Math.round(r.width), h: Math.round(r.height), scale: +settings.scale || 1 })); } catch {}
+  }
+  setInterval(placeCard, 700);
 
   // ---- synchronizacja z panelem ----
   // ---- pasek czatu: kafelki jadą od prawej; karta odsuwa się, gdy pasek jest widoczny ----

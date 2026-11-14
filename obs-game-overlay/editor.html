@@ -34,6 +34,7 @@
   /* udawana gra pod podglądem – widać, gdzie wypada okno gry */
   #fake { position: absolute; inset: 0; background: repeating-linear-gradient(45deg, #1d3b2a 0 40px, #18321f 40px 80px); }
   #fake::after { content: "obraz gry"; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font: 800 90px/1 'Inter', sans-serif; color: rgba(255,255,255,.12); letter-spacing: .1em; text-transform: uppercase; }
+  #prev2 { position: absolute; inset: 0; width: 1920px; height: 1080px; border: 0; pointer-events: none; background: transparent; }
   #prev { position: absolute; inset: 0; width: 1920px; height: 1080px; border: 0; pointer-events: none; }
   #boxes { position: absolute; inset: 0; }
   .box { position: absolute; border: 4px dashed rgba(255,255,255,.55); background: rgba(124,92,255,.08); cursor: move; touch-action: none; }
@@ -67,7 +68,7 @@
   <button id="bigBtn" title="Otwórz edytor w osobnym, dużym oknie">↗ Duże okno</button>
   <button class="primary" id="doneBtn">Gotowe</button>
 </header>
-<main><div id="wrap"><div id="stage"><div id="fake"></div><iframe id="prev" title="podgląd"></iframe><div id="boxes"></div></div></div></main>
+<main><div id="wrap"><div id="stage"><div id="fake"></div><iframe id="prev" title="podgląd"></iframe><iframe id="prev2" class="prev2" title="karta"></iframe><div id="boxes"></div></div></div></main>
 <footer>
   <b id="selName">Kliknij element</b><span id="xywh"></span>
   <button id="centerBtn">↔ Wyśrodkuj</button>
@@ -84,7 +85,7 @@
   const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
   let bc = null; try { bc = new BroadcastChannel('obsGameOverlay'); } catch {}
   let layout = ['game-frame', 'talk', 'game-full'].includes(q.get('layout')) ? q.get('layout') : 'game-frame';
-  let sel = null, rects = {}, els = [], scale = 1;
+  let sel = null, rects = {}, els = [], scale = 1, cardScale0 = 1, cardW0 = 1, cardTouched = false;
 
   const s0 = () => load();
   const L = () => L0.chatLay(s0());
@@ -92,6 +93,14 @@
     const s = s0(), cl = L(), own = L0.custom(s, layout, cl);
     rects = JSON.parse(JSON.stringify(own || L0.defaults(layout, cl, s)));
     els = L0.elements(layout, cl, s);
+    // karta „Teraz gram” (overlay.html) – tylko w grze na pełnym ekranie; rozmiar = wielkość karty
+    if (layout === 'game-full' && s.visible !== false) {
+      let cr = null; try { cr = JSON.parse(localStorage.getItem('obsGameOverlay.cardRect')); } catch {}
+      const sc = +s.scale || 1, w = cr && cr.w ? cr.w * sc / (cr.scale || sc) : 520 * sc, h = cr && cr.h ? cr.h * sc / (cr.scale || sc) : 130 * sc;
+      const xy = Array.isArray(s.cardXY) ? s.cardXY : cr ? [cr.x, cr.y] : [40, 1080 - 40 - h];
+      els.unshift({ id: 'card', name: 'Karta „Teraz gram”', ratio: w / h });
+      rects.card = [+xy[0], +xy[1], w, h]; cardScale0 = sc; cardW0 = w; cardTouched = false;
+    }
     $('chatTag').textContent = 'czat: ' + (cl.dir === 'off' ? 'wyłączony' : cl.dir === 'h' ? 'poziomo ' + (cl.side === 'top' ? 'u góry' : 'u dołu') : 'pionowo ' + (cl.side === 'left' ? 'z lewej' : 'z prawej'));
     $('modeTag').textContent = own ? 'własne ułożenie' : 'automatyczne';
   }
@@ -101,7 +110,13 @@
     const go = () => {
       const s = load(), k = L0.keyOf(layout, L());
       s.layoutEdit = { ...(s.layoutEdit || {}) };
-      s.layoutEdit[k] = Object.fromEntries(els.map(e => [e.id, rects[e.id].map(Math.round)]));
+      s.layoutEdit[k] = Object.fromEntries(els.filter(e => e.id !== 'card').map(e => [e.id, rects[e.id].map(Math.round)]));
+      if (cardTouched && rects.card) {
+        const [x, y, w, h] = rects.card, cx = x + w / 2;
+        s.cardXY = [Math.round(x), Math.round(y)];
+        s.position = (y + h / 2 < 540 ? 't' : 'b') + (cx < 640 ? 'l' : cx > 1280 ? 'r' : 'c');   // strona postaci i ozdób idzie za kartą
+        s.scale = Math.round(Math.max(.5, Math.min(2, cardScale0 * w / cardW0)) * 100) / 100;
+      }
       try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {}
       if (bc) bc.postMessage('update');
       $('modeTag').textContent = 'własne ułożenie';
@@ -192,7 +207,7 @@
       if (ratio) { if (Math.abs(dx) >= Math.abs(dy)) nh = nw / ratio; else nw = nh * ratio; g.length = 0; }
       r = [W ? x + w - nw : x, N ? y + h - nh : y, nw, nh];
     }
-    rects[drag.id] = r; showGuides(g); place(); save();
+    rects[drag.id] = r; if (drag.id === 'card') cardTouched = true; showGuides(g); place(); save();
   });
   window.addEventListener('pointerup', () => { if (drag) { drag = null; showGuides([]); save(true); } });
 
@@ -201,13 +216,15 @@
     const st = ev.shiftKey ? 10 : 1, r = rects[sel];
     if (ev.key === 'ArrowLeft') r[0] -= st; if (ev.key === 'ArrowRight') r[0] += st;
     if (ev.key === 'ArrowUp') r[1] -= st; if (ev.key === 'ArrowDown') r[1] += st;
+    if (sel === 'card') cardTouched = true;
     ev.preventDefault(); place(); save();
   });
 
-  $('centerBtn').onclick = () => { const r = rects[sel]; if (!r) return; r[0] = Math.round((1920 - r[2]) / 2); place(); save(true); };
-  $('resetOne').onclick = () => { if (!sel) return; const s = load(); rects[sel] = L0.defaults(layout, L(), s)[sel]; place(); save(true); };
+  $('centerBtn').onclick = () => { const r = rects[sel]; if (!r) return; r[0] = Math.round((1920 - r[2]) / 2); if (sel === 'card') cardTouched = true; place(); save(true); };
+  const dropCard = () => { const s = load(); delete s.cardXY; try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {} if (bc) bc.postMessage('update'); };
+  $('resetOne').onclick = () => { if (!sel) return; if (sel === 'card') { dropCard(); setTimeout(() => { readRects(); draw(); }, 1600); return; } const s = load(); rects[sel] = L0.defaults(layout, L(), s)[sel]; place(); save(true); };
   $('resetAll').onclick = () => {
-    const s = load(), k = L0.keyOf(layout, L()); if (s.layoutEdit) delete s.layoutEdit[k];
+    const s = load(), k = L0.keyOf(layout, L()); if (s.layoutEdit) delete s.layoutEdit[k]; if (layout === 'game-full') delete s.cardXY;
     try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {} if (bc) bc.postMessage('update');
     readRects(); draw();
   };
@@ -219,6 +236,7 @@
     layout = l; sel = null;
     for (const b of document.querySelectorAll('#laySeg button')) b.classList.toggle('on', b.dataset.l === l);
     $('prev').src = 'layouts.html?layout=' + l;
+    $('prev2').src = l === 'game-full' ? 'overlay.html' : 'about:blank';
     $('fake').style.display = l === 'talk' ? 'none' : '';
     readRects(); draw();
   }
