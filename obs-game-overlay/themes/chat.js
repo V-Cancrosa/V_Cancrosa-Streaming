@@ -80,7 +80,7 @@
     const lane = el('div', 'ticker-lane');
     container.append(tag, lane);
     // sociale: na końcu paska, co kilka sekund następny
-    if (opts.socials !== false && window.VMSocials) {
+    if (opts.socialChip && window.VMSocials) {   // stała plakietka na końcu paska (wyłączona – linki jadą teraz w pasku jako kafelki)
       const soc = el('div', 'ticker-soc'); container.append(soc);
       let k = 0;
       const next = () => {
@@ -92,15 +92,28 @@
       };
       next(); setInterval(next, 7000);
     }
-    const items = [], seen = new Set(), GAP = 16;   // odstęp między kafelkami
-    const base = opts.speed || 140;            // px/s w 1920×1080
+    const items = [], seen = new Set(), GAP = 26;   // odstęp między kafelkami
+    const base = opts.speed || 95;             // px/s w 1920×1080 – spokojnie, do przeczytania
+    let sinceSoc = 0, socIdx = 0, floodAt = -Infinity, calmSince = 0, slowOn = false;
     let last = performance.now(), idleAt = 0, raf = 0;
     function frame(now) {
       const dt = Math.min(0.1, (now - last) / 1000); last = now;
       const lw = lane.clientWidth;
       const tail = items.length ? items[items.length - 1].x + items[items.length - 1].w : 0;
       const backlog = Math.max(0, tail - lw);
-      const v = base * (1 + Math.min(2.5, backlog / lw));      // dużo wiadomości → szybciej
+      const v = base * (1 + Math.min(0.7, backlog / lw / 2));   // przy kolejce tylko trochę szybciej – czytelność ważniejsza
+      // zator: w kolejce więcej niż ~2 szerokości paska → „ciach” najstarszych czekających i prośba o tryb powolny na Twitchu
+      if (backlog > lw * 2.2) {
+        const keep = lw * 1.2; let cut = 0;
+        for (let i = items.length - 1; i >= 0; i--) { const it = items[i]; if (it.x > lw + 40 && it.x < tail - keep && !it.soc) { it.el.remove(); items.splice(i, 1); cut++; } }
+        // po wycięciu: czekające kafelki dosuwają się do poprzednich (bez dziury w pasku)
+        if (cut) { let end = -Infinity; for (const it of items) { if (it.x > lw) it.x = Math.max(lw, end + GAP); end = it.x + it.w; } }
+        if (!slowOn && opts.onFlood && now - floodAt > 30000) { floodAt = now; slowOn = true; opts.onFlood(true); }
+        calmSince = now;
+      } else if (slowOn && backlog < lw * 0.3) {
+        if (!calmSince) calmSince = now;
+        if (now - calmSince > 180000 && opts.onFlood) { slowOn = false; opts.onFlood(false); }
+      }
       for (let i = items.length - 1; i >= 0; i--) {
         const it = items[i]; it.x -= v * dt;
         it.el.style.transform = `translateX(${it.x.toFixed(1)}px)`;
@@ -116,13 +129,18 @@
       if (opts.filter && !opts.filter(ev)) return;
       const key = ev.id != null ? 'i' + ev.id : ev.user + ev.text + Math.random();
       if (seen.has(key)) return; seen.add(key);
-      const m = render(ev); m.classList.add('in');
-      lane.appendChild(m);
-      const w = m.offsetWidth, lw = lane.clientWidth;
-      const prev = items[items.length - 1];
-      const x = Math.max(lw, prev ? prev.x + prev.w + GAP : lw);
-      items.push({ el: m, x, w });
-      m.style.transform = `translateX(${x}px)`;
+      const push = (m, soc) => {
+        m.classList.add('in'); lane.appendChild(m);
+        const w = m.offsetWidth, lw = lane.clientWidth, prev = items[items.length - 1];
+        const x = Math.max(lw, prev ? prev.x + prev.w + GAP : lw);
+        items.push({ el: m, x, w, soc }); m.style.transform = `translateX(${x}px)`;
+      };
+      push(render(ev));
+      // linki: co 8 wiadomości jeden (po kolei) albo wszystkie na komendę !linki / !sociale
+      const SOC = window.VMSocials ? window.VMSocials.parse((window.VMClient ? window.VMClient.settings() : {}).socials) : [];
+      const socTile = it => { const t = el('div', 'cmsg csoc'); t.innerHTML = window.VMSocials.item(it, true); return t; };
+      if (SOC.length && /^\s*!(linki|link|sociale|socials|links|media)\b/i.test(ev.text || '')) { SOC.forEach(it => push(socTile(it), true)); sinceSoc = 0; }
+      else if (SOC.length && opts.socials !== false && ++sinceSoc >= 8) { sinceSoc = 0; push(socTile(SOC[socIdx++ % SOC.length]), true); }
       while (items.length > 60) { items[0].el.remove(); items.shift(); }
       if (!container.classList.contains('on')) { container.classList.add('on'); if (opts.onVisible) opts.onVisible(true); }
       idleAt = performance.now();

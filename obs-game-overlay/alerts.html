@@ -315,7 +315,8 @@
     const reg = v ? v.register : '';
     const zone = currentZone();
     const inChat = zone && zone.mode === 'chat' && settings.alertsInChat !== false;   // układ z czatem pokaże alert jako wiadomość
-    const zoned = !inChat && zone && zone.rect;
+    // pozycja wybrana w panelu (inna niż „góra środek / automatycznie”) wygrywa ze strefą podpowiadaną przez scenę
+    const zoned = !inChat && zone && zone.rect && (settings.alertPos || 'tc') === 'tc';
     const { def, reduced } = applyStyle((reg === 'syndrome' ? ' syndrome' : reg === 'terminal' ? ' terminal-voice' : '') + ` tier-${tier}` + (R.shake && !inChat ? ` shake-${R.shake}` : '') + (zoned ? ' zoned' : '') + (inChat ? ' in-chat' : ''), zoned ? 'mc' : null);
     if (zoned) { const r = document.documentElement.style; ['--zx', '--zy', '--zw', '--zh'].forEach((k, i) => r.setProperty(k, zone.rect[i] + 'px')); }
     // większy alert potrzebuje więcej miejsca od krawędzi (gwiazdki, postać wyglądająca zza karty)

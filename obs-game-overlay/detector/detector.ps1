@@ -1114,7 +1114,7 @@ function Export-Stream([string]$id, [string]$fmt, [int]$offsetSec = 0) {
 Add-Type -AssemblyName System.Security
 $TwitchCfgFile = Join-Path $DataDir 'twitch.json'
 $TwitchTokFile = Join-Path $DataDir 'twitch-token.bin'
-$TwitchScopes  = 'moderator:read:followers channel:read:subscriptions bits:read channel:read:redemptions user:read:chat'
+$TwitchScopes  = 'moderator:read:followers channel:read:subscriptions bits:read channel:read:redemptions user:read:chat moderator:manage:chat_settings'
 $script:TW = [pscustomobject]@{
     status = 'off'; clientId = ''; user = ''; userId = ''; error = ''
     code = ''; uri = ''; deviceCode = ''; deviceInterval = 5; deviceUntil = [DateTime]::MinValue; nextPoll = [DateTime]::MinValue
@@ -1782,6 +1782,23 @@ function Invoke-Request($ctx) {
             }
             '/update/status' { Send-Json $ctx (Get-UpdateStatus) }
             '/update/check' { Invoke-UpdateCheck; Send-Json $ctx (Get-UpdateStatus) }
+            '/chat/slow' {
+                # tryb powolny czatu na Twitchu – nakładka prosi o niego, gdy w kolejce wisi za dużo wiadomości
+                $on = ([string]$q['on']) -eq '1'; $sec = 10; [void][int]::TryParse([string]$q['sec'], [ref]$sec)
+                if (-not $script:SlowMode) { $script:SlowMode = [pscustomobject]@{ on = $false; at = [DateTime]::MinValue; err = '' } }
+                if ($script:SlowMode.on -eq $on -or ((Get-Date) - $script:SlowMode.at).TotalSeconds -lt 20) { Send-Json $ctx $script:SlowMode; return }
+                try {
+                    $uid = $script:TW.userId
+                    [void](Invoke-Helix 'PATCH' "chat/settings?broadcaster_id=$uid&moderator_id=$uid" @{ slow_mode = $on; slow_mode_wait_time = $(if ($on) { [Math]::Max(3, [Math]::Min(120, $sec)) } else { $null }) })
+                    $script:SlowMode.on = $on; $script:SlowMode.err = ''
+                    Log ("Czat: tryb powolny " + $(if ($on) { "włączony ($sec s) – za dużo wiadomości naraz" } else { 'wyłączony' })) 'Cyan'
+                } catch {
+                    $script:SlowMode.err = 'potrzebne ponowne połączenie z Twitchem (Więcej → Twitch → Wyloguj i połącz) – nowe uprawnienie: ustawienia czatu'
+                    Log "Czat: nie mogę włączyć trybu powolnego – $($script:SlowMode.err)" 'Yellow'
+                }
+                $script:SlowMode.at = Get-Date
+                Send-Json $ctx $script:SlowMode
+            }
             '/vote' { Send-Json $ctx (Get-VoteStatus) }
             '/vote/start' {
                 $v = $script:Vote

@@ -198,6 +198,7 @@
     // rozmowa: pasek wychodzi z kolumny i leży na całej szerokości ekranu
     if (layout === 'talk') { if (mode === 'ticker') document.body.appendChild(box); else $('col').appendChild(box); }
     // sociale są już w pasku pod grą / w kolumnie – bez rotującej plakietki na końcu paska czatu
+    box.hidden = mode === 'off';      // wyłączony czat nie zostawia pustej ramki (np. skórka Myr na pełnym ekranie)
     chat = mode === 'off' ? { add() {} } : window.OverlayChat.mount(box, mode === 'ticker' ? { mode: 'ticker', socials: false } : { mode, life: 14 });
   }
   mountChat(C.settings());
@@ -269,7 +270,7 @@
     const L = chatLay(s);
     th = C.applyTheme('l-' + layout + (document.body.classList.contains('talking') ? ' talking' : '') + (document.body.classList.contains('hype') ? ' hype' : '') +
       ` cl-${L.dir} cl-${L.side}` + (L.dir === 'v' && L.side === 'left' ? ' mirror' : ''));
-    if (window.OverlayChat) window.OverlayChat.setSkin($('chat'), th, C.settings().chatSkin !== false);
+    if (window.OverlayChat) window.OverlayChat.setSkin($('chat'), th, C.settings().chatSkin !== false && !$('chat').hidden);
     if (BGFX) {
       const k = th.cls + (th.game ? th.game.id : '') + (th.variant || '') + th.reduced;
       if (k !== fxKey) { fxKey = k; const base = GT.fusionFx ? GT.fusionFx(th) : th.def && th.def.fx; BGFX.set(base && !th.reduced && layout !== 'game-full' ? { ...base, count: Math.round(base.count * 2) } : null); }

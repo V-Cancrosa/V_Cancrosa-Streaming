@@ -445,7 +445,9 @@
     if (key === tickKey) return; tickKey = key;
     const box = document.getElementById('ticker'); box.className = ''; box.textContent = ''; box.removeAttribute('data-skin'); setGap(false);
     if (!want) { tickerChat = null; return; }
-    if (L.dir === 'h') tickerChat = window.OverlayChat.mount(box, { mode: 'ticker', onVisible: setGap });
+    // zator na czacie → prośba do wykrywacza o tryb powolny na Twitchu (i wyłączenie, gdy się uspokoi)
+    const onFlood = on => { if (settings.local !== false && settings.slowOnFlood !== false) fetch(window.vmHub(settings.localUrl) + '/chat/slow?on=' + (on ? 1 : 0) + '&sec=10', { cache: 'no-store' }).catch(() => {}); };
+    if (L.dir === 'h') tickerChat = window.OverlayChat.mount(box, { mode: 'ticker', onVisible: setGap, onFlood });
     else { box.classList.add('vchat', 'vs-' + L.side); tickerChat = window.OverlayChat.mount(box, { mode: 'panel', fade: true, life: 25, max: 8 }); }
     applyStyle(current());
   }
