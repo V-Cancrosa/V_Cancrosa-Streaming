@@ -1077,6 +1077,28 @@
   const KIND_FOR_OBS = { 'VM · Start streamu': 'start', 'VM · Głosowanie': 'start', 'VM · Gra – pełny ekran': 'game', 'VM · Gra – w ramce': 'game', 'VM · Rozmowa': 'talk', 'VM · Nakładki': 'game' };
   for (const [k, v] of Object.entries(OBS_SCENE_FOR)) if (!KIND_FOR_OBS[v]) KIND_FOR_OBS[v] = k;
   const isRemote = /^https?:$/.test(location.protocol) && location.pathname.indexOf('/ui/') === 0;
+  // panel może zakładać sceny i źródła, gdy jest otwarty z dysku albo z GitHub Pages (strony na <nazwa>.github.io)
+  const ON_PAGES = /^https:$/.test(location.protocol) && /\.github\.io$/i.test(location.hostname);
+  const OWN_PAGES = !isRemote && (/^file:$/.test(location.protocol) || ON_PAGES);
+  // źródła VM w OBS muszą iść z tego samego miejsca co panel (wspólna pamięć ustawień) – przepnij adresy, jeśli trzeba
+  async function syncSourceBase() {
+    if (!obs || !OWN_PAGES) return;
+    const base = new URL('.', location.href).href;
+    let moved = 0;
+    try {
+      const list = ((await obs.call('GetInputList', { inputKind: 'browser_source' })).inputs || []);
+      for (const it of list) {
+        const set = (await obs.call('GetInputSettings', { inputName: it.inputName })).inputSettings || {};
+        const url = String(set.url || ''), i = url.indexOf('/obs-game-overlay/');
+        if (i < 0 || set.is_local_file) continue;
+        const rest = url.slice(i + '/obs-game-overlay/'.length), next = base + rest;
+        if (url.startsWith(base) || /^detector\//.test(rest)) continue;
+        await obs.call('SetInputSettings', { inputName: it.inputName, inputSettings: { url: next } });
+        moved++;
+      }
+    } catch {}
+    if (moved) { const st = $('capStatus'); if (st) st.textContent = `Przepięto ${moved} źródeł VM na ${ON_PAGES ? 'GitHub Pages' : 'pliki z dysku'} – panel i nakładki mają teraz wspólne ustawienia.`; }
+  }
   function sendTransition(scene) {
     const ev = { type: 'transition', scene, style: s.transitionStyle || 'auto', at: Date.now(), tid: Math.random().toString(36).slice(2) };
     if (isRemote) fetch(window.vmHub(s.localUrl || DEFAULTS.localUrl) + '/transition?scene=' + encodeURIComponent(scene) + '&style=' + encodeURIComponent(ev.style), { cache: 'no-store' }).catch(() => {});
@@ -1140,7 +1162,7 @@
   async function ensureStreamScene() {
     if (!obs) return false;
     if (obsSceneList.includes(STREAM_SCENE)) return true;
-    if (!/^file:/.test(location.protocol)) return false;
+    if (!OWN_PAGES) return false;
     await obs.call('CreateScene', { sceneName: STREAM_SCENE });
     const vs = await obs.call('GetVideoSettings');
     const inputs = ((await obs.call('GetInputList')).inputs || []).map(x => x.inputName);
@@ -1185,7 +1207,7 @@
         if (!s.obsMic || name === s.obsMic) obsLevel = db;
       },
       onTalking: t => { obsTalk = t; },
-      onReady: () => { wrapCut(); obsRecStatus(); setTimeout(ensureMic, 1500); setTimeout(readStreamDelay, 1000); },
+      onReady: () => { wrapCut(); setTimeout(syncSourceBase, 800); obsRecStatus(); setTimeout(ensureMic, 1500); setTimeout(readStreamDelay, 1000); },
       // nagrywanie razem ze streamem: start po starcie streama, stop po końcu (jeśli włączone)
       onOutput: async (t, d) => {
         if (t === 'RecordStateChanged') { obsRecStatus(); return; }
@@ -1236,7 +1258,7 @@
   $('transAdd').onclick = async () => {
     const st = $('transStatus');
     if (!obs) { st.textContent = 'Brak połączenia z OBS.'; return; }
-    if (!/^file:/.test(location.protocol)) { st.textContent = 'To działa z doku w OBS (panel otwarty z dysku).'; return; }
+    if (!OWN_PAGES) { st.textContent = 'To działa z doku w OBS (panel z dysku albo z Twojego GitHub Pages).'; return; }
     const NAME = 'VM · Przejścia', url = new URL('transition.html', location.href).href;
     try {
       const inputs = (await obs.call('GetInputList')).inputs || [];
@@ -1746,7 +1768,7 @@
   async function censorAddLayer() {
     const st = $('censorStatus');
     if (!obs) { st.textContent = 'Brak połączenia z OBS.'; return; }
-    if (!/^file:/.test(location.protocol)) { st.textContent = 'To działa z doku w OBS (panel otwarty z dysku).'; return; }
+    if (!OWN_PAGES) { st.textContent = 'To działa z doku w OBS (panel z dysku albo z Twojego GitHub Pages).'; return; }
     const url = new URL('censor.html', location.href).href;
     try {
       const inputs = (await obs.call('GetInputList')).inputs || [];
@@ -1770,7 +1792,7 @@
   $('censor').onchange = () => { s.censor = $('censor').checked; save(); if (s.censor && obs) censorAddLayer(); censorTick(); };
   // cenzura domyślnie włączona: przy pierwszym połączeniu z OBS warstwa trafia do scen sama
   let censorAutoAdded = false;
-  setInterval(() => { if (!censorAutoAdded && obs && s.censor !== false && $('obsPill').classList.contains('on') && /^file:/.test(location.protocol)) { censorAutoAdded = true; censorAddLayer(); } }, 5000);
+  setInterval(() => { if (!censorAutoAdded && obs && s.censor !== false && $('obsPill').classList.contains('on') && OWN_PAGES) { censorAutoAdded = true; censorAddLayer(); } }, 5000);
   $('censorExes').onchange = () => { s.censorExes = $('censorExes').value.trim(); save(); };
   $('censorAll').onchange = () => { s.censorAll = $('censorAll').checked; save(); };
   $('censorDebug').onchange = () => { s.censorDebug = $('censorDebug').checked; save(); };
@@ -1835,7 +1857,7 @@
   };
   // wykrywacz nie odpowiada: ostatnie linijki jego dziennika (detector\data\detector.log), jeśli OBS pozwala czytać pliki
   async function detLogTail() {
-    if (!/^file:/.test(location.protocol)) return '';
+    if (!/^file:$/.test(location.protocol)) return '';
     try {
       const txt = await new Promise((ok, no) => { const x = new XMLHttpRequest(); x.open('GET', new URL('detector/data/detector.log?t=' + Date.now(), location.href).href); x.onload = () => ok(x.responseText); x.onerror = no; x.send(); });
       const lines = String(txt || '').trim().split(/\r?\n/).slice(-3);
@@ -1895,7 +1917,7 @@
       }
     }
     // meldunki nakładek: stara wersja w pamięci OBS albo stan inny niż ustawienia → odśwież źródła VM
-    if (/^file:/.test(location.protocol)) {
+    if (OWN_PAGES) {
       const hb = k => { try { const v = JSON.parse(localStorage.getItem('obsGameOverlay.hb.' + k) || 'null'); return v && Date.now() - v.at < 20000 ? v : null; } catch { return null; } };
       const list = ['overlay', 'scenes', 'layouts-game-frame', 'layouts-talk', 'layouts-game-full'].map(k => [k, hb(k)]).filter(([, v]) => v);
       const old = list.filter(([, v]) => v.v && window.VM_VERSION && v.v !== window.VM_VERSION).map(([k, v]) => k + ' ' + v.v);
@@ -1958,7 +1980,7 @@
   setTimeout(() => {
     renderHosts();
     let asked = false; try { asked = !!sessionStorage.getItem('vm.hostPicked'); } catch {}
-    if (!asked && !isRemote && /^file:/.test(location.protocol)) {
+    if (!asked && !isRemote && OWN_PAGES) {
       // każde uruchomienie OBS: postać losowana (inna niż ostatnio), ale można ją od razu zmienić
       const list = hosts().filter(t => 'g-' + t.id !== s.theme), pick = list[Math.floor(Math.random() * list.length)];
       if (pick) { const sel = $('persona'); sel.value = pick.id; sel.dispatchEvent(new Event('change')); renderHosts(); }
@@ -2049,7 +2071,7 @@
   async function ensureVoteScene() {
     if (!obs) throw new Error('brak połączenia z OBS');
     if (obsSceneList.includes(VOTE_SCENE)) return;
-    if (!/^file:/.test(location.protocol)) throw new Error('scenę doda panel w OBS');
+    if (!OWN_PAGES) throw new Error('scenę doda panel w OBS');
     await obs.call('CreateScene', { sceneName: VOTE_SCENE });
     const vs = await obs.call('GetVideoSettings');
     const url = new URL('vote.html', location.href).href;
@@ -2115,7 +2137,7 @@
     if (s.oneScene !== false) return false;     // jedna scena: etapy idą przez „VM · Stream” (setSceneCut niżej)
     if (!obs) return false;
     if (obsSceneList.includes(FLOW_SCENE)) return true;
-    if (!/^file:/.test(location.protocol)) return false;
+    if (!OWN_PAGES) return false;
     await obs.call('CreateScene', { sceneName: FLOW_SCENE });
     const vs = await obs.call('GetVideoSettings');
     const id = (await obs.call('CreateInput', { sceneName: FLOW_SCENE, inputName: 'VM · Ekran startu', inputKind: 'browser_source', inputSettings: { url: new URL('scenes.html', location.href).href, width: 1920, height: 1080, is_local_file: false } })).sceneItemId;

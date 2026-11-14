@@ -88,6 +88,20 @@ Instalator można uruchomić ponownie, np. po zmianie kolekcji scen. Nie tworzy 
 
 Usuń sceny `VM · …` i dok w OBS, folder `%LOCALAPPDATA%\Vincent-Media`, folder *Vincent-Media* w menu Start i skrót *Vincent-Media wykrywacz* w autostarcie (`Win+R` → `shell:startup`).
 
+## Z GitHub Pages zamiast z dysku
+
+Strony mogą iść prosto z repo: każdy push na `main` jest na streamie po kilku minutach i nic nie trzeba pobierać.
+
+1. Repo na GitHubie → **Settings → Pages** → *Deploy from a branch*, gałąź `main`, folder `/ (root)` → Save. Po chwili strony są pod `https://<konto>.github.io/<repo>/obs-game-overlay/`.
+2. W OBS: **Docki → Własne docki przeglądarki**. Zmień adres panelu na `https://<konto>.github.io/<repo>/obs-game-overlay/panel.html`.
+3. To wszystko. Po połączeniu z OBS panel sam przepina adresy źródeł VM (Scena, Alerty, Przejścia, Cenzura…) na GitHub Pages. Panel i nakładki muszą iść z tego samego miejsca, bo inaczej nie widzą wspólnych ustawień.
+
+- Powrót: przywróć w doku adres panelu z dysku (`file:///…/panel.html`), a panel przepnie źródła z powrotem.
+- Wykrywacz dalej działa na komputerze (`localhost:7777`). Strony z GitHuba łączą się z nim i z OBS WebSocket normalnie.
+- Nakładki co 2 minuty sprawdzają `version.json` na GitHub Pages i same się przeładowują, ale nie w trakcie transmisji ani nagrywania. GitHub trzyma pliki w pamięci podręcznej do ok. 10 minut.
+- Bez internetu źródła są puste, więc lokalna instalacja zostaje jako zapas.
+- Repo jest publiczne: strony może otworzyć każdy, ale ustawienia, hasła i tokeny zostają w OBS i w wykrywaczu na Twoim komputerze.
+
 ## Instalacja ręczna w OBS
 
 1. Pobierz folder `obs-game-overlay` na dysk, np. do `C:\OBS\obs-game-overlay\`.
