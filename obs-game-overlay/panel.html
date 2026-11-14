@@ -538,6 +538,7 @@
     <p class="hint" style="margin:0">Gdy przeglądasz internet na wizji, wykrywacz co chwilę czyta tekst z okna na pierwszym planie (wbudowane rozpoznawanie tekstu Windows, bez internetu, nic nie zapisuje), a warstwa <b>VM · Cenzura</b> zasłania na scenie słowa z listy zakazanych – ten sam filtr co na czacie.</p>
     <label class="check"><input id="censor" type="checkbox"> zasłaniaj zakazane słowa na ekranie</label>
     <label>Skanowane programy (pliki .exe, po przecinku)<input id="censorExes" type="text" placeholder="chrome.exe, msedge.exe, firefox.exe, opera.exe, brave.exe, vivaldi.exe, discord.exe"></label>
+    <label class="check"><input id="censorDebug" type="checkbox"> pokaż, co widzi skaner (ramki wokół każdego odczytanego słowa – do sprawdzenia, czy zasłony trafiają; wyłącz przed streamem)</label>
     <label class="check"><input id="censorAll" type="checkbox"> skanuj każde okno na pierwszym planie (też gry – więcej pracy dla procesora)</label>
     <div class="row">
       <button id="censorAdd" data-feature="obs">Dodaj warstwę do scen</button>
@@ -1627,6 +1628,8 @@
   $('censor').onchange = () => { s.censor = $('censor').checked; save(); if (s.censor && obs) censorAddLayer(); censorTick(); };
   $('censorExes').onchange = () => { s.censorExes = $('censorExes').value.trim(); save(); };
   $('censorAll').onchange = () => { s.censorAll = $('censorAll').checked; save(); };
+  $('censorDebug').onchange = () => { s.censorDebug = $('censorDebug').checked; save(); };
+  setTimeout(() => { $('censorDebug').checked = !!s.censorDebug; }, 0);
   $('censorDelay').onclick = async () => {
     const st = $('censorStatus'); if (!obs) { st.textContent = 'Brak połączenia z OBS.'; return; }
     try {

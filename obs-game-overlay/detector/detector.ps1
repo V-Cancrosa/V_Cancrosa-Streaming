@@ -1525,6 +1525,8 @@ $CensorScript = {
         if (-not ('VMCensor.W' -as [type])) {
             Add-Type -Namespace VMCensor -Name W -MemberDefinition @'
 [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
+[DllImport("user32.dll")] public static extern IntPtr SetThreadDpiAwarenessContext(IntPtr ctx);
+[DllImport("user32.dll")] public static extern bool SetProcessDpiAwarenessContext(IntPtr ctx);
 [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
 [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
 [DllImport("user32.dll")] public static extern bool GetClientRect(IntPtr h, out RECT r);
@@ -1536,7 +1538,11 @@ $CensorScript = {
 [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X, Y; }
 '@
         }
-        [void][VMCensor.W]::SetProcessDPIAware()
+        # piksele fizyczne (skalowanie Windows 125% itd.): bez tego zrzut okna i współrzędne słów wychodzą w różnej skali
+        # (zasłony za wysoko i za bardzo w lewo). PER_MONITOR_AWARE_V2 = -4 – dla procesu i dla tego wątku.
+        try { [void][VMCensor.W]::SetProcessDpiAwarenessContext([IntPtr](-4)) } catch {}
+        try { [void][VMCensor.W]::SetThreadDpiAwarenessContext([IntPtr](-4)) } catch {}
+        try { [void][VMCensor.W]::SetProcessDPIAware() } catch {}
         $null = [Windows.Media.Ocr.OcrEngine, Windows.Foundation, ContentType = WindowsRuntime]
         $null = [Windows.Graphics.Imaging.BitmapDecoder, Windows.Graphics, ContentType = WindowsRuntime]
         $asTask = @([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' })[0]
