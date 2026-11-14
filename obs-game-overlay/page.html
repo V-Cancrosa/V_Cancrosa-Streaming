@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Strona</title>
+<link rel="stylesheet" href="themes/fonts.css">
+<link rel="stylesheet" href="themes/chat.css">
+<script src="version.js"></script>
+<script src="themes/games.js"></script>
+<script src="themes/fursona.js"></script>
+<script src="themes/library.js"></script>
+<script src="themes/fusion.js"></script>
+<script src="themes/voices.js"></script>
+<script src="themes/voices-games.js"></script>
+<script src="themes/voices-en.js"></script>
+<script src="themes/i18n.js"></script>
+<script src="themes/wordfilter.js"></script>
+<script src="themes/socials.js"></script>
+<script src="themes/zones.js"></script>
+<script src="themes/chat.js"></script>
+<script src="themes/client.js"></script>
+<script src="themes/pagekit.js"></script>
+<style>
+  /* Strona z kreatora (builder.html) w OBS: page.html?id=… – źródło przeglądarki o rozmiarze strony (najwyżej 1920×1080) */
+  :root { --accent: #7c5cff; --accent2: #00e1ff; }
+  html, body { margin: 0; background: transparent; overflow: hidden; color: #fff; font-family: Inter, system-ui, sans-serif; }
+  #msg { font: 600 28px/1.3 Inter, sans-serif; padding: 40px; color: rgba(255,255,255,.7); }
+</style>
+</head>
+<body data-base="vmp-page">
+<div id="root" class="vmp-root"></div>
+<script>
+(() => {
+  const C = window.VMClient, P = window.VMPages, $ = id => document.getElementById(id);
+  P.injectCss();
+  const id = C.param('id');
+  let page = null, sig = '';
+  const nodes = {};               // id elementu → div
+  const shown = {};               // id elementu → do kiedy widoczny (alert / komenda)
+  const evCtx = {};               // id elementu → {user, n} z ostatniego zdarzenia
+  let lastSettings = C.settings();
+
+  function visible(el) {
+    const w = el.show || {}, s = lastSettings;
+    if (w.when === 'flag') return !!(s.pageFlags && s.pageFlags[el.id]);
+    if (w.when === 'alert' || w.when === 'command') return (shown[el.id] || 0) > Date.now();
+    if (w.when === 'scene') return s.scene === w.scene;
+    return true;
+  }
+  function setVis(d, el, on) {
+    const was = d.dataset.on === '1';
+    if (on === was) return;
+    d.dataset.on = on ? '1' : '0';
+    d.classList.remove('vmp-out', ...[...d.classList].filter(c => c.startsWith('vmp-in-')));
+    if (on) { d.classList.remove('hid'); if (el.anim !== 'none') { void d.offsetWidth; d.classList.add('vmp-in-' + (el.anim || 'fade')); } }
+    else if (el.anim === 'none') d.classList.add('hid');
+    else { d.classList.add('vmp-out'); d.addEventListener('animationend', () => { if (d.dataset.on === '0') d.classList.add('hid'); }, { once: true }); }
+  }
+
+  function render() {
+    lastSettings = C.settings();
+    page = P.get(id);
+    if (!page) { $('root').innerHTML = '<div id="msg">Nie ma takiej strony – zrób ją w panelu: Twórz.</div>'; return; }
+    const ns = JSON.stringify([page.w, page.h, page.bg, page.els.map(e => e.id + e.type)]);
+    if (ns !== sig) { sig = ns; $('root').textContent = ''; for (const k in nodes) delete nodes[k]; }
+    P.drawBg($('root'), page);
+    const base = P.ctx();
+    for (const el of page.els) {
+      let d = nodes[el.id];
+      if (!d) { d = nodes[el.id] = document.createElement('div'); d.dataset.on = ''; $('root').appendChild(d); }
+      P.drawEl(d, el, evCtx[el.id] ? { ...base, ...evCtx[el.id] } : base, true);
+      if (d.dataset.on === '') { const on = visible(el); d.dataset.on = on ? '1' : '0'; if (!on) d.classList.add('hid'); else if (el.anim !== 'none') d.classList.add('vmp-in-' + (el.anim || 'fade')); }
+      else setVis(d, el, visible(el));
+    }
+  }
+
+  // alerty z kreatora: element „Miejsce na alerty” mówi alerts.html, gdzie ma pokazać kartę
+  if (window.VMZone) window.VMZone.announce(() => {
+    const a = page && page.els.find(e => e.type === 'alerts');
+    return a ? { mode: 'card', rect: [a.x, a.y, a.w, a.h] } : null;
+  }, 2);
+
+  const ALERTS = ['follow', 'sub', 'resub', 'gift', 'cheer', 'raid', 'redeem'];
+  C.events(ev => {
+    if (!page) return;
+    if (ev.type === 'chat') for (const el of page.els) {
+      if (el.type === 'chat' && nodes[el.id] && nodes[el.id].chat) nodes[el.id].chat.add(ev);
+      const w = el.show || {};
+      if (w.when === 'command' && w.cmd && String(ev.text || '').trim().toLowerCase().startsWith(w.cmd.toLowerCase())) { shown[el.id] = Date.now() + (w.secs || 8) * 1000; evCtx[el.id] = { user: ev.user || '' }; }
+    }
+    if (ALERTS.includes(ev.type)) for (const el of page.els) {
+      const w = el.show || {};
+      if (w.when === 'alert' && (w.alert === 'any' || w.alert === ev.type || (w.alert === 'sub' && ['resub', 'gift'].includes(ev.type)))) {
+        shown[el.id] = Date.now() + (w.secs || 8) * 1000; evCtx[el.id] = { user: ev.user || '', n: ev.count || ev.months || ev.amount || ev.viewers || '' };
+      }
+    }
+    render();
+  }, { onSettings: render });
+  try { new BroadcastChannel('obsGameOverlay').addEventListener('message', e => { if (e.data && e.data.type === 'pages') render(); }); } catch (e) {}
+  window.addEventListener('storage', e => { if (e.key === P.KEY) render(); });
+  async function pollSession() { try { P.setSession(await C.hubGet('/session')); } catch (e) {} setTimeout(pollSession, 15000); }
+  pollSession();
+  render();
+  setInterval(render, 1000);
+  setInterval(() => { try { localStorage.setItem('obsGameOverlay.hb.page-' + id, JSON.stringify({ v: window.VM_VERSION || '', at: Date.now() })); } catch (e) {} }, 5000);
+})();
+</script>
+</body>
+</html>

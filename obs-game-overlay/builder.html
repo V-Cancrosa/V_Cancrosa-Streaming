@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Kreator stron</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="themes/fonts.css">
+<link rel="stylesheet" href="themes/chat.css">
+<link rel="stylesheet" href="themes/motion.css">
+<script src="version.js"></script>
+<script src="themes/games.js"></script>
+<script src="themes/fursona.js"></script>
+<script src="themes/library.js"></script>
+<script src="themes/fusion.js"></script>
+<script src="themes/i18n.js"></script>
+<script src="themes/socials.js"></script>
+<script src="themes/chat.js"></script>
+<script src="themes/client.js"></script>
+<script src="themes/pagekit.js"></script>
+<style>
+  /*
+    Kreator stron (jak Bubble): strony do 1920×1080 złożone z elementów – napisy, kształty, obrazki, postać, gra, odliczanie,
+    zegar, linki, czat, miejsce na alerty. Każdy element ma „Kiedy widać” (zawsze, przełącznik w panelu, alert, komenda z czatu, etap)
+    i animację wejścia. Strona idzie do OBS jako page.html?id=… albo jako ekran w scenie „VM · Stream”.
+  */
+  :root { --bg: #0e0f13; --panel: #171920; --line: #2a2d38; --ink: #e9eaf0; --dim: #9ea1ad; --acc: #7c5cff; --guide: #ff3fa4; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font: 13.5px/1.35 'Inter', system-ui, sans-serif; }
+  body { display: grid; grid-template-rows: auto 1fr; overflow: hidden; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 7px 10px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  h1 { font-size: 14px; margin: 0 6px 0 0; white-space: nowrap; }
+  button, select, input, textarea { background: #22252f; color: var(--ink); border: 1px solid var(--line); border-radius: 7px; padding: 5px 9px; font: inherit; }
+  button { cursor: pointer; } button:hover { filter: brightness(1.2); } button:disabled { opacity: .4; cursor: default; }
+  button.primary { background: var(--acc); border-color: var(--acc); color: #fff; font-weight: 600; }
+  input[type=number] { width: 72px; } input[type=color] { padding: 0; width: 34px; height: 28px; }
+  .sp { flex: 1; }
+  .work { display: grid; grid-template-columns: 190px 1fr 260px; min-height: 0; }
+  aside { background: var(--panel); overflow: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+  aside.l { border-right: 1px solid var(--line); } aside.r { border-left: 1px solid var(--line); }
+  .lbl { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); margin-top: 4px; }
+  .pal { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+  .pal button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; font-size: 12px; }
+  .pal button i { font-style: normal; font-size: 18px; }
+  .layers { display: flex; flex-direction: column; gap: 3px; }
+  .layers button { text-align: left; display: flex; gap: 6px; align-items: center; padding: 5px 7px; font-size: 12px; }
+  .layers button.sel { border-color: var(--acc); background: color-mix(in srgb, var(--acc) 25%, #22252f); }
+  .layers button small { margin-left: auto; color: var(--dim); }
+  main { min-height: 0; display: grid; place-items: center; padding: 14px; overflow: hidden; }
+  #wrap { position: relative; }
+  #stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; background: repeating-conic-gradient(#1b1d24 0 25%, #15171d 0 50%) 0 0 / 40px 40px; box-shadow: 0 0 0 1px var(--line), 0 10px 40px rgba(0,0,0,.6); }
+  #boxes { position: absolute; inset: 0; }
+  .box { position: absolute; border: 2px dashed transparent; cursor: move; touch-action: none; }
+  .box:hover { border-color: rgba(255,255,255,.5); }
+  .box.sel { border: 4px solid var(--acc); z-index: 50; }
+  .h { position: absolute; width: 30px; height: 30px; background: var(--acc); border: 4px solid #fff; border-radius: 50%; display: none; touch-action: none; }
+  .sel .h { display: block; }
+  .h.nw { left: -17px; top: -17px; cursor: nwse-resize; } .h.ne { right: -17px; top: -17px; cursor: nesw-resize; }
+  .h.sw { left: -17px; bottom: -17px; cursor: nesw-resize; } .h.se { right: -17px; bottom: -17px; cursor: nwse-resize; }
+  .guide { position: absolute; background: var(--guide); pointer-events: none; z-index: 60; }
+  .guide.v { width: 3px; top: 0; bottom: 0; } .guide.hz { height: 3px; left: 0; right: 0; }
+  .props { display: flex; flex-direction: column; gap: 7px; }
+  .props label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--dim); }
+  .props label.row { flex-direction: row; align-items: center; gap: 8px; color: var(--ink); cursor: pointer; }
+  .props textarea { min-height: 64px; resize: vertical; }
+  .xy { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+  .xy input { width: 100%; }
+  .colrow { display: flex; gap: 4px; flex-wrap: wrap; }
+  .colrow button { width: 26px; height: 26px; padding: 0; border-radius: 50%; }
+  .colrow button.on { outline: 2px solid #fff; outline-offset: 1px; }
+  .hint { color: var(--dim); font-size: 12px; }
+  .empty { color: var(--dim); text-align: center; padding: 30px 10px; }
+  #tplMenu { position: absolute; z-index: 90; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 6px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+  #tplMenu button { text-align: left; }
+  @media (max-width: 900px) { .work { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; } aside { max-height: 34vh; } }
+</style>
+</head>
+<body data-base="vmp-edit">
+<header>
+  <h1>✦ Kreator</h1>
+  <select id="pageSel" title="Strona"></select>
+  <button id="newBtn">＋ Nowa</button>
+  <input id="pageName" type="text" placeholder="nazwa strony" style="width:170px">
+  <select id="sizeSel" title="Rozmiar (najwyżej 1920×1080)">
+    <option value="1920x1080">1920×1080 – cały ekran</option><option value="1280x720">1280×720</option><option value="1080x1080">1080×1080 – kwadrat</option>
+    <option value="1920x120">1920×120 – pasek</option><option value="900x260">900×260 – plakietka</option><option value="600x600">600×600</option><option value="custom">własny…</option>
+  </select>
+  <span id="customSize" hidden><input id="pw" type="number" min="50" max="1920"> × <input id="ph" type="number" min="50" max="1080"></span>
+  <select id="bgSel" title="Tło"><option value="none">tło: przezroczyste</option><option value="theme">tło: w kolorach postaci</option><option value="dark">tło: ciemne</option></select>
+  <button id="undoBtn" title="Cofnij (Ctrl+Z)">↶</button><button id="redoBtn" title="Ponów (Ctrl+Y)">↷</button>
+  <span class="sp"></span>
+  <button id="prevBtn" title="Otwórz stronę tak, jak zobaczy ją OBS">▶ Podgląd</button>
+  <button id="delPage" title="Usuń stronę">🗑</button>
+  <button class="primary" id="doneBtn">Gotowe</button>
+</header>
+<div class="work">
+  <aside class="l">
+    <div class="lbl">Dodaj element</div>
+    <div class="pal" id="pal"></div>
+    <div class="lbl">Warstwy (góra = na wierzchu)</div>
+    <div class="layers" id="layers"></div>
+  </aside>
+  <main><div id="wrap"><div id="stage" class="vmp-root"></div><div id="boxes"></div></div></main>
+  <aside class="r"><div class="props" id="props"></div></aside>
+</div>
+<script>
+(() => {
+  const P = window.VMPages, C = window.VMClient, $ = id => document.getElementById(id);
+  P.injectCss();
+  const q = new URLSearchParams(location.search), embed = q.get('embed') === '1';
+  if (q.get('slow') === '1') document.documentElement.style.setProperty('--k', 4);
+  const SNAP = 10, MIN = 20;
+  let page = null, sel = null, scale = 1, undo = [], redo = [];
+  const nodes = {};
+
+  // --- strony ---
+  function ensurePage() {
+    let l = P.list();
+    if (!l.length) { P.put(P.TEMPLATES.welcome()); l = P.list(); }
+    const want = q.get('id') && l.find(p => p.id === q.get('id'));
+    page = JSON.parse(JSON.stringify(want || l[0]));
+  }
+  function fillPages() {
+    $('pageSel').innerHTML = P.list().map(p => `<option value="${p.id}"${p.id === page.id ? ' selected' : ''}>${esc(p.name)} · ${p.w}×${p.h}</option>`).join('');
+    $('pageName').value = page.name;
+    const sz = page.w + 'x' + page.h, has = [...$('sizeSel').options].some(o => o.value === sz);
+    $('sizeSel').value = has ? sz : 'custom'; $('customSize').hidden = has; $('pw').value = page.w; $('ph').value = page.h;
+    $('bgSel').value = page.bg || 'none';
+  }
+  const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  let saveT = 0;
+  function save(snap) {
+    clearTimeout(saveT); saveT = setTimeout(() => { P.put(JSON.parse(JSON.stringify(page))); fillPages(); }, 150);
+  }
+  // cofanie: stan sprzed zmiany
+  function remember() { undo.push(JSON.stringify(page)); if (undo.length > 80) undo.shift(); redo = []; tools(); }
+  function tools() { $('undoBtn').disabled = !undo.length; $('redoBtn').disabled = !redo.length; }
+  function back(from, to) { if (!from.length) return; to.push(JSON.stringify(page)); page = JSON.parse(from.pop()); if (!page.els.some(e => e.id === sel)) sel = null; save(); draw(); tools(); }
+
+  // --- rysowanie ---
+  function fit() {
+    const m = document.querySelector('main'), w = m.clientWidth - 28, h = m.clientHeight - 28;
+    scale = Math.max(.05, Math.min(w / page.w, h / page.h, 1));
+    $('stage').style.transform = `scale(${scale})`;
+    $('wrap').style.width = page.w * scale + 'px'; $('wrap').style.height = page.h * scale + 'px';
+    $('boxes').style.width = page.w + 'px'; $('boxes').style.height = page.h + 'px'; $('boxes').style.transform = `scale(${scale})`; $('boxes').style.transformOrigin = '0 0';
+  }
+  function draw() {
+    const st = $('stage'), c = P.ctx();
+    P.drawBg(st, page);
+    const ids = new Set(page.els.map(e => e.id));
+    for (const k of Object.keys(nodes)) if (!ids.has(k)) { nodes[k].remove(); delete nodes[k]; }
+    page.els.forEach((el, i) => {
+      let d = nodes[el.id]; if (!d) { d = nodes[el.id] = document.createElement('div'); }
+      st.appendChild(d);                       // kolejność = warstwy
+      P.drawEl(d, el, c, false);
+    });
+    fit(); boxes(); layers(); props();
+  }
+  function boxes() {
+    const b = $('boxes'); b.textContent = '';
+    page.els.forEach((el, i) => {
+      const d = document.createElement('div'); d.className = 'box' + (sel === el.id ? ' sel' : ''); d.dataset.id = el.id; d.style.zIndex = i + 1;
+      Object.assign(d.style, { left: el.x + 'px', top: el.y + 'px', width: el.w + 'px', height: el.h + 'px' });
+      if (sel === el.id) d.innerHTML = '<i class="h nw" data-h="nw"></i><i class="h ne" data-h="ne"></i><i class="h sw" data-h="sw"></i><i class="h se" data-h="se"></i>';
+      b.appendChild(d);
+    });
+  }
+  function layers() {
+    const L = page.els.slice().reverse();
+    $('layers').innerHTML = L.length ? L.map(el => `<button data-id="${el.id}" class="${el.id === sel ? 'sel' : ''}"><span>${P.TYPES[el.type].icon}</span>${esc(el.name || P.TYPES[el.type].name)}<small>${el.show && el.show.when !== 'always' ? '⚡' : ''}</small></button>`).join('') : '<div class="hint">Pusto – dodaj element wyżej.</div>';
+  }
+  $('layers').onclick = e => { const b = e.target.closest('[data-id]'); if (b) { sel = b.dataset.id; boxes(); layers(); props(); } };
+  $('pal').innerHTML = Object.entries(P.TYPES).map(([k, t]) => `<button data-t="${k}"><i>${t.icon}</i>${t.name}</button>`).join('');
+  $('pal').onclick = e => { const b = e.target.closest('[data-t]'); if (!b) return; remember(); const el = P.newEl(b.dataset.t, page); page.els.push(el); sel = el.id; save(); draw(); };
+
+  // --- właściwości ---
+  const SWATCH = ['accent', 'accent2', '#ffffff', '#0b0b10', '#ffd43b', '#ff4d5e', '#3ddc84'];
+  function field(el, [k, label, kind, opts]) {
+    const v = el.p[k];
+    if (kind === 'bool') return `<label class="row"><input type="checkbox" data-k="${k}"${v ? ' checked' : ''}> ${label}</label>`;
+    if (kind === 'sel') return `<label>${label}<select data-k="${k}">${opts.map(([ov, on]) => `<option value="${ov}"${String(ov) === String(v) ? ' selected' : ''}>${on}</option>`).join('')}</select></label>`;
+    if (kind === 'num') return `<label>${label}<input type="number" data-k="${k}" value="${esc(v ?? '')}"></label>`;
+    if (kind === 'area') return `<label>${label}<textarea data-k="${k}">${esc(v ?? '')}</textarea></label>`;
+    if (kind === 'color') return `<label>${label}<span class="colrow">${SWATCH.map(c => `<button data-col="${k}" data-v="${c}" class="${v === c ? 'on' : ''}" title="${c === 'accent' ? 'kolor postaci' : c === 'accent2' ? 'drugi kolor postaci' : c}" style="background:${c === 'accent' ? 'var(--accent)' : c === 'accent2' ? 'var(--accent2)' : c}"></button>`).join('')}<input type="color" data-k="${k}" value="${/^#[0-9a-f]{6}$/i.test(v) ? v : '#ffffff'}"></span></label>`;
+    return `<label>${label}<input type="text" data-k="${k}" value="${esc(v ?? '')}"></label>`;
+  }
+  function props() {
+    const el = page.els.find(e => e.id === sel), box = $('props');
+    if (!el) {
+      box.innerHTML = `<div class="lbl">Strona</div><div class="hint">Kliknij element na stronie albo dodaj nowy z lewej.<br><br>
+        Do OBS: źródło przeglądarki <code>page.html?id=${page.id}</code>, ${page.w}×${page.h} – albo w panelu Twórz → „Na stream”.<br><br>
+        Znaczniki w napisach: {gra} {postac} {godzina} {data} {odliczanie} {follow} {sub} {raid}, a przy alertach i komendach {user} {n}.</div>`;
+      return;
+    }
+    const T = P.TYPES[el.type], w = el.show || {};
+    box.innerHTML = `<div class="lbl">${T.icon} ${esc(T.name)}</div>
+      <label>Nazwa warstwy<input type="text" data-m="name" value="${esc(el.name || '')}"></label>
+      <div class="xy"><label>X<input type="number" data-m="x" value="${el.x}"></label><label>Y<input type="number" data-m="y" value="${el.y}"></label>
+        <label>Szer.<input type="number" data-m="w" value="${el.w}"></label><label>Wys.<input type="number" data-m="h" value="${el.h}"></label></div>
+      ${T.f.map(f => field(el, f)).join('')}
+      <div class="lbl">Kiedy widać</div>
+      <label><select data-s="when">${P.SHOW.map(([v, n]) => `<option value="${v}"${w.when === v ? ' selected' : ''}>${n}</option>`).join('')}</select></label>
+      ${w.when === 'alert' ? `<label>Jaki alert<select data-s="alert">${[['any', 'każdy'], ['follow', 'follow'], ['sub', 'sub / resub / gift'], ['cheer', 'bitsy'], ['raid', 'raid'], ['redeem', 'punkty kanału']].map(([v, n]) => `<option value="${v}"${w.alert === v ? ' selected' : ''}>${n}</option>`).join('')}</select></label>` : ''}
+      ${w.when === 'command' ? `<label>Komenda<input type="text" data-s="cmd" value="${esc(w.cmd || '!hej')}"></label>` : ''}
+      ${w.when === 'alert' || w.when === 'command' ? `<label>Na ile sekund<input type="number" data-s="secs" value="${w.secs || 8}"></label>` : ''}
+      ${w.when === 'scene' ? `<label>Etap<select data-s="scene">${[['prep', 'przygotowania'], ['soon', 'stream za…'], ['start', 'zaraz zaczynamy'], ['late', 'spóźnienie'], ['brb', 'przerwa'], ['brb-late', 'przerwa się przedłuża'], ['end', 'koniec']].map(([v, n]) => `<option value="${v}"${w.scene === v ? ' selected' : ''}>${n}</option>`).join('')}</select></label>` : ''}
+      ${w.when === 'flag' ? `<div class="hint">Przycisk do włączania pojawi się w panelu: Twórz → ta strona.</div>` : ''}
+      <label>Animacja wejścia<select data-m="anim">${P.ANIMS.map(([v, n]) => `<option value="${v}"${el.anim === v ? ' selected' : ''}>${n}</option>`).join('')}</select></label>
+      <div class="lbl">Warstwa</div>
+      <div class="xy"><button data-a="up">▲ wyżej</button><button data-a="down">▼ niżej</button><button data-a="dup">⧉ kopia</button><button data-a="del">🗑 usuń</button>
+        <button data-a="cx">↔ środek</button><button data-a="cy">↕ środek</button></div>`;
+  }
+  let typing = false;
+  $('props').addEventListener('focusin', () => { if (!typing) { typing = true; remember(); } });
+  $('props').addEventListener('focusout', () => { typing = false; });
+  $('props').addEventListener('input', e => {
+    const el = page.els.find(x => x.id === sel); if (!el) return;
+    const t = e.target, val = t.type === 'checkbox' ? t.checked : t.type === 'number' ? +t.value : t.value;
+    if (t.dataset.k) el.p[t.dataset.k] = val;
+    if (t.dataset.m) { el[t.dataset.m] = val; }
+    if (t.dataset.s) { el.show = { ...(el.show || {}), [t.dataset.s]: val }; }
+    save(); redrawSoft(t.dataset.s === 'when' || t.tagName === 'SELECT' && t.dataset.s);
+  });
+  $('props').addEventListener('click', e => {
+    const c = e.target.closest('[data-col]'), a = e.target.closest('[data-a]'), el = page.els.find(x => x.id === sel); if (!el) return;
+    if (c) { remember(); el.p[c.dataset.col] = c.dataset.v; save(); redrawSoft(true); return; }
+    if (!a) return;
+    remember();
+    const i = page.els.indexOf(el);
+    if (a.dataset.a === 'del') { page.els.splice(i, 1); sel = null; }
+    if (a.dataset.a === 'dup') { const n = JSON.parse(JSON.stringify(el)); n.id = P.uid(); n.x += 30; n.y += 30; page.els.splice(i + 1, 0, n); sel = n.id; }
+    if (a.dataset.a === 'up' && i < page.els.length - 1) page.els.splice(i + 1, 0, page.els.splice(i, 1)[0]);
+    if (a.dataset.a === 'down' && i > 0) page.els.splice(i - 1, 0, page.els.splice(i, 1)[0]);
+    if (a.dataset.a === 'cx') el.x = Math.round((page.w - el.w) / 2);
+    if (a.dataset.a === 'cy') el.y = Math.round((page.h - el.h) / 2);
+    save(); draw();
+  });
+  // bez przerysowania panelu właściwości (żeby nie zgubić kursora w polu), chyba że zmienia się zestaw pól
+  function redrawSoft(full) {
+    const c = P.ctx();
+    for (const el of page.els) if (nodes[el.id]) P.drawEl(nodes[el.id], el, c, false);
+    boxes(); layers(); if (full) props();
+  }
+
+  // --- przeciąganie, rozmiar, przyciąganie (jak w edytorze ułożenia) ---
+  function targets(axis) {
+    const t = axis === 'x' ? [0, page.w / 2, page.w] : [0, page.h / 2, page.h];
+    for (const e of page.els) { if (e.id === sel) continue; const a = axis === 'x' ? e.x : e.y, l = axis === 'x' ? e.w : e.h; t.push(a, a + l / 2, a + l); }
+    return t;
+  }
+  const MAG = () => 8 / scale;
+  function snapEdge(v, axis, g) { let best = null; for (const t of targets(axis)) { const d = Math.abs(t - v); if (d <= MAG() && (!best || d < best.d)) best = { t, d }; } if (best) { g.push([axis, best.t]); return best.t; } return Math.round(v / SNAP) * SNAP; }
+  function snapMove(x, len, axis, g) { let best = null; for (const off of [0, len / 2, len]) for (const t of targets(axis)) { const d = Math.abs(t - (x + off)); if (d <= MAG() && (!best || d < best.d)) best = { x: t - off, t, d }; } if (best) { g.push([axis, best.t]); return best.x; } return Math.round(x / SNAP) * SNAP; }
+  function guides(g) { document.querySelectorAll('.guide').forEach(n => n.remove()); for (const [a, t] of g) { const n = document.createElement('div'); n.className = 'guide ' + (a === 'x' ? 'v' : 'hz'); n.style[a === 'x' ? 'left' : 'top'] = (t - 1) + 'px'; $('boxes').appendChild(n); } }
+  const rb = (d, dim) => (1 - 1 / ((d * .55) / dim + 1)) * dim, band = (v, lo, hi) => v < lo ? lo - rb(lo - v, 200) : v > hi ? hi + rb(v - hi, 200) : v;
+  let drag = null;
+  $('boxes').addEventListener('pointerdown', ev => {
+    const box = ev.target.closest('.box');
+    if (!box) { sel = null; boxes(); layers(); props(); return; }
+    ev.preventDefault();
+    const el = page.els.find(e => e.id === box.dataset.id); sel = el.id;
+    remember();
+    drag = { el, h: ev.target.dataset.h || '', x: ev.clientX, y: ev.clientY, r: [el.x, el.y, el.w, el.h] };
+    box.setPointerCapture(ev.pointerId); boxes(); layers(); props();
+  });
+  window.addEventListener('pointermove', ev => {
+    if (!drag) return;
+    const dx = (ev.clientX - drag.x) / scale, dy = (ev.clientY - drag.y) / scale, [x, y, w, h] = drag.r, g = [], el = drag.el;
+    if (!drag.h) { el.x = Math.round(band(snapMove(x + dx, w, 'x', g), 0, page.w - w)); el.y = Math.round(band(snapMove(y + dy, h, 'y', g), 0, page.h - h)); }
+    else {
+      const W = drag.h.includes('w'), N = drag.h.includes('n');
+      let l = x, t = y, r = x + w, b = y + h;
+      if (W) l = snapEdge(x + dx, 'x', g); else r = snapEdge(x + w + dx, 'x', g);
+      if (N) t = snapEdge(y + dy, 'y', g); else b = snapEdge(y + h + dy, 'y', g);
+      let nw = Math.max(MIN, r - l), nh = Math.max(MIN, b - t);
+      if (ev.shiftKey) { const k = w / h; if (Math.abs(dx) > Math.abs(dy)) nh = nw / k; else nw = nh * k; }
+      el.w = Math.round(nw); el.h = Math.round(nh); el.x = Math.round(W ? x + w - nw : x); el.y = Math.round(N ? y + h - nh : y);
+    }
+    guides(g);
+    const d = nodes[el.id]; P.drawEl(d, el, P.ctx(), false);
+    const bx = $('boxes').querySelector(`[data-id="${el.id}"]`); if (bx) Object.assign(bx.style, { left: el.x + 'px', top: el.y + 'px', width: el.w + 'px', height: el.h + 'px' });
+  });
+  window.addEventListener('pointerup', () => { if (!drag) return; const el = drag.el; drag = null; guides([]); el.x = Math.round(Math.max(-el.w + 20, Math.min(page.w - 20, el.x))); el.y = Math.round(Math.max(-el.h + 20, Math.min(page.h - 20, el.y))); save(); draw(); });
+  window.addEventListener('keydown', ev => {
+    if (/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+    if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'z') { ev.preventDefault(); back(undo, redo); return; }
+    if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'y') { ev.preventDefault(); back(redo, undo); return; }
+    const el = page.els.find(e => e.id === sel); if (!el) return;
+    if (ev.key === 'Delete' || ev.key === 'Backspace') { remember(); page.els = page.els.filter(e => e !== el); sel = null; save(); draw(); return; }
+    if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'd') { ev.preventDefault(); remember(); const n = JSON.parse(JSON.stringify(el)); n.id = P.uid(); n.x += 30; n.y += 30; page.els.push(n); sel = n.id; save(); draw(); return; }
+    if (!ev.key.startsWith('Arrow')) return;
+    ev.preventDefault(); remember();
+    const st = ev.shiftKey ? 10 : 1;
+    if (ev.key === 'ArrowLeft') el.x -= st; if (ev.key === 'ArrowRight') el.x += st; if (ev.key === 'ArrowUp') el.y -= st; if (ev.key === 'ArrowDown') el.y += st;
+    save(); redrawSoft(true);
+  });
+
+  // --- pasek u góry ---
+  $('pageSel').onchange = () => { page = JSON.parse(JSON.stringify(P.get($('pageSel').value))); sel = null; undo = []; redo = []; tools(); fillPages(); draw(); };
+  $('pageName').oninput = () => { page.name = $('pageName').value || 'Strona'; save(); };
+  $('sizeSel').onchange = () => {
+    const v = $('sizeSel').value; $('customSize').hidden = v !== 'custom'; if (v === 'custom') return;
+    remember(); const [w, h] = v.split('x').map(Number); page.w = w; page.h = h; save(); draw();
+  };
+  const custom = () => { remember(); page.w = Math.min(P.MAXW, Math.max(50, +$('pw').value || 50)); page.h = Math.min(P.MAXH, Math.max(50, +$('ph').value || 50)); $('pw').value = page.w; $('ph').value = page.h; save(); draw(); };
+  $('pw').onchange = custom; $('ph').onchange = custom;
+  $('bgSel').onchange = () => { remember(); page.bg = $('bgSel').value; save(); draw(); };
+  $('undoBtn').onclick = () => back(undo, redo); $('redoBtn').onclick = () => back(redo, undo);
+  $('prevBtn').onclick = () => window.open('page.html?id=' + page.id, '_blank', `width=${Math.min(page.w, 1280)},height=${Math.min(page.h, 760)}`);
+  $('delPage').onclick = () => {
+    if (!confirm(`Usunąć stronę „${page.name}”?`)) return;
+    P.remove(page.id); ensurePage(); sel = null; undo = []; redo = []; tools(); fillPages(); draw();
+  };
+  $('newBtn').onclick = e => {
+    const old = $('tplMenu'); if (old) { old.remove(); return; }
+    const m = document.createElement('div'); m.id = 'tplMenu';
+    m.innerHTML = [['blank', 'Pusta strona'], ['welcome', 'Ekran powitalny (postać, odliczanie, linki)'], ['bar', 'Pasek z linkami i zegarem'], ['follow', 'Podziękowanie za follow (pokazuje się przy alercie)'], ['dup', 'Kopia tej strony']]
+      .map(([k, n]) => `<button data-tpl="${k}">${n}</button>`).join('');
+    const r = e.target.getBoundingClientRect(); Object.assign(m.style, { left: r.left + 'px', top: r.bottom + 4 + 'px' });
+    document.body.appendChild(m);
+    m.onclick = ev => { const b = ev.target.closest('[data-tpl]'); if (!b) return; m.remove();
+      const np = b.dataset.tpl === 'dup' ? { ...JSON.parse(JSON.stringify(page)), id: P.uid(), name: page.name + ' (kopia)' } : P.TEMPLATES[b.dataset.tpl]();
+      P.put(np); page = np; sel = null; undo = []; redo = []; tools(); fillPages(); draw(); };
+  };
+  $('doneBtn').onclick = () => { P.put(JSON.parse(JSON.stringify(page))); if (embed && parent !== window) parent.postMessage('vm-builder-close', '*'); else window.close(); };
+
+  window.addEventListener('resize', () => { fit(); });
+  // odświeżanie znaczników (czas, odliczanie, gra) w podglądzie
+  setInterval(() => { if (!drag) { const c = P.ctx(); for (const el of page.els) if (nodes[el.id]) P.drawEl(nodes[el.id], el, c, false); } }, 1000);
+  ensurePage(); fillPages(); tools(); draw();
+})();
+</script>
+</body>
+</html>

@@ -198,6 +198,25 @@ Działa domyślnie. Wyłączenie: Więcej → OBS → „wszystko w jednej sceni
 
 Czego HTML nie zrobi: nie złapie obrazu z innego okna, kamerki ani dźwięku. To zawsze robi OBS (źródło przechwytywania), a panel tylko je ustawia.
 
+## Twórz: kreator stron (HUB)
+
+Zakładka **Twórz** w panelu to miejsce na własne strony do 1920×1080: cały ekran, pasek, plakietka albo kwadrat. **✦ Otwórz kreator** działa jak Bubble: elementy dodajesz z palety, przeciągasz je i zmieniasz rozmiar (z przyciąganiem i liniami pomocniczymi), a po prawej ustawiasz ich wygląd.
+
+- **Elementy:** Napis, Kształt, Obrazek, Postać (portret prowadzącej postaci), Gra (okładka/logo ze Steama albo ikona programu), Odliczanie, Zegar, Linki, Czat, Miejsce na alerty.
+- **Znaczniki w napisach:** `{gra}` `{postac}` `{godzina}` `{data}` `{odliczanie}` `{follow}` `{sub}` `{raid}`, a przy alertach i komendach także `{user}` i `{n}`.
+- **Kiedy widać (mechanika):**
+  - zawsze;
+  - *gdy włączę w panelu* – przycisk pojawia się na karcie strony w Twórz;
+  - *przy alercie* (follow, sub, bitsy, raid, punkty) na N sekund;
+  - *na komendę z czatu* (np. `!hej`) na N sekund;
+  - *na ekranie* – tylko na danym etapie: przerwa, koniec…
+- **Animacje wejścia** (wyłanianie, od 0,95, wjazd z boku) i wyjścia trzymają się zasad ruchu.
+- **Edycja:** cofanie i ponawianie (Ctrl+Z / Ctrl+Y), kopia elementu (Ctrl+D), usuwanie (Delete), warstwy wyżej/niżej, szablony na start (ekran powitalny, pasek z linkami, podziękowanie za follow).
+- **Na stream:**
+  - strona 1920×1080 → przycisk **▶ Na stream** pokazuje ją w scenie `VM · Stream`;
+  - każda strona → **＋ OBS** dodaje ją jako osobne źródło (`page.html?id=…`) do bieżącej sceny.
+- **Zapis:** strony są w pamięci OBS. *Kopia zapasowa stron* zapisuje je do pliku JSON i wczytuje z powrotem.
+
 ## Edytor ułożenia
 
 Wygląd → **✥ Edytor ułożenia** (albo `editor.html` w przeglądarce). Na podglądzie prawdziwej sceny przeciągasz okno gry, avatara, czat, pasek z linkami i strefę alertów. Elementy przyciągają się do siatki 10 px, krawędzi i środka ekranu oraz do siebie nawzajem (różowe linie). Róg zmienia rozmiar: gra trzyma 16:9, avatar kwadrat, a z Shiftem proporcje są dowolne. Strzałki przesuwają o 1 px.
@@ -535,6 +554,14 @@ file:///C:/OBS/obs-game-overlay/overlay.html?panel=0&game=Elden%20Ring&theme=esp
 | `panel` | `0` = ignoruj ustawienia z panelu | – |
 
 Z `panel=0` możesz zrobić kilka źródeł z różnymi stałymi ustawieniami. Bez `panel=0` ustawienia z panelu nadpisują te z adresu.
+
+## Start panelu: progresywne ładowanie
+
+Po otwarciu OBS karta Start od razu pokazuje to, co już działa. Wykrywacz, OBS i Twitch przez pierwsze 45 sekund mają stan **„łączę…”** (kręcące się kółko) zamiast czerwonego błędu, bo zwykle właśnie wstają. Test powtarza się w tym czasie co 2 sekundy. Błąd pojawia się dopiero, gdy coś nie połączy się do końca tego czasu.
+
+## Lista gier bez dodatków
+
+Soundtracki, artbooki, *Bonus Content*, DLC, season passy, serwery dedykowane, SDK, narzędzia do modów i biblioteki (Redistributable, Proton, Steamworks) nie trafiają na listę „Co dziś?”. Gra ze Steama musi mieć w swoim folderze plik `.exe`, więc np. ścieżka dźwiękowa w `steamapps\music` odpada sama.
 
 ## Ruch i animacje
 

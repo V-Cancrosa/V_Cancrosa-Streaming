@@ -427,6 +427,8 @@ function Get-SteamLibraries {
     }
     return @($libs)
 }
+# dodatki, które nie są samodzielną grą: muzyka, artbooki, «Bonus Content», DLC, serwery, narzędzia, biblioteki
+$NotStandalone = '(?i)soundtrack|\bOST\b|art ?book|digital (deluxe )?(extras|content)|bonus content|wallpapers?\b|\bDLC\b|season pass|expansion pass|dedicated server|\bSDK\b|mod tools|creation kit|redistributable|steamworks|proton|runtime|benchmark tool|\bplaytest\b'
 $script:SteamInstalled = $null; $script:SteamInstalledAt = [DateTime]::MinValue
 function Get-SteamInstalled {
     if ($script:SteamInstalled -and ((Get-Date) - $script:SteamInstalledAt).TotalMinutes -lt 10) { return $script:SteamInstalled }
@@ -438,8 +440,13 @@ function Get-SteamInstalled {
                 $id = ([regex]::Match($t, '"appid"\s+"(\d+)"')).Groups[1].Value
                 $nm = ([regex]::Match($t, '"name"\s+"([^"]+)"')).Groups[1].Value
                 $dir = ([regex]::Match($t, '"installdir"\s+"([^"]+)"')).Groups[1].Value
-                if (-not $id -or $SteamNotGames -contains $id -or $nm -match '(?i)redistributable|steamworks|proton|runtime|dedicated server|sdk$') { continue }
-                [void]$list.Add([pscustomobject]@{ id = "steam:$id"; name = (Clean $nm); steam = $id; dir = (Join-Path $lib "common\$dir") })
+                if (-not $id -or $SteamNotGames -contains $id -or $nm -match $NotStandalone) { continue }
+                $full = Join-Path $lib "common\$dir"
+                # bez żadnego .exe w folderze (np. soundtrack w steamapps\music, artbook) – to nie jest gra do uruchomienia
+                if (-not (Test-Path -LiteralPath $full)) { continue }
+                $hasExe = @(Get-ChildItem -LiteralPath $full -Filter '*.exe' -Recurse -Depth 3 -ErrorAction SilentlyContinue | Select-Object -First 1)
+                if (-not $hasExe.Count) { continue }
+                [void]$list.Add([pscustomobject]@{ id = "steam:$id"; name = (Clean $nm); steam = $id; dir = $full })
             } catch {}
         }
     }
@@ -481,7 +488,7 @@ function Get-OtherGames {
     if ($script:OtherGames -and ((Get-Date) - $script:OtherGamesAt).TotalMinutes -lt 10) { return $script:OtherGames }
     $list = New-Object Collections.ArrayList; $seen = @{}
     $add = { param($id, $name, $src, $launch, $exe)
-        $n = ([string](Clean $name)).Trim(); if (-not $n -or $n -match $NotAGame -or $seen.ContainsKey($n.ToLowerInvariant())) { return }
+        $n = ([string](Clean $name)).Trim(); if (-not $n -or $n -match $NotAGame -or $n -match $NotStandalone -or $seen.ContainsKey($n.ToLowerInvariant())) { return }
         $seen[$n.ToLowerInvariant()] = 1
         [void]$list.Add([pscustomobject]@{ id = $id; name = $n; source = $src; launch = [string]$launch; exe = [string]$exe; kind = 'game' }) }
     # Epic Games

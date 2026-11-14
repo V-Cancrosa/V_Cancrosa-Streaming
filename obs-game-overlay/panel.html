@@ -14,7 +14,7 @@
   /* podgląd i zakładki przyklejone u góry – przewijasz tylko ustawienia */
   .sticky-top { position: sticky; top: 0; z-index: 6; background: var(--bg); display: flex; flex-direction: column; gap: 6px; margin: -10px -10px 0; padding: 10px 10px 4px; box-shadow: 0 8px 12px -10px rgba(0,0,0,.8); }
   .sticky-top.mini .preview-sec { display: none; }
-  .tabs { display: grid; grid-template-columns: repeat(5, 1fr) auto; gap: 4px; padding: 2px 0 0; background: var(--bg); }
+  .tabs { display: grid; grid-template-columns: repeat(6, 1fr) auto; gap: 4px; padding: 2px 0 0; background: var(--bg); }
   .pv-toggle { padding: 8px 10px; font-size: 12px; }
   .tabs button { padding: 8px 4px; font-size: 12px; }
   .tabs button[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
@@ -49,6 +49,9 @@
   .spark { width: 100%; height: 46px; display: block; }
   .health { width: 100%; text-align: left; padding: 9px 12px; font-weight: 700; border-radius: 8px; white-space: normal; line-height: 1.35; }
   .health.ok { background: color-mix(in srgb, var(--ok) 16%, #1d2027); border-color: color-mix(in srgb, var(--ok) 55%, transparent); color: #d9ffe6; }
+  .health.wait { background: color-mix(in srgb, var(--accent) 14%, #1d2027); border-color: color-mix(in srgb, var(--accent) 55%, transparent); color: #e8e2ff; }
+  .chk.wait { opacity: .8; } .chk .spin { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--accent); border-right-color: transparent; border-radius: 50%; animation: chkspin .8s linear infinite; }
+  @keyframes chkspin { to { transform: rotate(360deg); } }
   .health.bad { background: color-mix(in srgb, var(--warn) 18%, #1d2027); border-color: var(--warn); color: #fff3d6; }
   .chk { display: grid; grid-template-columns: 20px 1fr auto; gap: 8px; align-items: center; padding: 5px 8px; border-radius: 6px; background: #14161b; font-size: 12px; }
   .chk b { font-size: 14px; } .chk.ok b { color: var(--ok); } .chk.bad b { color: var(--warn); } .chk.na { opacity: .55; }
@@ -68,6 +71,15 @@
   .hostgrid button[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 22%, #1d2027); }
   .hostgrid button[aria-pressed="true"] .hp { border-color: var(--accent); box-shadow: 0 0 12px var(--accent); }
   .hostgrid.big { grid-template-columns: repeat(3, 1fr); } .hostgrid.big .hp { width: 78px; height: 78px; }
+  .mklist { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; }
+  .mk { border: 1px solid var(--line); border-radius: 10px; background: #14161b; overflow: hidden; display: flex; flex-direction: column; }
+  .mk.live { border-color: #e91916; box-shadow: 0 0 0 1px #e91916; }
+  .mkthumb { position: relative; aspect-ratio: 16 / 9; background: repeating-conic-gradient(#1b1d24 0 25%, #15171d 0 50%) 0 0 / 16px 16px; overflow: hidden; }
+  .mkthumb iframe { position: absolute; left: 0; top: 0; border: 0; transform-origin: 0 0; pointer-events: none; }
+  .mk b { padding: 6px 8px 0; font-size: 12.5px; } .mk small { padding: 0 8px; color: var(--muted); font-size: 11px; }
+  .mk .lbtn { padding: 6px 8px 8px; } .mk .lbtn button { padding: 4px 8px; font-size: 11.5px; }
+  .mkflags { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 8px 8px; } .mkflags button { padding: 3px 8px; font-size: 11px; border-radius: 999px; }
+  .mkflags button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
   .layedit { padding: 0; z-index: 60; } .layedit iframe { width: 100%; height: 100%; border: 0; }
   .hostpick { position: fixed; inset: 0; z-index: 50; background: rgba(8,9,12,.92); display: grid; place-items: center; padding: 14px; }
   .hostbox { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 12px; } .hostbox h2 { text-align: center; font-size: 15px; color: #fff; letter-spacing: .06em; }
@@ -195,6 +207,7 @@
     <button role="tab" data-tab="live">Sterowanie</button>
     <button role="tab" data-tab="look">Wygląd</button>
     <button role="tab" data-tab="chat">Czat</button>
+    <button role="tab" data-tab="make">Twórz</button>
     <button role="tab" data-tab="more">Więcej</button>
     <i class="vm-mark" id="tabMark" aria-hidden="true"></i>
     <button class="pv-toggle" id="pvToggle" title="Zwiń / rozwiń podgląd" aria-pressed="true">▴</button>
@@ -488,6 +501,19 @@
     </details>
   </section>
   </div>
+  <div class="tab" data-tab="make">
+  <section>
+    <h2>Twórz – Twoje strony</h2>
+    <p class="hint" style="margin:0">Strony do 1920×1080 składane z elementów: napisy, kształty, obrazki, postać, okładka gry, odliczanie, zegar, linki, czat, miejsce na alerty. Każdy element może się pokazywać zawsze, na przycisk tutaj, przy alercie albo na komendę z czatu.</p>
+    <div class="row" style="gap:6px"><button class="primary" id="mkNew">✦ Otwórz kreator</button><button id="mkLayout">✥ Ułożenie scen</button></div>
+    <div id="mkList" class="mklist"></div>
+    <details><summary class="hint">Kopia zapasowa stron</summary>
+      <div class="row" style="gap:6px"><button id="mkExport">⬇ Zapisz do pliku</button><button id="mkImport">⬆ Wczytaj z pliku</button><input id="mkFile" type="file" accept="application/json" hidden></div>
+      <p class="hint" style="margin:0">Strony są w pamięci OBS (tak jak ustawienia). Plik przyda się przy przenosinach albo reinstalacji.</p>
+    </details>
+  </section>
+  </div>
+
   <div class="tab" data-tab="chat">
   <section>
     <h2>Czat na ekranie</h2>
@@ -874,7 +900,67 @@
   $('subtitle').addEventListener('keydown', e => { if (e.key === 'Enter') setGame(); });
   $('cover').addEventListener('keydown', e => { if (e.key === 'Enter') setGame(); });
   $('layEditBtn').onclick = () => { $('layEditFrame').src = 'editor.html?embed=1'; $('layEdit').hidden = false; };
-  window.addEventListener('message', e => { if (e.data === 'vm-editor-close') { $('layEdit').hidden = true; $('layEditFrame').src = 'about:blank'; capLast = ''; } });
+  window.addEventListener('message', e => { if (e.data === 'vm-editor-close' || e.data === 'vm-builder-close') { $('layEdit').hidden = true; $('layEditFrame').src = 'about:blank'; capLast = ''; renderPages(); } });
+
+  // --- Twórz: strony z kreatora (builder.html, themes/pagekit.js) ---
+  const PAGES_KEY = 'obsGameOverlay.pages';
+  const pagesList = () => { const l = load(PAGES_KEY, []); return Array.isArray(l) ? l : []; };
+  const openBuilder = id => { $('layEditFrame').src = 'builder.html?embed=1' + (id ? '&id=' + encodeURIComponent(id) : ''); $('layEdit').hidden = false; };
+  $('mkNew').onclick = () => openBuilder('');
+  $('mkLayout').onclick = () => $('layEditBtn').click();
+  let pagesKey = '';
+  function renderPages(force) {
+    if (document.querySelector('.tab[data-tab="make"]').hidden && !force) return;
+    const l = pagesList(), live = s.stage === 'page' ? s.pageId : '';
+    const key = JSON.stringify([l, live, s.pageFlags || {}]); if (key === pagesKey && !force) return; pagesKey = key;
+    $('mkList').innerHTML = l.length ? l.map(p => {
+      const flags = (p.els || []).filter(e => e.show && e.show.when === 'flag');
+      return `<div class="mk ${live === p.id ? 'live' : ''}" data-id="${esc(p.id)}">
+        <div class="mkthumb"><iframe data-w="${p.w}" data-h="${p.h}" src="page.html?id=${encodeURIComponent(p.id)}" width="${p.w}" height="${p.h}" tabindex="-1" title="${esc(p.name)}"></iframe></div>
+        <b>${esc(p.name)}</b><small>${p.w}×${p.h} · ${(p.els || []).length} el.</small>
+        ${flags.length ? `<div class="mkflags">${flags.map(f => `<button data-flag="${esc(f.id)}" aria-pressed="${!!(s.pageFlags && s.pageFlags[f.id])}">${esc(f.name || 'element')}</button>`).join('')}</div>` : ''}
+        <div class="lbtn"><button data-edit="${esc(p.id)}">✎ Edytuj</button>${p.w === 1920 && p.h === 1080 ? `<button class="${live === p.id ? '' : 'primary'}" data-live="${esc(p.id)}">${live === p.id ? '● na wizji' : '▶ Na stream'}</button>` : ''}<button data-src="${esc(p.id)}" title="Dodaj jako osobne źródło do bieżącej sceny OBS">＋ OBS</button></div></div>`;
+    }).join('') : '<p class="hint" style="margin:0">Nie masz jeszcze stron – otwórz kreator, zacznie od gotowego ekranu powitalnego.</p>';
+    requestAnimationFrame(() => { for (const f of $('mkList').querySelectorAll('iframe')) { const w = f.parentElement.clientWidth, k = Math.min(w / +f.dataset.w, (w * 9 / 16) / +f.dataset.h); f.style.transform = `scale(${k})`; } });
+  }
+  $('mkList').addEventListener('click', async e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.edit) return openBuilder(b.dataset.edit);
+    if (b.dataset.flag) { s.pageFlags = { ...(s.pageFlags || {}), [b.dataset.flag]: !(s.pageFlags && s.pageFlags[b.dataset.flag]) }; save(); renderPages(true); return; }
+    if (b.dataset.live) {
+      // cała strona jako ekran w scenie „VM · Stream” (przechwytywanie gry się chowa)
+      const id = b.dataset.live;
+      goScene('start', async () => { s.stage = 'page'; s.pageId = id; save(); renderPages(true);
+        if (obs && s.oneScene !== false) { let ok = false; try { ok = await ensureStreamScene(); } catch {} if (ok) { placeStreamCapture(); if (obsRaw !== STREAM_SCENE) obs.setSceneCut(STREAM_SCENE).catch(() => {}); } } });
+      return;
+    }
+    if (b.dataset.src) {
+      const p = pagesList().find(x => x.id === b.dataset.src); if (!p) return;
+      if (!obs) { $('capStatus').textContent = 'Brak połączenia z OBS.'; return; }
+      if (!OWN_PAGES) return;
+      try {
+        const scene = obsRaw || (await obs.call('GetCurrentProgramScene')).currentProgramSceneName, name = 'VM · Strona: ' + p.name;
+        const inputs = ((await obs.call('GetInputList')).inputs || []).map(i => i.inputName);
+        if (inputs.includes(name)) await obs.call('CreateSceneItem', { sceneName: scene, sourceName: name });
+        else await obs.call('CreateInput', { sceneName: scene, inputName: name, inputKind: 'browser_source', inputSettings: { url: new URL('page.html?id=' + encodeURIComponent(p.id), location.href).href, width: p.w, height: p.h, is_local_file: false } });
+        b.textContent = '✓ dodano'; vmPulse(b);
+      } catch (err) { b.textContent = '✗ ' + err.message.slice(0, 30); }
+    }
+  });
+  $('mkExport').onclick = () => {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(pagesList(), null, 1)], { type: 'application/json' }));
+    a.download = 'vincent-media-strony.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  };
+  $('mkImport').onclick = () => $('mkFile').click();
+  $('mkFile').onchange = async () => {
+    const f = $('mkFile').files[0]; if (!f) return;
+    try { const inc = JSON.parse(await f.text()); if (!Array.isArray(inc)) throw 0; const l = pagesList(); for (const p of inc) { if (!p || !p.id) continue; const i = l.findIndex(x => x.id === p.id); if (i < 0) l.push(p); else l[i] = p; }
+      localStorage.setItem(PAGES_KEY, JSON.stringify(l)); if (bc) bc.postMessage({ type: 'pages' }); renderPages(true); } catch { alert('To nie jest plik ze stronami.'); }
+    $('mkFile').value = '';
+  };
+  document.querySelector('.tabs button[data-tab="make"]').addEventListener('click', () => setTimeout(() => renderPages(true), 60));
+  window.addEventListener('storage', e => { if (e.key === PAGES_KEY) renderPages(); });
+  setInterval(() => renderPages(), 3000);
   $('toggleBtn').onclick = () => { s.visible = !s.visible; save(); };
   $('timerBtn').onclick = () => { s.since = Date.now(); save(); };
   $('clearBtn').onclick = () => { s.game = ''; s.subtitle = ''; s.cover = ''; $('game').value = ''; $('subtitle').value = ''; $('cover').value = ''; save(); };
@@ -1127,6 +1213,7 @@
     if (st === 'game') return 'VM · Gra – pełny ekran';
     if (st === 'frame') return 'VM · Gra – w ramce';
     if (st === 'talk') return 'VM · Rozmowa';
+    if (st === 'page') return 'VM · Strona';
     return s.scene === 'vote' ? 'VM · Głosowanie' : ({ prep: 'VM · Przygotowania', soon: 'VM · Stream za…', start: 'VM · Zaraz zaczynamy', late: 'VM · Spóźnienie', brb: 'VM · Przerwa', 'brb-late': 'VM · Przerwa', end: 'VM · Koniec' })[s.scene] || 'VM · Przygotowania';
   };
   setInterval(() => { if (obsRaw === STREAM_SCENE) obsCurrent = virtScene(); }, 1000);
@@ -1404,12 +1491,18 @@
   $('galleryBtn').onclick = () => { try { window.open(new URL('gallery.html', location.href).href, 'vmGallery', 'width=1100,height=900'); } catch {} };
   // --- START: stan, gra, automatyczne przechwytywanie, sceny, biblioteka, szybki test ---
   const hubUrl = () => window.vmHub(s.localUrl || DEFAULTS.localUrl);
+  // progresywne ładowanie (patrz selfTest): pierwsze 45 s to „łączę…”, nie błąd
+  const BOOT_AT = Date.now(), BOOT_MS = 45000, everOk = {};
+  const booting = k => Date.now() - BOOT_AT < BOOT_MS && !everOk[k];
+  const PILL_KEY = { lcPill: 'det', obsPill: 'obs', twPill: 'twitch' };
   function startStatus() {
     const box = $('stStatus'); if (!box) return;
     box.innerHTML = [['lcPill', 'Wykrywacz'], ['obsPill', 'OBS'], ['twPill', 'Twitch']].map(([id, n]) => {
-      const p = $(id); const on = p && p.classList.contains('on');
-      if (id === 'lcPill') { $('detStartRow').hidden = on || !s.local || isRemote; if (on) $('detStartMsg').hidden = true; }
-      return `<div class="stat" data-goto="${id}"><b style="color:${on ? 'var(--ok)' : 'var(--warn)'}">${on ? '✓' : '!'}</b><span>${n}: ${esc(p ? p.textContent : '')}</span></div>`;
+      const p = $(id); const on = p && p.classList.contains('on'), off = /WYŁ/.test(p ? p.textContent : '');
+      if (on) everOk[PILL_KEY[id]] = 1;
+      const wait = !on && !off && booting(PILL_KEY[id]);
+      if (id === 'lcPill') { $('detStartRow').hidden = on || wait || !s.local || isRemote; if (on) $('detStartMsg').hidden = true; }
+      return `<div class="stat" data-goto="${id}"><b style="color:${on ? 'var(--ok)' : wait ? 'var(--accent)' : 'var(--warn)'}">${on ? '✓' : wait ? '<i class="spin"></i>' : '!'}</b><span>${n}: ${wait ? 'ŁĄCZĘ…' : esc(p ? p.textContent : '')}</span></div>`;
     }).join('');
   }
   // wykrywacz nie działa: uruchomienie przez adres vincentmedia:// (dodaje go instalator za zgodą)
@@ -1594,7 +1687,9 @@
   }
   function renderLibrary() { try { renderLibrary0(); } catch (e) { $('libList').innerHTML = `<p class="hint" style="margin:0;color:var(--warn)">Błąd listy: ${esc(e.message)}</p>`; } }
   function renderLibrary0() {
-    const f = ($('libFilter').value || '').trim().toLowerCase(), ok = e => e && e.name && (!f || String(e.name).toLowerCase().includes(f));
+    // dodatki bez własnego uruchamiania (soundtrack, artbook, Bonus Content, DLC, serwer, SDK…) nie trafiają na listę
+    const EXTRA = /soundtrack|\bOST\b|art ?book|digital (deluxe )?(extras|content)|bonus content|wallpapers?\b|\bDLC\b|season pass|expansion pass|dedicated server|\bSDK\b|mod tools|creation kit|redistributable|steamworks|proton|runtime|benchmark tool|\bplaytest\b/i;
+    const f = ($('libFilter').value || '').trim().toLowerCase(), ok = e => e && e.name && !EXTRA.test(String(e.name)) && (!f || String(e.name).toLowerCase().includes(f));
     // jedna lista: uruchomiona teraz, ostatnio używane, potem zainstalowane (Steam, Epic, GOG, Ubisoft, EA, Battle.net, Xbox…)
     const all = libData.items.slice();
     if (libLive && !all.some(e => String(e.name).toLowerCase() === libLive.name.toLowerCase())) all.unshift(libLive);
@@ -1867,23 +1962,31 @@
       return lines.length && lines[0] ? ' · ostatnio w dzienniku: ' + lines.join(' | ') : '';
     } catch { return ''; }
   }
+  // progresywne ładowanie: przez pierwsze 45 s po starcie panelu wykrywacz, OBS i Twitch dopiero się łączą –
+  // zamiast błędu pokazujemy „łączę…”, a to, co już działa, od razu jest zielone (test co 2 s, potem co 6 s)
+  const pend = (k, r) => r.ok === false && booting(k) ? { ok: 'wait', msg: 'łączę…' } : r;
   async function selfTest() {
     if (testBusy || isRemote) return; testBusy = true;
     const c = {};
+    const step = () => { checks = { ...checks, ...c }; renderChecks(); };
     const feat = feats();
     let g = null, ver = '';
     if (s.local) {
       try { const j = await (await fetch(hubUrl() + '/game', { cache: 'no-store' })).json(); g = j.game; ver = j.appVersion || ''; c.det = { ok: true }; }
-      catch { c.det = { ok: false, msg: 'nie odpowiada' + (await detLogTail()) }; }
-      if (c.det.ok) c.ver = ver && window.VM_VERSION && ver !== window.VM_VERSION ? { ok: false, msg: `wykrywacz ${ver}, panel ${window.VM_VERSION} – zamknij wykrywacz i uruchom ponownie` } : { ok: true };
-      if (c.det.ok) {
+      catch { c.det = booting('det') ? { ok: 'wait', msg: 'uruchamiam się…' } : { ok: false, msg: 'nie odpowiada' + (await detLogTail()) }; }
+      if (c.det.ok === true) everOk.det = 1;
+      step();
+      if (c.det.ok === true) c.ver = ver && window.VM_VERSION && ver !== window.VM_VERSION ? { ok: false, msg: `wykrywacz ${ver}, panel ${window.VM_VERSION} – zamknij wykrywacz i uruchom ponownie` } : { ok: true };
+      if (c.det.ok === true) {
         try { const r = await fetch(hubUrl() + '/library', { cache: 'no-store' }); const j = r.ok ? await r.json() : null; c.lib = !j ? { ok: false, msg: 'HTTP ' + r.status } : j.error ? { ok: false, msg: j.error } : { ok: true, msg: arr(j.items).length + ' zapisanych, ' + arr(j.installed).length + ' ze Steama' }; }
         catch (e) { c.lib = { ok: false, msg: e.message }; }
       }
     }
     if (feat.obs !== false) {
-      c.obs = obs && $('obsPill').classList.contains('on') ? { ok: true } : { ok: false, msg: 'uruchom OBS / włącz WebSocket' };
-      if (c.obs.ok) {
+      c.obs = pend('obs', obs && $('obsPill').classList.contains('on') ? { ok: true } : { ok: false, msg: 'uruchom OBS / włącz WebSocket' });
+      if (c.obs.ok === true) everOk.obs = 1;
+      step();
+      if (c.obs.ok === true) {
         const vm = obsSceneList.filter(n => n.indexOf('VM · ') === 0).length;
         c.scenes = vm ? { ok: true, msg: vm + ' scen' } : { ok: false, msg: 'brak scen „VM · …” – uruchom instalator' };
         try {
@@ -1932,24 +2035,29 @@
       else c.pages = { ok: true, msg: list.length + ' nakładek w wersji ' + (window.VM_VERSION || '') };
       if (old.length && !pagesRefreshed) { pagesRefreshed = true; refreshPages(); }
     }
-    if (feat.twitch !== false && !/WYŁ/.test($('twPill').textContent)) c.twitch = $('twPill').classList.contains('on') ? { ok: true } : { ok: false, msg: $('twPill').textContent || 'brak połączenia' };
+    if (feat.twitch !== false && !/WYŁ/.test($('twPill').textContent)) { c.twitch = pend('twitch', $('twPill').classList.contains('on') ? { ok: true } : { ok: false, msg: $('twPill').textContent || 'brak połączenia' }); if (c.twitch.ok === true) everOk.twitch = 1; }
     checks = c; testBusy = false; renderChecks();
     // lista kontrolna na ekranie przygotowań (scenes.html) – prawdziwe wyniki zamiast udawanego odhaczania
     try {
-      let audio = false; if (obs && c.obs && c.obs.ok) { try { const sp = await obs.call('GetSpecialInputs'); audio = !!(sp.desktop1 || sp.desktop2); } catch {} }
+      let audio = false; if (obs && c.obs && c.obs.ok === true) { try { const sp = await obs.call('GetSpecialInputs'); audio = !!(sp.desktop1 || sp.desktop2); } catch {} }
       const det = load(DETECTED_KEY, null) || {};
-      localStorage.setItem('obsGameOverlay.ready', JSON.stringify({ at: Date.now(), scene: !!(c.obs && c.obs.ok && c.scenes && c.scenes.ok), audio, mic: !!(c.mic && c.mic.ok),
-        chat: !!(c.twitch && c.twitch.ok), alerts: !!(c.pages && c.pages.ok !== false && c.obs && c.obs.ok), game: !!((s.mode === 'manual' && s.game) || (det.local && det.local.game) || s.game) }));
+      localStorage.setItem('obsGameOverlay.ready', JSON.stringify({ at: Date.now(), scene: !!(c.obs && c.obs.ok === true && c.scenes && c.scenes.ok === true), audio, mic: !!(c.mic && c.mic.ok === true),
+        chat: !!(c.twitch && c.twitch.ok === true), alerts: !!(c.pages && c.pages.ok !== false && c.obs && c.obs.ok === true), game: !!((s.mode === 'manual' && s.game) || (det.local && det.local.game) || s.game) }));
     } catch {}
   }
   function renderChecks() {
     const list = Object.entries(checks), bad = list.filter(([, v]) => v.ok === false), okN = list.filter(([, v]) => v.ok === true).length;
+    const wait = list.filter(([, v]) => v.ok === 'wait');
     const h = $('stHealth');
-    h.className = 'health ' + (bad.length ? 'bad' : 'ok');
+    h.className = 'health ' + (bad.length ? 'bad' : wait.length ? 'wait' : 'ok');
+    if (!bad.length && wait.length) {
+      const SHORT = { det: 'Wykrywacz', obs: 'OBS', twitch: 'Twitch' };
+      h.textContent = `⏳ Łączę: ${wait.map(([k]) => SHORT[k] || CHECK_NAMES[k]).join(', ')} · ${okN} już działa ${checksOpen ? '▴' : '▾'}`;
+    } else
     h.textContent = bad.length ? `⚠ ${bad.length === 1 ? CHECK_NAMES[bad[0][0]] + ': ' + (bad[0][1].msg || 'nie działa') : bad.length + ' rzeczy wymaga uwagi'} ${checksOpen ? '▴' : '▾'}` : `✓ Wszystko działa samo · ${okN} ${okN === 1 ? 'sprawdzenie' : okN % 10 >= 2 && okN % 10 <= 4 && (okN % 100 < 12 || okN % 100 > 14) ? 'sprawdzenia' : 'sprawdzeń'} ${checksOpen ? '▴' : '▾'}`;
     const open = checksOpen || bad.length > 0;
     $('stChecks').hidden = !open; h.setAttribute('aria-expanded', open);
-    $('stChecks').innerHTML = list.map(([k, v]) => `<div class="chk ${v.ok === true ? 'ok' : v.ok === false ? 'bad' : 'na'}"><b>${v.ok === true ? '✓' : v.ok === false ? '✗' : '–'}</b><div>${esc(CHECK_NAMES[k])}${v.msg ? `<small>${esc(v.msg)}</small>` : ''}</div>${v.ok === false && FIX[k] ? `<button data-fix="${k}">Napraw</button>` : '<span></span>'}</div>`).join('');
+    $('stChecks').innerHTML = list.map(([k, v]) => `<div class="chk ${v.ok === true ? 'ok' : v.ok === false ? 'bad' : v.ok === 'wait' ? 'wait' : 'na'}"><b>${v.ok === true ? '✓' : v.ok === false ? '✗' : v.ok === 'wait' ? '<i class="spin"></i>' : '–'}</b><div>${esc(CHECK_NAMES[k])}${v.msg ? `<small>${esc(v.msg)}</small>` : ''}</div>${v.ok === false && FIX[k] ? `<button data-fix="${k}">Napraw</button>` : '<span></span>'}</div>`).join('');
     // to, co działa, chowamy: karty stanu i ustawienia automatyki
     $('stStatus').hidden = !open;
     const autoBad = ['cap', 'mic'].some(k => checks[k] && checks[k].ok === false);
@@ -1959,7 +2067,13 @@
   $('stHealth').onclick = () => { checksOpen = !checksOpen; renderChecks(); };
   $('stChecks').addEventListener('click', e => { const b = e.target.closest('[data-fix]'); if (!b) return; b.textContent = '…'; try { FIX[b.dataset.fix](); } catch {} setTimeout(selfTest, 2500); });
   setInterval(() => { if (!document.querySelector('.tab[data-tab="start"]').hidden) selfTest(); }, 6000);
-  setTimeout(selfTest, 2500);
+  // start: pierwszy test od razu, potem co 2 s, dopóki coś się jeszcze łączy (najdłużej 45 s)
+  setTimeout(selfTest, 300);
+  const bootTick = setInterval(() => {
+    const waiting = Object.values(checks).some(v => v.ok === 'wait');
+    if (Date.now() - BOOT_AT > BOOT_MS || (!waiting && Date.now() - BOOT_AT > 6000)) { clearInterval(bootTick); return; }
+    selfTest();
+  }, 2000);
 
 
   // --- kto prowadzi: portrety zamiast listy; przy każdym starcie OBS (nowa sesja panelu) pytanie „Kto dziś prowadzi?” ---

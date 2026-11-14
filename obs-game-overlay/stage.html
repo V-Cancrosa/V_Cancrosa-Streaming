@@ -48,9 +48,12 @@
   }
   const tell = () => { for (const f of Object.values(frames)) try { f.contentWindow.postMessage({ vmStage: 1, active: active && f.classList.contains('on') }, '*'); } catch {} };
   function render() {
-    const s = load(), st = SETS[s.stage] ? s.stage : 'game';
-    if (st === cur) return; cur = st;
-    const want = new Set(SETS[st]), first = !document.querySelector('iframe.on');
+    const s = load(), st = SETS[s.stage] || s.stage === 'page' ? s.stage : 'game';
+    // strona z kreatora (Twórz → Na stream)
+    const set = st === 'page' ? ['page.html?id=' + encodeURIComponent(s.pageId || '')] : SETS[st];
+    const ck = st + '|' + (st === 'page' ? s.pageId : '');
+    if (ck === cur) return; cur = ck;
+    const want = new Set(set), first = !document.querySelector('iframe.on');
     for (const src of want) frame(src);
     const film = !first && s.transitions !== false && s.transitionStyle === 'film' && s.motion !== 'reduced';
     for (const [src, f] of Object.entries(frames)) {
@@ -63,7 +66,7 @@
       render.t = setTimeout(() => { document.body.classList.remove('filming'); document.querySelectorAll('iframe.leave').forEach(f => f.classList.remove('leave')); }, 1350);
     }
     // kolejność: najpierw tło układu, na wierzchu karta „Teraz gram”
-    SETS[st].forEach(src => document.body.appendChild(frames[src]));
+    set.forEach(src => document.body.appendChild(frames[src]));
     tell();
     try { localStorage.setItem('obsGameOverlay.hb.stage', JSON.stringify({ v: window.VM_VERSION || '', at: Date.now(), stage: st })); } catch {}
   }
