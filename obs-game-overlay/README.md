@@ -654,9 +654,11 @@ file:///C:/OBS/obs-game-overlay/overlay.html?panel=0&game=Elden%20Ring&theme=esp
 
 Z `panel=0` możesz zrobić kilka źródeł z różnymi stałymi ustawieniami. Bez `panel=0` ustawienia z panelu nadpisują te z adresu.
 
-## Start panelu: progresywne ładowanie
+## Start panelu: animowany przebieg
 
-Po otwarciu OBS karta Start od razu pokazuje to, co już działa. Wykrywacz, OBS i Twitch przez pierwsze 45 sekund mają stan **„łączę…”** (kręcące się kółko) zamiast czerwonego błędu, bo zwykle właśnie wstają. Test powtarza się w tym czasie co 2 sekundy. Błąd pojawia się dopiero, gdy coś nie połączy się do końca tego czasu.
+Karta Start pokazuje uruchamianie krok po kroku: GameRadar, OBS, sceny, mikrofon, nakładki, Twitch. Każdy krok ma kółko, które kręci się, dopóki trwa łączenie. Gdy krok zadziała, kółko rysuje ✓, a wiersz na chwilę się podświetla. Pasek w nagłówku pokazuje postęp (np. 4/6). Przez pierwsze 45 s brak połączenia to „uruchamiam”, a nie błąd. Gdy wszystko działa, lista zostaje na moment, żeby było widać ostatni ✓, potem sama się zwija do zielonego „✓ Wszystko działa”. Jeśli coś nie zadziała, lista zostaje otwarta, a przy kroku jest przycisk **Napraw**.
+
+Sterowanie nie ma już podzakładek: Gra, Ekrany, Sceny OBS i Alerty są widoczne naraz. W „Więcej” grupy są zawsze rozwinięte. W szerokim oknie obie zakładki układają się w kolumny bez dziur.
 
 ## Lista gier bez dodatków
 

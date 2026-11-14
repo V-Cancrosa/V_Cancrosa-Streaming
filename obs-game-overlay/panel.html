@@ -53,8 +53,27 @@
   .chk.wait { opacity: .8; } .chk .spin { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--accent); border-right-color: transparent; border-radius: 50%; animation: chkspin .8s linear infinite; }
   @keyframes chkspin { to { transform: rotate(360deg); } }
   .health.bad { background: color-mix(in srgb, var(--warn) 18%, #1d2027); border-color: var(--warn); color: #fff3d6; }
-  .chk { display: grid; grid-template-columns: 20px 1fr auto; gap: 8px; align-items: center; padding: 5px 8px; border-radius: 6px; background: #14161b; font-size: 12px; }
-  .chk b { font-size: 14px; } .chk.ok b { color: var(--ok); } .chk.bad b { color: var(--warn); } .chk.na { opacity: .55; }
+  .chk { display: grid; grid-template-columns: 22px 1fr auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 10px; background: #14161b; border: 1px solid #20232b; font-size: 12.5px; transition: background .4s, border-color .4s; }
+  .chk.enter { animation: vm-in 300ms cubic-bezier(.22,1,.36,1) both; animation-delay: calc(min(var(--i, 0), 10) * 45ms); }
+  .chk .ico { width: 22px; height: 22px; overflow: visible; }
+  .chk .ico circle { fill: none; stroke: #343844; stroke-width: 2.2; transition: stroke .4s, fill .4s; }
+  .chk.wait .ico circle { stroke: var(--accent); stroke-dasharray: 22 60; stroke-linecap: round; transform-origin: 12px 12px; animation: chkspin .9s linear infinite; }
+  .chk.ok .ico circle { stroke: var(--ok); fill: color-mix(in srgb, var(--ok) 16%, transparent); }
+  .chk.bad .ico circle { stroke: var(--warn); fill: color-mix(in srgb, var(--warn) 14%, transparent); }
+  .chk .ico .tick, .chk .ico .x { fill: none; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+  .chk.ok .ico .tick { stroke: var(--ok); opacity: 1; stroke-dasharray: 16; animation: tickdraw .5s .12s cubic-bezier(.22,1,.36,1) both; }
+  .chk.bad .ico .x { stroke: var(--warn); opacity: 1; }
+  @keyframes tickdraw { from { stroke-dashoffset: 16; } to { stroke-dashoffset: 0; } }
+  .chk.pop { animation: chkpop .7s cubic-bezier(.22,1,.36,1); }
+  @keyframes chkpop { 30% { background: color-mix(in srgb, var(--ok) 20%, #14161b); border-color: color-mix(in srgb, var(--ok) 50%, transparent); transform: scale(1.015); } }
+  .chk.na { opacity: .5; }
+  .health .htxt { display: flex; align-items: center; gap: 8px; } .health .htxt em { margin-left: auto; font-style: normal; font-weight: 600; opacity: .7; font-variant-numeric: tabular-nums; } .health .caret { opacity: .6; }
+  .health .prog { display: block; height: 3px; margin-top: 8px; border-radius: 2px; background: rgba(255,255,255,.08); overflow: hidden; }
+  .health .prog i { display: block; height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--accent), var(--ok)); transition: width .7s cubic-bezier(.22,1,.36,1); }
+  .health.ok .prog { opacity: .35; }
+  .health.wait .prog i { background-size: 200% 100%; background-image: linear-gradient(90deg, var(--accent), #b9a6ff, var(--accent)); animation: progflow 1.4s linear infinite; }
+  @keyframes progflow { to { background-position: -200% 0; } }
+
   .chk small { display: block; color: var(--muted); } .chk button { padding: 4px 10px; font-size: 12px; }
   .now { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 8px; background: #14161b; border: 1px solid var(--line); }
   .now b { font-size: 18px; color: #fff; } .now small { color: var(--muted); }
@@ -86,10 +105,11 @@
   .tab[data-tab="more"] > section > h2 .ic { margin-right: 4px; filter: saturate(1.2); }
   .tab[data-tab="more"] .term:not(.small) { height: 180px; }
   .tab[data-tab="more"] .row button { white-space: normal; flex: 1 1 auto; }
-  html[data-bp="lg"] .tab[data-tab="more"]:not([hidden]), html[data-bp="xl"] .tab[data-tab="more"]:not([hidden]) { display: block; column-gap: 10px; }
-  html[data-bp="lg"] .tab[data-tab="more"]:not([hidden]) { columns: 2; }
-  html[data-bp="xl"] .tab[data-tab="more"]:not([hidden]) { columns: 3; }
-  html[data-bp="lg"] .tab[data-tab="more"] > section, html[data-bp="xl"] .tab[data-tab="more"] > section { break-inside: avoid; margin: 0 0 10px; display: flex; flex-direction: column; }
+  /* Więcej i Sterowanie w szerokim oknie: kolumny jak w gazecie – karty jedna pod drugą, bez dziur */
+  html[data-bp="lg"] .tab:is([data-tab="more"], [data-tab="live"]):not([hidden]), html[data-bp="xl"] .tab:is([data-tab="more"], [data-tab="live"]):not([hidden]) { display: block; column-gap: 12px; }
+  html[data-bp="lg"] .tab:is([data-tab="more"], [data-tab="live"]):not([hidden]) { columns: 2; }
+  html[data-bp="xl"] .tab:is([data-tab="more"], [data-tab="live"]):not([hidden]) { columns: 3; }
+  html[data-bp="lg"] .tab:is([data-tab="more"], [data-tab="live"]) > section, html[data-bp="xl"] .tab:is([data-tab="more"], [data-tab="live"]) > section { break-inside: avoid; margin: 0 0 12px; display: flex; flex-direction: column; }
   html[data-bp="lg"] .tab[data-tab="more"] > section.shut > :not(h2), html[data-bp="xl"] .tab[data-tab="more"] > section.shut > :not(h2) { display: revert !important; }
   html[data-bp="lg"] .tab[data-tab="more"] > section.shut > [hidden], html[data-bp="xl"] .tab[data-tab="more"] > section.shut > [hidden] { display: none !important; }
   .tidy { display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: 10px; border: 1px solid var(--warn); background: color-mix(in srgb, var(--warn) 10%, #14161b); }
@@ -145,8 +165,11 @@
   code { font-size: 11px; background: #14161b; padding: 1px 5px; border-radius: 4px; }
   body { margin: 0; background: var(--bg); color: var(--text); font: 13px/1.4 system-ui, -apple-system, 'Segoe UI', sans-serif; }
   main { padding: 10px; display: flex; flex-direction: column; gap: 10px; max-width: 720px; margin: 0 auto; }
-  section { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
-  h2 { margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); display: flex; justify-content: space-between; align-items: center; }
+  section { background: linear-gradient(180deg, #1b1d24, #17191f); border: 1px solid #262a34; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; box-shadow: inset 0 1px 0 rgba(255,255,255,.03), 0 10px 26px -18px rgba(0,0,0,.8); }
+  h2 { margin: 0 0 2px; font-size: 13.5px; font-weight: 700; letter-spacing: .01em; color: #f2f3f7; display: flex; justify-content: flex-start; align-items: center; gap: 8px; }
+  h2 .ic { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: color-mix(in srgb, var(--accent) 16%, #22252f); font-size: 14px; margin-right: 2px; }
+  h2 .pill { margin-left: auto; }
+  .sclabel { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
   label { display: flex; flex-direction: column; gap: 3px; color: var(--muted); font-size: 12px; }
   .row { display: flex; gap: 8px; align-items: end; }
   .row > * { flex: 1; min-width: 0; }
@@ -702,7 +725,7 @@
   </section>
   <section data-feature="local">
     <h2>GameRadar <span id="lcPill" class="pill off">WYŁ.</span></h2>
-    <label class="check"><input id="local" type="checkbox"> używaj wykrywacza z tego komputera</label>
+    <label class="check" hidden><input id="local" type="checkbox"> używaj wykrywacza z tego komputera</label>
     <div class="status" id="lcStatus"></div>
     <div class="row" id="lcIgnoreRow" hidden>
       <button id="lcIgnoreBtn" class="auto">To nie gra – ignoruj</button>
@@ -721,7 +744,7 @@
       <div class="row" style="gap:6px;flex-wrap:wrap"><button id="lnkMake">🖥 Skrót „Start streamu” na pulpicie</button><button id="grRestart">↻ Uruchom GameRadar ponownie</button></div>
       <p class="hint" id="launchInfo" style="margin:0"></p>
     </div>
-    <details>
+    <details hidden>
       <summary>Adres wykrywacza</summary>
       <input id="localUrl" type="text" placeholder="http://localhost:7777">
     </details>
@@ -738,7 +761,7 @@
     <div class="meter" id="micMeter"><i id="micBar"></i><b id="micMark"></b></div>
     <details>
       <summary>Ręczne połączenie</summary>
-      <p class="hint" style="margin:0 0 6px">Instalator ustawia to sam. Ręcznie: OBS → Narzędzia → Ustawienia serwera WebSocket.</p>
+
       <label>Adres<input id="obsUrl" type="text" placeholder="ws://localhost:4455"></label>
       <label>Hasło<input id="obsPassword" type="password" autocomplete="off"></label>
     </details>
@@ -787,18 +810,17 @@
   <section data-feature="local">
     <h2>GameRadar – podgląd na żywo <span id="logPill" class="pill off"></span></h2>
     <div class="term" id="detLog"><span class="tdim">Łączę z GameRadarem…</span></div>
-    <p class="hint" style="margin:0">GameRadar (wykrywacz gier) działa w tle, bez okna PowerShella – tu widać wszystko, co robi. Pełny dziennik zapisuje się sam.</p>
     <div class="row" style="gap:6px;flex-wrap:wrap"><button id="logOpen">📄 Otwórz pełny dziennik</button><button id="logSave">⬇ Pobierz dziennik</button><button id="dirOpen">📂 Otwórz folder Vincent-Media</button></div>
   </section>
 
   <section>
     <h2>Pilot z telefonu <span id="rlPill" class="pill off">WYŁ.</span></h2>
-    <p class="hint" style="margin:0">Na telefonie otwierasz stronę pilota i klikasz – GameRadar na komputerze odbiera polecenie przez przekaźnik, a OBS je wykonuje. Bez Wi‑Fi, bez portów i bez pisania na czacie.</p>
+    <p class="hint" style="margin:0">Zeskanuj kod telefonem – przyciski na telefonie sterują OBS.</p>
     <div class="row" style="gap:6px"><button class="primary" id="rlOn">Włącz pilota</button><button id="rlOff" hidden>Wyłącz</button><button id="rlNew" hidden title="Stary link przestanie działać">↻ Nowy klucz</button></div>
     <div id="rlBox" class="stack" hidden style="display:flex;flex-direction:column;gap:8px">
       <div id="rlQr" style="background:#fff;padding:10px;border-radius:8px;align-self:flex-start;line-height:0"></div>
       <div class="row" style="gap:6px"><input id="rlUrl" type="text" readonly style="flex:1"><button id="rlCopy">⧉</button></div>
-      <p class="hint" style="margin:0">Link zawiera klucz – nie pokazuj go na streamie. Polecenia idą przez darmowy przekaźnik ntfy.sh pod tym losowym kluczem.</p>
+      <p class="hint" style="margin:0">Kod to klucz – nie pokazuj go na streamie.</p>
     </div>
     <div class="status" id="rlStatus"></div>
     <details><summary class="hint">Albo przez czat Twitcha (!vm …)</summary>
@@ -836,7 +858,7 @@
     </div>
     <label class="check"><input id="upAuto" type="checkbox"> aktualizuj automatycznie – sprawdzanie co 10 minut, wstrzymane w trakcie transmisji i nagrywania</label>
     <div class="term small" id="upTimer">—</div>
-    <p class="hint" id="bpInfo" style="margin:4px 0 0"></p>
+    <p class="hint" id="bpInfo" hidden></p>
   </section>
   <section hidden data-gone="1">
     <h2>Link bez panelu</h2>
@@ -2212,19 +2234,40 @@
         chat: !!(c.twitch && c.twitch.ok === true), alerts: !!(c.pages && c.pages.ok !== false && c.obs && c.obs.ok === true), game: !!((s.mode === 'manual' && s.game) || (det.local && det.local.game) || s.game) }));
     } catch {}
   }
+  // karta Start: animowany przebieg startu – każde sprawdzenie ma kółko (kręci się, gdy się łączy), które rysuje ✓, gdy zadziała;
+  // pasek postępu w nagłówku; gdy wszystko działa, lista chwilę zostaje (widać ostatni ✓) i sama się zwija
+  let allOkAt = 0, prevOk = {};
+  const ICO = '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path class="tick" d="M7 12.5l3.2 3.2L17 8.8"/><path class="x" d="M8.5 8.5l7 7M15.5 8.5l-7 7"/></svg>';
   function renderChecks() {
     const list = Object.entries(checks), bad = list.filter(([, v]) => v.ok === false), okN = list.filter(([, v]) => v.ok === true).length;
-    const wait = list.filter(([, v]) => v.ok === 'wait');
-    const h = $('stHealth');
+    const wait = list.filter(([, v]) => v.ok === 'wait'), total = list.filter(([, v]) => v.ok !== null).length || 1;
+    const h = $('stHealth'), all = !bad.length && !wait.length && list.length > 0;
+    if (all && !allOkAt) { allOkAt = Date.now(); setTimeout(renderChecks, 2700); }
+    if (!all) allOkAt = 0;
     h.className = 'health ' + (bad.length ? 'bad' : wait.length ? 'wait' : 'ok');
-    if (!bad.length && wait.length) {
-      const SHORT = { det: 'GameRadar', obs: 'OBS', twitch: 'Twitch' };
-      h.textContent = `⏳ Łączę: ${wait.map(([k]) => SHORT[k] || CHECK_NAMES[k]).join(', ')} · ${okN} już działa ${checksOpen ? '▴' : '▾'}`;
-    } else
-    h.textContent = bad.length ? `⚠ ${bad.length === 1 ? CHECK_NAMES[bad[0][0]] + ': ' + (bad[0][1].msg || 'nie działa') : bad.length + ' rzeczy wymaga uwagi'} ${checksOpen ? '▴' : '▾'}` : `✓ Wszystko działa samo · ${okN} ${okN === 1 ? 'sprawdzenie' : okN % 10 >= 2 && okN % 10 <= 4 && (okN % 100 < 12 || okN % 100 > 14) ? 'sprawdzenia' : 'sprawdzeń'} ${checksOpen ? '▴' : '▾'}`;
-    const open = checksOpen || bad.length > 0;
+    const SHORT = { det: 'GameRadar', obs: 'OBS', twitch: 'Twitch' };
+    const txt = bad.length ? `⚠ ${bad.length === 1 ? CHECK_NAMES[bad[0][0]] + ': ' + (bad[0][1].msg || 'nie działa') : bad.length + ' rzeczy wymaga uwagi'}`
+      : wait.length ? `Uruchamiam: ${wait.map(([k]) => SHORT[k] || CHECK_NAMES[k]).join(', ')}` : `✓ Wszystko działa`;
+    const pct = Math.round(okN / total * 100);
+    h.innerHTML = `<span class="htxt">${esc(txt)}<em>${okN}/${total}</em><span class="caret">${checksOpen ? '▴' : '▾'}</span></span><span class="prog"><i style="width:${pct}%"></i></span>`;
+    const open = checksOpen || bad.length > 0 || wait.length > 0 || (allOkAt && Date.now() - allOkAt < 2500);
     $('stChecks').hidden = !open; h.setAttribute('aria-expanded', open);
-    $('stChecks').innerHTML = list.map(([k, v]) => `<div class="chk ${v.ok === true ? 'ok' : v.ok === false ? 'bad' : v.ok === 'wait' ? 'wait' : 'na'}"><b>${v.ok === true ? '✓' : v.ok === false ? '✗' : v.ok === 'wait' ? '<i class="spin"></i>' : '–'}</b><div>${esc(CHECK_NAMES[k])}${v.msg ? `<small>${esc(v.msg)}</small>` : ''}</div>${v.ok === false && FIX[k] ? `<button data-fix="${k}">Napraw</button>` : '<span></span>'}</div>`).join('');
+    // wiersze aktualizowane w miejscu – animacje (kręcenie, rysowanie ✓) nie zaczynają się od nowa co 2 s
+    const box = $('stChecks'), keep = new Set();
+    list.forEach(([k, v], i) => {
+      keep.add(k);
+      let row = box.querySelector(`[data-k="${k}"]`);
+      if (!row) { row = document.createElement('div'); row.dataset.k = k; row.innerHTML = ICO + '<div class="ctx"></div><span class="cfix"></span>'; row.style.setProperty('--i', i); row.className = 'chk enter'; box.appendChild(row); }
+      const st = v.ok === true ? 'ok' : v.ok === false ? 'bad' : v.ok === 'wait' ? 'wait' : 'na';
+      row.classList.remove('ok', 'bad', 'wait', 'na'); row.classList.add(st);
+      if (st === 'ok' && prevOk[k] === false) { row.classList.remove('pop'); void row.offsetWidth; row.classList.add('pop'); }
+      prevOk[k] = st === 'ok';
+      const t = esc(CHECK_NAMES[k]) + (v.msg ? `<small>${esc(v.msg)}</small>` : '');
+      if (row.querySelector('.ctx').innerHTML !== t) row.querySelector('.ctx').innerHTML = t;
+      const fx = v.ok === false && FIX[k] ? `<button data-fix="${k}">Napraw</button>` : '';
+      if (row.querySelector('.cfix').innerHTML !== fx) row.querySelector('.cfix').innerHTML = fx;
+    });
+    for (const r of [...box.children]) if (!keep.has(r.dataset.k)) r.remove();
     // to, co działa, chowamy: karty stanu i ustawienia automatyki
     $('stStatus').hidden = !open;
     const autoBad = ['cap', 'mic'].some(k => checks[k] && checks[k].ok === false);
@@ -2621,19 +2664,13 @@
 
   // --- podzakładki (zakładki w zakładkach) ---
   const SUBS = {
-    live: [['Gra', ['Gra']], ['Ekrany', ['Ekrany – odliczanie i napisy', 'Sceny OBS']], ['Alerty', ['Alerty']]],
 
     chat: [['Na ekranie', ['Czat na ekranie']], ['Moderacja', ['Napisz na czat (test)', 'Słowa zakazane', 'Cenzura ekranu', 'Podejrzane konta']], ['Statystyki', ['Statystyki streamów']], ['Nagrywanie', ['Nagrywanie']]],
   };
   // Więcej: zamiast podzakładek jedna strona ze zwijanymi grupami (kliknięcie nagłówka rozwija)
   const ACC_OPEN = ['GameRadar – podgląd na żywo', 'GameRadar'];
-  function initAcc() {
-    for (const sec of document.querySelectorAll('.tab[data-tab="more"] > section')) {
-      if (sec.classList.contains('acc')) continue;
-      sec.classList.add('acc'); if (!ACC_OPEN.includes(h2name(sec))) sec.classList.add('shut');
-      const h = sec.querySelector(':scope > h2'); if (h) h.addEventListener('click', () => { sec.classList.toggle('shut'); if (!sec.classList.contains('shut')) vmEnter(sec); });
-    }
-  }
+  // grupy są zawsze rozwinięte (bez zwijania) – zostaje tylko przewinięcie do grupy z openGroup()
+  function initAcc() {}
   function openGroup(title) {
     showTab('more'); initAcc();
     for (const sec of document.querySelectorAll('.tab[data-tab="more"] > section')) if (h2name(sec).startsWith(title)) { sec.classList.remove('shut'); setTimeout(() => sec.scrollIntoView({ block: 'start' }), 50); }

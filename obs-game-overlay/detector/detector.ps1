@@ -2065,7 +2065,7 @@ function Invoke-Request($ctx) {
                 Send-Json $ctx (Get-UpdateStatus)
             }
             '/launch' {
-                if ($q.ContainsKey('obs')) { $script:LaunchObs = $q['obs'] -eq '1'; [IO.File]::WriteAllText($LaunchFile, (@{ obs = $script:LaunchObs } | ConvertTo-Json), $Utf8NoBom); Log ("OBS razem z GameRadarem: " + $(if ($script:LaunchObs) { 'tak' } else { 'nie' })) }
+                if ($q.ContainsKey('obs') -and (($q['obs'] -eq '1') -ne $script:LaunchObs)) { $script:LaunchObs = $q['obs'] -eq '1'; [IO.File]::WriteAllText($LaunchFile, (@{ obs = $script:LaunchObs } | ConvertTo-Json), $Utf8NoBom); Log ("OBS razem z GameRadarem: " + $(if ($script:LaunchObs) { 'tak' } else { 'nie' })) }
                 $msg = ''; if ($q['start'] -eq '1') { $msg = Start-Obs; Log "Panel: $msg" }
                 $lnk = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Start streamu.lnk'
                 Send-Json $ctx ([pscustomobject]@{ ok = $true; obs = $script:LaunchObs; obsPath = (Find-Obs); shortcut = (Test-Path $lnk); msg = $msg; version = $script:AppVersion })
