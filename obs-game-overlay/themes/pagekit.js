@@ -49,16 +49,17 @@
 
   // ---------------------------------------------------------------- elementy (jak paleta Bubble)
   // pole: [klucz, etykieta, rodzaj, opcje]; rodzaje: text, area, num, color, sel, bool, state
-  const FONTS = [['persona', 'jak postać'], ['Inter', 'Inter'], ['Space Grotesk', 'Space Grotesk'], ['Anton', 'Anton'], ['Fraunces', 'Fraunces'], ['Nunito', 'Nunito'], ['Space Mono', 'Space Mono'], ['IBM Plex Mono', 'IBM Plex Mono'], ['Orbitron', 'Orbitron'], ['Rajdhani', 'Rajdhani'], ['Caveat', 'Caveat'], ['Tiny5', 'Tiny5 (piksele)']];
+  const FONTS = [['persona', 'jak postać'], ['Inter', 'Inter'], ['Space Grotesk', 'Space Grotesk'], ['Anton', 'Anton'], ['Fraunces', 'Fraunces'], ['Nunito', 'Nunito'], ['Space Mono', 'Space Mono'], ['IBM Plex Mono', 'IBM Plex Mono'], ['Orbitron', 'Orbitron'], ['Rajdhani', 'Rajdhani'], ['Caveat', 'Caveat'], ['Tiny5', 'Tiny5 (piksele)'], ['Oxanium', 'Oxanium (cyber)'], ['Share Tech Mono', 'Share Tech Mono (HUD)'], ['Playfair Display', 'Playfair (kursywa)']];
   const FILL = ['fill', 'Wypełnienie', 'sel', [['panel', 'ciemny panel'], ['accent', 'kolor postaci'], ['grad', 'gradient postaci'], ['none', 'brak'], ['custom', 'własny kolor ↓']]];
   const BOXF = [FILL, ['custom', 'Własny kolor', 'color'], ['radius', 'Zaokrąglenie', 'num'], ['border', 'Ramka (px)', 'num'], ['borderColor', 'Kolor ramki', 'color'], ['opacity', 'Krycie %', 'num'], ['glass', 'Rozmycie tła (szkło)', 'bool']];
   const BOXP = { fill: 'panel', radius: 18, border: 2, borderColor: 'accent', opacity: 100, glass: true };
   const TXTF = [['font', 'Czcionka', 'sel', FONTS], ['size', 'Wielkość', 'num'], ['weight', 'Grubość', 'sel', [[400, 'zwykła'], [600, 'średnia'], [800, 'gruba'], [900, 'najgrubsza']]], ['color', 'Kolor', 'color'], ['align', 'Wyrównanie', 'sel', [['left', 'do lewej'], ['center', 'środek'], ['right', 'do prawej']]]];
-  const CATS = [['vis', 'Elementy wizualne'], ['box', 'Kontenery'], ['form', 'Pola formularza'], ['stream', 'Stream']];
+  const CATS = [['vis', 'Elementy wizualne'], ['box', 'Kontenery'], ['hud', 'HUD (cyberpunk)'], ['form', 'Pola formularza'], ['stream', 'Stream']];
+  const NEON = ['#ff2a85', '#00f5d4', '#d4b2ff'];
   const TYPES = {
     // wizualne
     text: { cat: 'vis', name: 'Tekst', icon: 'T', size: [700, 110], p: { text: 'Nowy tekst', font: 'persona', size: 56, weight: 800, color: '#ffffff', align: 'left', shadow: true, upper: false },
-      f: [['text', 'Treść', 'area'], ...TXTF, ['shadow', 'Poświata', 'bool'], ['upper', 'WIELKIE LITERY', 'bool']] },
+      f: [['text', 'Treść', 'area'], ...TXTF, ['fx', 'Efekt', 'sel', [['', 'brak'], ['cyber', 'cyber (różowo-miętowe przesunięcie, unosi się)'], ['neon', 'neon (świeci)'], ['italic', 'kursywa z poświatą']]], ['spacing', 'Odstęp liter (px)', 'num'], ['shadow', 'Poświata', 'bool'], ['upper', 'WIELKIE LITERY', 'bool']] },
     button: { cat: 'vis', name: 'Przycisk', icon: '⏺', size: [300, 80], p: { label: 'Kliknij', style: 'accent', size: 26, radius: 14, font: 'persona' },
       f: [['label', 'Napis', 'text'], ['style', 'Styl', 'sel', [['accent', 'pełny (kolor postaci)'], ['outline', 'obrys'], ['dark', 'ciemny']]], ['size', 'Wielkość tekstu', 'num'], ['radius', 'Zaokrąglenie', 'num'], ['font', 'Czcionka', 'sel', FONTS]] },
     icon: { cat: 'vis', name: 'Ikona', icon: '★', size: [120, 120], p: { glyph: '🦊', color: '#ffffff' },
@@ -70,6 +71,16 @@
       f: [['src', 'Adres wideo (mp4/webm)', 'text'], ['fit', 'Dopasowanie', 'sel', [['cover', 'wypełnij'], ['contain', 'całe']]], ['loop', 'W pętli', 'bool'], ['muted', 'Bez dźwięku', 'bool'], ['radius', 'Zaokrąglenie', 'num']] },
     html: { cat: 'vis', name: 'HTML', icon: '</>', size: [500, 300], p: { code: '<div style="font:700 40px sans-serif;color:#fff">Własny HTML</div>' },
       f: [['code', 'Kod HTML (z CSS i JS)', 'area']] },
+    // HUD – wzorowane na banerze „Yuffie // Cyberpunk Edgerunners” (pen velkaa na CodePen)
+    hudtag: { cat: 'hud', name: 'Tag statusu', icon: '◉', size: [520, 44], p: { text: 'ONLINE // {postac} NA WIZJI ♥', color: '#ff2a85', dot: '#00f5d4', size: 18 },
+      f: [['text', 'Napis', 'text'], ['color', 'Kolor ramki', 'color'], ['dot', 'Kolor kropki', 'color'], ['size', 'Wielkość', 'num']] },
+    stat: { cat: 'hud', name: 'Karta statystyki', icon: '▤', size: [300, 90], p: { label: 'GRA', value: '{gra}', color: '#ff2a85', size: 22 },
+      f: [['label', 'Etykieta', 'text'], ['value', 'Wartość', 'text'], ['color', 'Kolor paska', 'color'], ['size', 'Wielkość wartości', 'num']] },
+    quote: { cat: 'hud', name: 'Cytat', icon: '❝', size: [760, 120], p: { text: '„W mieście z chromu i neonów *styl* i kontrola to najlepszy haj.”', color: '#00f5d4', hi: '#ff94c2', size: 22 },
+      f: [['text', 'Treść (*słowo* = wyróżnione)', 'area'], ['color', 'Kolor paska', 'color'], ['hi', 'Kolor wyróżnienia', 'color'], ['size', 'Wielkość', 'num']] },
+    camframe: { cat: 'hud', name: 'Ramka CAM', icon: '⛶', size: [640, 370], p: { label: 'CAM_01 // {postac}', show: 'hole', src: '', cut: 'br', color: '#ff2a85' },
+      f: [['label', 'Podpis', 'text'], ['show', 'W środku', 'sel', [['hole', 'przezroczyste – tu podłożysz kamerę albo grę w OBS'], ['persona', 'postać'], ['game', 'okładka gry'], ['image', 'obrazek / GIF (adres niżej)']]], ['src', 'Adres obrazka', 'text'],
+        ['cut', 'Ścięty róg', 'sel', [['br', 'prawy dolny'], ['tl', 'lewy górny'], ['none', 'bez']]], ['color', 'Kolor ramki', 'color']] },
     // kontenery
     group: { cat: 'box', name: 'Grupa', icon: '▣', size: [700, 400], p: { ...BOXP, fill: 'none', border: 0, glass: false },
       f: BOXF, hint: 'Elementy położone na grupie należą do niej: przesuwają się razem z nią i znikają razem z nią.' },
@@ -164,6 +175,19 @@
       p.wf.push({ id: uid(), on: { type: 'click', el: b2.id }, do: [{ type: 'add', key: 'smierci', value: 1 }] });
       p.wf.push({ id: uid(), on: { type: 'click', el: b1.id }, do: [{ type: 'page', page: '' }] });
       return p; }],
+    ['cyber', 'Cyberpunk HUD', 'Neonowa siatka, tytuł z przesunięciem, statystyki, cytat i dwie ramki CAM (jedna na kamerę). Styl wg banera „Yuffie” (velkaa).', () => {
+      const p = newPage('Cyberpunk HUD'); p.bg = 'cyber';
+      const a = put2(p, newEl('text', p), { x: 90, y: 70, w: 900, h: 30, name: 'ID' }); Object.assign(a.p, { text: 'ID // {gra}', font: 'Orbitron', size: 24, weight: 800, color: '#00f5d4', spacing: 6, upper: true, fx: 'neon', shadow: false });
+      const b = put2(p, newEl('text', p), { x: 90, y: 108, w: 900, h: 36, name: 'Alias' }); Object.assign(b.p, { text: '✦ Night City Stream ✦', font: 'Playfair Display', size: 28, weight: 600, color: '#d4b2ff', fx: 'italic', shadow: false });
+      const t = put2(p, newEl('text', p), { x: 90, y: 150, w: 980, h: 150, name: 'Tytuł' }); Object.assign(t.p, { text: '{postac}', font: 'Oxanium', size: 140, weight: 800, spacing: 10, upper: true, fx: 'cyber', shadow: false });
+      put2(p, newEl('hudtag', p), { x: 90, y: 330, w: 620, h: 46 });
+      [['GRA', '{gra}', '#ff2a85'], ['POSTAĆ', '{postac}', '#00f5d4'], ['GODZINA', '{godzina}', '#d4b2ff']].forEach(([l, v, cl], i) => Object.assign(put2(p, newEl('stat', p), { x: 90 + i * 320, y: 400, w: 300, h: 92 }).p, { label: l, value: v, color: cl }));
+      put2(p, newEl('quote', p), { x: 90, y: 520, w: 940, h: 120 });
+      const s = put2(p, newEl('countdown', p), { x: 90, y: 680, w: 600, h: 150 }); Object.assign(s.p, { color: '#ff2a85', font: 'Orbitron', size: 120 });
+      put2(p, newEl('socials', p), { x: 90, y: 960, w: 1000, h: 60 });
+      const c1 = put2(p, newEl('camframe', p), { x: 1150, y: 70, w: 680, h: 400, name: 'CAM kamera' }); Object.assign(c1.p, { label: 'CAM_01 // KAMERA', show: 'hole' });
+      const c2 = put2(p, newEl('camframe', p), { x: 1150, y: 560, w: 680, h: 400, name: 'CAM postać' }); Object.assign(c2.p, { label: 'CAM_02 // {postac}', show: 'persona', cut: 'tl', color: '#00f5d4' });
+      return p; }],
     ['blank', 'Pusta strona', 'Zaczynasz od zera.', () => newPage('Pusta strona')],
   ];
 
@@ -244,7 +268,32 @@
     if (T === 'text') {
       Object.assign(st, { font: `${p.weight || 800} ${p.size || 48}px/1.1 ${font(p.font, c)}`, color: col(p.color), textAlign: p.align || 'left', textTransform: p.upper ? 'uppercase' : 'none',
         textShadow: p.shadow ? '0 0 24px color-mix(in srgb, var(--accent) 55%, transparent), 0 2px 6px rgba(0,0,0,.6)' : 'none', overflowWrap: 'anywhere', whiteSpace: 'pre-wrap', display: 'flex', alignItems: 'center', justifyContent: p.align === 'center' ? 'center' : p.align === 'right' ? 'flex-end' : 'flex-start' });
+      if (p.spacing) st.letterSpacing = p.spacing + 'px';
+      if (p.fx === 'cyber') Object.assign(st, { textShadow: '3px 3px 0 #ff2a85, -2px -2px 0 #00f5d4, 0 0 20px rgba(255,42,133,.5)', animation: 'vmp-float 4s ease-in-out infinite alternate' });
+      if (p.fx === 'neon') st.textShadow = `0 0 8px ${col(p.color)}, 0 0 18px ${col(p.color)}, 0 0 36px color-mix(in srgb, ${col(p.color)} 50%, transparent)`;
+      if (p.fx === 'italic') Object.assign(st, { fontStyle: 'italic', textShadow: '0 0 8px rgba(212,178,255,.5)' });
       d.appendChild(mk('span', null, fill(p.text, c)));
+    } else if (T === 'hudtag') {
+      Object.assign(st, { display: 'flex', alignItems: 'center', gap: '12px', padding: '0 16px', background: `color-mix(in srgb, ${col(p.color)} 12%, transparent)`, border: `1px solid ${col(p.color)}`, boxShadow: `0 0 12px color-mix(in srgb, ${col(p.color)} 25%, transparent)`,
+        font: `400 ${p.size || 18}px 'Share Tech Mono', monospace`, color: `color-mix(in srgb, ${col(p.color)} 55%, #fff)`, whiteSpace: 'nowrap', overflow: 'hidden' });
+      d.append(mk('i', { width: '10px', height: '10px', flex: 'none', borderRadius: '50%', background: col(p.dot), boxShadow: `0 0 10px ${col(p.dot)}`, animation: 'vmp-dot 1.5s infinite alternate' }), mk('span', null, fill(p.text, c)));
+    } else if (T === 'stat') {
+      Object.assign(st, { background: 'rgba(30,12,46,.7)', border: '1px solid rgba(212,178,255,.3)', borderLeft: `4px solid ${col(p.color)}`, padding: '10px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'center', overflow: 'hidden' });
+      d.append(mk('div', { font: `400 ${Math.round((p.size || 22) * .62)}px 'Share Tech Mono', monospace`, color: '#d4b2ff', letterSpacing: '1px', textTransform: 'uppercase' }, fill(p.label, c)),
+        mk('div', { font: `800 ${p.size || 22}px Orbitron, sans-serif`, color: '#fff', marginTop: '4px', textShadow: '0 0 6px rgba(255,42,133,.6)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }, fill(p.value, c)));
+    } else if (T === 'quote') {
+      Object.assign(st, { background: 'rgba(22,9,34,.85)', borderLeft: `4px solid ${col(p.color)}`, borderRight: '1px solid rgba(255,42,133,.3)', padding: '14px 20px', boxShadow: '0 4px 15px rgba(0,0,0,.4)',
+        font: `400 ${p.size || 22}px/1.5 'Share Tech Mono', monospace`, color: '#fce8f3', display: 'flex', alignItems: 'center', overflow: 'hidden' });
+      const sp = mk('span'); String(fill(p.text, c)).split(/(\*[^*]+\*)/).forEach(part => sp.appendChild(/^\*[^*]+\*$/.test(part) ? mk('b', { color: col(p.hi) }, part.slice(1, -1)) : document.createTextNode(part))); d.appendChild(sp);
+    } else if (T === 'camframe') {
+      const clip = p.cut === 'br' ? 'polygon(0 0, 100% 0, 100% 88%, 92% 100%, 0 100%)' : p.cut === 'tl' ? 'polygon(8% 0, 100% 0, 100% 100%, 0 100%, 0 15%)' : 'none';
+      Object.assign(st, { clipPath: clip, overflow: 'hidden', background: p.show === 'hole' ? 'transparent' : '#000', boxShadow: `inset 0 0 0 3px ${col(p.color)}, 0 0 20px color-mix(in srgb, ${col(p.color)} 30%, transparent)` });
+      if (p.show === 'hole' && !live) d.appendChild(mk('div', { position: 'absolute', inset: '0', display: 'grid', placeItems: 'center', color: 'rgba(255,255,255,.45)', font: '600 22px Inter, sans-serif', textAlign: 'center' }, 'tu podłóż kamerę albo grę w OBS'));
+      const fillMedia = (src, pos, fit) => d.appendChild(Object.assign(mk('img', { width: '100%', height: '100%', objectFit: fit || 'cover', objectPosition: pos || '50% 50%', filter: 'contrast(105%) brightness(98%)' }), { src, alt: '' }));
+      if (p.show === 'image' && p.src) fillMedia(p.src);
+      if (p.show === 'persona' && ART[c.persona]) { st.background = 'radial-gradient(circle at 50% 70%, color-mix(in srgb, var(--accent) 35%, #0b0512), #0b0512 70%)'; fillMedia(ART[c.persona], '50% 100%', 'contain'); }
+      if (p.show === 'game' && c.steam) fillMedia((window.vmHub ? window.vmHub(c.s.localUrl) : 'http://localhost:7777') + '/art?id=' + encodeURIComponent(c.steam) + '&k=hero');
+      d.appendChild(mk('div', { position: 'absolute', top: '10px', left: p.cut === 'tl' ? '12%' : '12px', padding: '3px 10px', background: 'rgba(11,5,18,.85)', border: '1px solid rgba(255,255,255,.2)', font: "400 15px 'Share Tech Mono', monospace", letterSpacing: '1px', color: `color-mix(in srgb, ${col(p.color)} 60%, #fff)` }, fill(p.label, c)));
     } else if (T === 'button') {
       const b = mk('button', { width: '100%', height: '100%', borderRadius: (p.radius || 0) + 'px', font: `700 ${p.size || 24}px/1.1 ${font(p.font, c)}`, cursor: mode === 'pilot' ? 'pointer' : 'default',
         background: p.style === 'accent' ? 'var(--accent)' : p.style === 'dark' ? '#16171d' : 'transparent', color: '#fff', border: p.style === 'outline' ? '3px solid var(--accent)' : '0',
@@ -309,7 +358,8 @@
   }
   function drawBg(root, page) {
     root.style.width = page.w + 'px'; root.style.height = page.h + 'px';
-    root.style.background = page.bg === 'theme' ? 'radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--accent) 35%, transparent), transparent 55%), radial-gradient(circle at 85% 90%, color-mix(in srgb, var(--g1, var(--accent2)) 30%, transparent), transparent 55%), #0b0b10'
+    root.classList.toggle('vmp-cyber', page.bg === 'cyber');
+    root.style.background = page.bg === 'cyber' ? 'radial-gradient(rgba(255,42,133,.12) 1px, transparent 1px) 0 0 / 16px 16px, linear-gradient(rgba(18,7,28,.97), rgba(8,3,14,.99))' : page.bg === 'theme' ? 'radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--accent) 35%, transparent), transparent 55%), radial-gradient(circle at 85% 90%, color-mix(in srgb, var(--g1, var(--accent2)) 30%, transparent), transparent 55%), #0b0b10'
       : page.bg === 'dark' ? '#0b0b10' : page.bg && page.bg[0] === '#' ? page.bg : 'transparent';
   }
   // grupa/popup zawiera element, gdy ten leży w całości na niej i jest wyżej w warstwach
@@ -333,6 +383,12 @@
   @keyframes vmp-slide-r { from { opacity: 0; transform: translateX(60px); } }
   @keyframes vmp-slide-u { from { opacity: 0; transform: translateY(50px); } }
   @keyframes vmp-out { to { opacity: 0; transform: translateY(-8px); } }
+  @keyframes vmp-float { to { transform: translateY(-4px); } }
+  @keyframes vmp-dot { from { opacity: .3; scale: .8; } to { opacity: 1; scale: 1.2; } }
+  /* tło „cyber”: przesuwająca się siatka, poświata i scanline'y (wg banera velkaa) */
+  .vmp-cyber::before { content: ""; position: absolute; inset: -50%; background-image: linear-gradient(to right, rgba(0,245,212,.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,42,133,.06) 1px, transparent 1px); background-size: 48px 48px; animation: vmp-grid 20s linear infinite; pointer-events: none; }
+  .vmp-cyber::after { content: ""; position: absolute; inset: 0; z-index: 9999; pointer-events: none; opacity: .5; background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,.25) 50%) 0 0 / 100% 4px, radial-gradient(circle at 8% 10%, rgba(255,42,133,.22), transparent 30%); }
+  @keyframes vmp-grid { to { transform: translateY(48px); } }
   @keyframes vmp-pulse { 50% { transform: scale(1.08); filter: brightness(1.3); } }
   .vmp-in-fade { animation: vmp-fade 250ms cubic-bezier(.22,1,.36,1) both; } .vmp-in-pop { animation: vmp-pop 250ms cubic-bezier(.22,1,.36,1) both; }
   .vmp-in-slide-l { animation: vmp-slide-l 300ms cubic-bezier(.22,1,.36,1) both; } .vmp-in-slide-r { animation: vmp-slide-r 300ms cubic-bezier(.22,1,.36,1) both; }

@@ -221,6 +221,15 @@ Kreator ma trzy widoki (pasek z lewej):
   - Przykład: *Kiedy* komenda `!smierc` → dodaj 1 do `smierci` → mrugnij napisem.
 - **▤ Dane** – stany, czyli zapamiętane wartości wspólne dla wszystkich stron, np. `smierci`, `temat`, `user`. W napisach wpisujesz `{nazwa}`; przycisk *＋ wstaw dane* podpowiada znaczniki (`{gra}`, `{postac}`, `{godzina}`, `{odliczanie}`, `{follow}`…).
 
+**HUD (cyberpunk)** to osobna kategoria w palecie, do tego tło „cyber” i gotowy pomysł **Cyberpunk HUD**. Masz w niej:
+- tag statusu z pulsującą kropką;
+- kartę statystyki;
+- cytat z wyróżnionym `*słowem*`;
+- ramkę CAM ze ściętym rogiem i podpisem; w środku może być przezroczyste okno na kamerę albo grę z OBS, postać, okładka gry albo obrazek;
+- efekty tekstu *cyber* (różowo-miętowe przesunięcie), *neon* i *kursywa*.
+
+Styl wzorowany na banerze „Yuffie // Cyberpunk Edgerunners” autorstwa [velkaa](https://codepen.io/velkaa) na CodePen (MIT). Wzięliśmy tylko wygląd. GIF-ów z anime i muzyki z oryginału nie ma, bo to cudze materiały.
+
 Strona trafia na stream na trzy sposoby, wszystkie z karty strony w Twórz:
 - **▶ Na stream** – strona 1920×1080 w scenie `VM · Stream`;
 - **＋ OBS** – osobne źródło `page.html?id=…`;

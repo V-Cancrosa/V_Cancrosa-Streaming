@@ -119,7 +119,7 @@
     <option value="1920x120">1920×120 – pasek</option><option value="900x260">900×260 – plakietka</option><option value="600x180">600×180 – licznik</option><option value="900x500">900×500 – pilot</option><option value="custom">własny…</option>
   </select>
   <span id="customSize" hidden><input id="pw" type="number" min="50" max="1920" style="width:70px"> × <input id="ph" type="number" min="50" max="1080" style="width:70px"></span>
-  <select id="bgSel" title="Tło"><option value="none">tło: przezroczyste</option><option value="theme">tło: kolory postaci</option><option value="dark">tło: ciemne</option></select>
+  <select id="bgSel" title="Tło"><option value="none">tło: przezroczyste</option><option value="theme">tło: kolory postaci</option><option value="dark">tło: ciemne</option><option value="cyber">tło: cyber (siatka i scanline)</option></select>
   <button id="undoBtn" title="Cofnij (Ctrl+Z)">↶</button><button id="redoBtn" title="Ponów (Ctrl+Y)">↷</button>
   <span class="sp"></span>
   <button id="prevBtn" title="Strona tak, jak zobaczy ją OBS">▶ Podgląd</button>
@@ -210,7 +210,7 @@
   function left() {
     const L = $('left');
     if (view === 'design') {
-      L.innerHTML = P.CATS.map(([c, n], i) => `<details class="cat" ${i < 2 || c === 'stream' ? 'open' : ''}><summary>${n}</summary><div class="pal">${Object.entries(P.TYPES).filter(([, t]) => t.cat === c).map(([k, t]) => `<button data-t="${k}" title="Przeciągnij na stronę albo kliknij"><i>${t.icon}</i>${t.name}</button>`).join('')}</div></details>`).join('') +
+      L.innerHTML = P.CATS.map(([c, n], i) => `<details class="cat" ${i < 2 || c === 'stream' || c === 'hud' ? 'open' : ''}><summary>${n}</summary><div class="pal">${Object.entries(P.TYPES).filter(([, t]) => t.cat === c).map(([k, t]) => `<button data-t="${k}" title="Przeciągnij na stronę albo kliknij"><i>${t.icon}</i>${t.name}</button>`).join('')}</div></details>`).join('') +
         `<div class="lbl">Warstwy</div><div class="layers" id="layers"></div>`;
       layers();
     } else if (view === 'flow') {
@@ -275,7 +275,7 @@
   }
 
   // ---------------------------------------------------------------- właściwości (prawa kolumna)
-  const SWATCH = ['accent', 'accent2', '#ffffff', '#0b0b10', '#ffd43b', '#ff4d5e', '#3ddc84'];
+  const SWATCH = ['accent', 'accent2', '#ffffff', '#0b0b10', '#ff2a85', '#00f5d4', '#d4b2ff', '#ffd43b', '#3ddc84'];
   function field(el, [k, label, kind, opts]) {
     const v = el.p[k];
     if (kind === 'bool') return `<label class="row"><input type="checkbox" data-k="${k}"${v ? ' checked' : ''}> ${label}</label>`;
