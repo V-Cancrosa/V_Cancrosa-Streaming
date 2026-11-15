@@ -380,6 +380,7 @@ $det = Join-Path $InstallDir 'detector'
 . (Join-Path $InstallDir 'update.ps1') -Library
 foreach ($old in 'detector\start-stream.vbs', 'detector\start-detector.bat', 'detector\start-detector-hidden.bat', 'update.bat') { Remove-Item (Join-Path $InstallDir $old) -Force -ErrorAction SilentlyContinue }
 Update-VMLayout $InstallDir
+try { Say ('Wygląd OBS: ' + (Install-VMObsTheme $InstallDir)) 'DarkGray' } catch {}
 try { New-VMShortcut $InstallDir (Join-Path ([Environment]::GetFolderPath('Desktop')) 'Vincent-Media.lnk') } catch {}
 Say 'Program «Vincent-Media» (z ikoną): w folderze Vincent-Media, w menu Start i na pulpicie.' 'Green'
 

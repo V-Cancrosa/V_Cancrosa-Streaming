@@ -1,7 +1,7 @@
 {
- "version": "1.57.0",
+ "version": "1.58.0",
  "files": {
-  "README.md": "432a37db9bfce1e478ae88c49a4512afd17b80782674c440e72f5062e9e90eb1",
+  "README.md": "64a7b7756f2d5fec32e103291558d845f398ae544a99e302d369db0f7e4f97bc",
   "alerts.html": "aedf34b91e83adaa93b882f9370fd22c427c361ad67634fa198794a72805307d",
   "builder.html": "02afb4ca0910446a1b65ab328fc4357cc28c9ab31a0b12bb7fe2b27db2238110",
   "censor.html": "8d3149b4b4d2c8a1f92debec72af0b93562a50daf3be4a91b86ea2f540a708a4",
@@ -12,13 +12,14 @@
   "detector/mods/windows.ps1": "4aa726723756d9cd97a04fecbeb1ef207868c6a14efd1481ebb1cfbeebbe2022",
   "editor.html": "64320b5c2d3d3dd86f21dd5406030874231bb75858fee454fedda8528f08c1da",
   "gallery.html": "4fe318e2a9de17175faea457bce37fd5735f5b64a77fc90f46b0ef1ed6ba501e",
-  "launcher/launcher.ps1": "a7c243b6de830a376dbb0409a6d7e26df50b6d6723b0ec5fba1aa5a13a39b3e0",
+  "launcher/launcher.ps1": "3e27fed367368cb73d40d1479cdafad9cff26340db48e23304862117378fc968",
   "launcher/launcher.vbs": "b9d7112eccb1dcf6603c8dfabc3c8d907ca10fa8a0a0f167ed1f450072a5836b",
   "launcher/logo.png": "91a4e63b088173d4f3f1e76f892282d6c083e8740b04cb757377428a1f3b33dc",
   "launcher/vincent-media.ico": "bade712dd6c8ff68c52c3a70e477c490c467f4b92592605c53086a2b8f8514d6",
   "layouts.html": "a1da71fd3bff84930bca9c8e00e0f5a0babf922ec1edeec6b3748118c9653468",
   "lib/LICENSE-qrcodejs.txt": "aaa1f349028a59432eb00222b8ddfe4d2ccebdce04cf8348dcb8d41b7068107b",
   "lib/qrcode.min.js": "c541ef06327885a8415bca8df6071e14189b4855336def4f36db54bde8484f36",
+  "obs-theme/Yami_VincentMedia.ovt": "db8a39db6e661c9569045aa456713a3dfdc94039866a01aa38b1d01125ca853b",
   "overlay.html": "b2ff002e0abcf62a9a45abd0e61749f8254049dfe336d7638370a958b6fbf897",
   "page.html": "e74363d28b221193a3bfd3df182acba11c0d61f5ea2a772b2886007c2e6f8a42",
   "panel.html": "b328f652e6d6fd08376dd537ca580b20f37ca9ca9f7eb83f49102951523dc593",
@@ -88,9 +89,9 @@
   "themes/wordfilter.js": "2ccbbcdf0b81adad3bb5924a65a26f7e6787502f5075bc82fbc69f97ffdca5df",
   "themes/zones.js": "235ed7e8b81cd1a6c93df3c2977156ec0f86f49eeb1d61cd500bfb7776af2c4b",
   "transition.html": "8722e73dbe98046e98e02e80a6b8e714f89062b9ebe8fc89298c61af8b70d8d4",
-  "update.ps1": "60971a08b0147c0a426fd11a01fa2c041ffad5e211168673d11ac78397144f04",
-  "version.js": "24cfe27a4ea6c762ec2592b74e4c5dcab93009b45ccc442e6462bc473736dee3",
-  "version.json": "d769ce096ff87bdb69b5a2decee221fe002014a7937e4bc724f0767ce7036f7a",
+  "update.ps1": "f0d316c5a90e1049d4e215ccd93408219d0dd0bb0a2edf2a8cccd8ccde6a8db6",
+  "version.js": "bcd81ab616bc415ef7c7632d45afc2be934b57de8f4e1ef87937cfa0b9067dfc",
+  "version.json": "99d69ec0693e03e9d52cb6e2bb67186f282671f2e7ec4ce105cd14dab276c0b7",
   "vote.html": "ecc040a618030f6bee831ff467a68f707278dfc79381b16339a7786d526dbed0"
  }
 }

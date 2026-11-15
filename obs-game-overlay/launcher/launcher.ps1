@@ -183,7 +183,9 @@ $Work = {
 
         # 5. OBS
         $i = 4
-        if (Get-Process -Name obs64, obs32 -ErrorAction SilentlyContinue) { Set-Step 4 'ok' 'Już działa' }
+        # motyw wyglądu OBS (przed uruchomieniem OBS – wtedy można go wybrać w ustawieniach OBS)
+        $theme = ''; try { $theme = Install-VMObsTheme $App } catch { $theme = '' }
+        if (Get-Process -Name obs64, obs32 -ErrorAction SilentlyContinue) { Set-Step 4 'ok' ('Już działa' + $(if ($theme) { ' · ' + $theme } else { '' })) }
         else {
             $obs = Find-Obs
             if (-not $obs) { Set-Step 4 'warn' 'Nie znalazłem OBS Studio na tym komputerze' 'obsdl' }
@@ -192,7 +194,7 @@ $Work = {
                 Start-Process -FilePath $obs -WorkingDirectory (Split-Path $obs)
                 $ok = $false
                 for ($k = 0; $k -lt 40; $k++) { Start-Sleep -Milliseconds 500; if (Get-Process -Name obs64 -ErrorAction SilentlyContinue) { $ok = $true; break } }
-                if ($ok) { Set-Step 4 'ok' 'Uruchomiony' } else { Set-Step 4 'warn' 'Nie wystartował w 20 s – uruchom go ręcznie' }
+                if ($ok) { Set-Step 4 'ok' ('Uruchomiony' + $(if ($theme) { ' · ' + $theme } else { '' })) } else { Set-Step 4 'warn' 'Nie wystartował w 20 s – uruchom go ręcznie' }
             }
         }
 

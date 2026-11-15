@@ -50,6 +50,8 @@ Instalator można uruchomić ponownie – nie tworzy duplikatów.
 - ostatnie alerty z przyciskiem ↻ (pokaż jeszcze raz; nie liczy się drugi raz do statystyk),
 - głosowanie: postać czy gra, 2/3/5 min, wynik na żywo, zakończenie przed czasem.
 
+**Wygląd OBS:** motyw *Vincent-Media* (wariant wbudowanego motywu Yami, OBS 30.2+) – grafit, fiolet i cyjan jak w serwisie, czerwone przyciski, gdy trwa transmisja lub nagrywanie. Kreator startu kopiuje go do `%APPDATA%\obs-studio\themes` i raz wybiera w OBS (przy wyłączonym OBS); inny motyw wybierzesz w OBS: *Ustawienia → Wygląd* – kreator już go nie zmieni.
+
 **Kokpit w OBS:** dok *Vincent-Media* w OBS to teraz kompaktowy kokpit (`site/live.html?dock=1`) – ten sam co w przeglądarce, zawsze zsynchronizowany; stary adres `panel.html` przekierowuje sam (bez zmian w OBS). Robota dawnego panelu (łapanie okna gry, automatyczne nagrywanie, polecenia z pilota, cenzura, podpowiedzi scen dla alertów) działa w doku niewidocznie (`panel.html?engine=1`). Stary wygląd panelu: serwis → *Wszystkie ustawienia*.
 
 1. **Vincent-Media** (program z ikoną) → kreator sprawdza wszystko, uruchamia GameRadar, OBS i kokpit. Z autostartem GameRadar wstaje sam po włączeniu komputera (w tle, bez okna).
@@ -221,6 +223,7 @@ obs-game-overlay/
   themes/           motywy, postacie, czat, głosy, słowa, Kreator (pagekit.js), synchronizacja (sync.js)…
   detector/         GameRadar (PowerShell 5.1 – pliki .ps1 z polskimi znakami muszą mieć BOM UTF-8)
     mods/           moduły: cenzura (OCR), głos (TTS Windows), Piper (głosy neuronowe), lista okien – zablokowany moduł nie zatrzymuje reszty
+  obs-theme/        motyw wyglądu OBS (Yami_VincentMedia.ovt)
   launcher/         program «Vincent-Media»: kreator startu (WPF), launcher.vbs, ikona
   update.ps1        aktualizacja, spis plików, porządek w folderze i skrótach (używają go kreator, GameRadar, instalator)
   manifest.json     spis plików z sumami SHA-256 (tools/make-manifest.py)

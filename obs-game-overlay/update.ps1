@@ -68,6 +68,38 @@ function New-VMShortcut([string]$dir, [string]$path, [string]$extra = '') {
     $l.Description = $(if ($extra) { 'Vincent-Media: GameRadar w tle' } else { 'Vincent-Media: sprawdza wszystko i uruchamia stream' })
     $l.Save()
 }
+# motyw wyglądu OBS «Vincent-Media» (wariant Yami, OBS 30.2+): plik do %APPDATA%\obs-studio\themes (zawsze aktualny)
+# i raz – przy wyłączonym OBS – wybór w ustawieniach OBS. Gdy potem wybierzesz inny motyw, zostaje Twój.
+function Install-VMObsTheme([string]$dir) {
+    $src = Join-Path $dir 'obs-theme\Yami_VincentMedia.ovt'
+    $obsDir = Join-Path $env:APPDATA 'obs-studio'
+    if (-not (Test-Path $src)) { return 'brak pliku motywu' }
+    if (-not (Test-Path $obsDir)) { return 'OBS jeszcze nie był uruchomiony' }
+    $themes = Join-Path $obsDir 'themes'
+    New-Item -ItemType Directory -Force -Path $themes | Out-Null
+    Copy-Item -LiteralPath $src -Destination (Join-Path $themes 'Yami_VincentMedia.ovt') -Force
+    $flag = Join-Path $dir 'detector\data\obs-theme.json'
+    if (Test-Path $flag) { return 'motyw Vincent-Media zainstalowany' }
+    if (Get-Process -Name obs64, obs32 -ErrorAction SilentlyContinue) { return 'motyw zainstalowany – wybiorę go przy następnym uruchomieniu OBS przez Vincent-Media' }
+    # OBS 31+ trzyma wygląd w user.ini, starsze w global.ini – sekcja [Appearance], klucz Theme
+    $ini = Join-Path $obsDir 'user.ini'; if (-not (Test-Path $ini)) { $ini = Join-Path $obsDir 'global.ini' }
+    if (-not (Test-Path $ini)) { return 'motyw zainstalowany – wybierz go w OBS: Ustawienia → Wygląd' }
+    $bytes = [IO.File]::ReadAllBytes($ini); $bom = $bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF
+    $lines = New-Object Collections.ArrayList; $lines.AddRange([string[]](((New-Object Text.UTF8Encoding($false)).GetString($bytes).TrimStart([char]0xFEFF)) -split "`r?`n"))
+    $sec = -1; for ($k = 0; $k -lt $lines.Count; $k++) { if ($lines[$k].Trim() -eq '[Appearance]') { $sec = $k; break } }
+    $id = 'com.obsproject.Yami.VincentMedia'
+    if ($sec -lt 0) { if ($lines.Count -and $lines[$lines.Count - 1] -ne '') { [void]$lines.Add('') }; [void]$lines.Add('[Appearance]'); [void]$lines.Add("Theme=$id") }
+    else {
+        $done = $false
+        for ($k = $sec + 1; $k -lt $lines.Count -and -not $lines[$k].StartsWith('['); $k++) { if ($lines[$k] -match '^Theme=') { $lines[$k] = "Theme=$id"; $done = $true; break } }
+        if (-not $done) { $lines.Insert($sec + 1, "Theme=$id") }
+    }
+    [IO.File]::WriteAllText($ini, ($lines -join "`r`n"), (New-Object Text.UTF8Encoding($bom)))
+    New-Item -ItemType Directory -Force -Path (Split-Path $flag) | Out-Null
+    [IO.File]::WriteAllText($flag, '{"set":true}', (New-Object Text.UTF8Encoding($false)))
+    return 'motyw Vincent-Media wybrany w OBS'
+}
+
 # porządek: w folderze Vincent-Media widać tylko program, menu Start i pulpit – jeden skrót zamiast kilku
 function Update-VMLayout([string]$dir) {
     if (-not (Test-Path (Join-Path $dir 'launcher\launcher.vbs'))) { return }
