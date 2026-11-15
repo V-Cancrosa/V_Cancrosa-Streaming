@@ -1,5 +1,5 @@
 {
-  "version": "1.50.0",
+  "version": "1.51.0",
   "date": "2026-11-15",
-  "notes": "Głos postaci (TTS): alerty i wiadomości widzów czytane głosami Windows, PL i EN, barwa i efekt każdej postaci; strona Głos postaci"
+  "notes": "Kokpit „Na żywo”: transmisja, podgląd z OBS, etapy, dźwięk, przycisk paniki, czat z moderacją, powtórka alertów, głosowanie"
 }

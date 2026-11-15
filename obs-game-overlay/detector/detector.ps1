@@ -794,7 +794,7 @@ function Get-Audience {
 }
 
 function Add-Event($ev) {
-    try { Watch-BotSignals $ev } catch {}
+    if (-not $ev.replay) { try { Watch-BotSignals $ev } catch {} }
     $script:EventSeq++
     $ev | Add-Member -NotePropertyName id -NotePropertyValue $script:EventSeq -Force
     $ev | Add-Member -NotePropertyName at -NotePropertyValue ([DateTimeOffset]::Now.ToUnixTimeMilliseconds()) -Force
@@ -809,7 +809,7 @@ function Add-Event($ev) {
 # ---------------------------------------------------------------- sesja (do napisów końcowych)
 $script:Session = @{ chatters = [ordered]@{}; follow = [ordered]@{}; sub = [ordered]@{}; gift = [ordered]@{}; cheer = [ordered]@{}; raid = [ordered]@{}; redeem = [ordered]@{}; started = (Get-Date) }
 function Add-SessionEvent($ev) {
-    if ($ev.test -or -not $ev.user) { return }
+    if ($ev.test -or $ev.replay -or -not $ev.user) { return }
     $u = [string]$ev.user
     switch ($ev.type) {
         'chat'   { $script:Session.chatters[$u] = 1 + [int]$script:Session.chatters[$u] }
@@ -1121,7 +1121,7 @@ function Get-ChatterRecord([string]$login, [string]$name) {
 
 # wywoływane dla każdego zdarzenia (Add-Event)
 function Write-ArchiveEvent($ev) {
-    if ($ev.test -or @('transition', 'effect') -contains [string]$ev.type) { return }
+    if ($ev.test -or $ev.replay -or @('transition', 'effect') -contains [string]$ev.type) { return }
     if (-not $script:Cur) { Open-StreamArchive $false }
     $c = $script:Cur
     $u = [string]$ev.user
@@ -1237,7 +1237,7 @@ function Export-Stream([string]$id, [string]$fmt, [int]$offsetSec = 0) {
 Add-Type -AssemblyName System.Security
 $TwitchCfgFile = Join-Path $DataDir 'twitch.json'
 $TwitchTokFile = Join-Path $DataDir 'twitch-token.bin'
-$TwitchScopes  = 'moderator:read:followers channel:read:subscriptions bits:read channel:read:redemptions user:read:chat moderator:manage:chat_settings'
+$TwitchScopes  = 'moderator:read:followers channel:read:subscriptions bits:read channel:read:redemptions user:read:chat moderator:manage:chat_settings moderator:manage:chat_messages moderator:manage:banned_users'
 $script:TW = [pscustomobject]@{
     status = 'off'; clientId = ''; user = ''; userId = ''; error = ''
     code = ''; uri = ''; deviceCode = ''; deviceInterval = 5; deviceUntil = [DateTime]::MinValue; nextPoll = [DateTime]::MinValue
@@ -1426,7 +1426,10 @@ function Convert-TwitchEvent([string]$type, $e) {
                 else { $frags += [pscustomobject]@{ t = 'text'; v = [string]$f.text } }
             }
             $badges = @($e.badges | ForEach-Object { [string]$_.set_id })
-            return (New-ChatEvent ([string]$e.chatter_user_login) ([string]$e.chatter_user_name) ([string]$e.color) ([string]$e.message.text) $frags $badges $false ([string]$e.chatter_user_id))
+            $ce = New-ChatEvent ([string]$e.chatter_user_login) ([string]$e.chatter_user_name) ([string]$e.color) ([string]$e.message.text) $frags $badges $false ([string]$e.chatter_user_id)
+            # do moderacji z kokpitu: numer wiadomości i konta
+            if ($ce) { $ce | Add-Member -NotePropertyName msgId -NotePropertyValue ([string]$e.message_id) -Force; $ce | Add-Member -NotePropertyName userId -NotePropertyValue ([string]$e.chatter_user_id) -Force }
+            return $ce
         }
         'channel.channel_points_custom_reward_redemption.add' {
             # nagroda «Efekt: konfetti» (albo inny efekt) uruchamia efekt bez limitu czasu
@@ -2084,6 +2087,27 @@ function Invoke-Request($ctx) {
             }
             '/update/status' { Send-Json $ctx (Get-UpdateStatus) }
             '/update/check' { Invoke-UpdateCheck; Send-Json $ctx (Get-UpdateStatus) }
+            '/mod' {
+                # moderacja z kokpitu: usuń wiadomość, wycisz (timeout), ban
+                $act = [string]$q['do']; $uid = $script:TW.userId
+                if (-not $uid) { Send-Json $ctx @{ ok = $false; error = 'Twitch niepołączony' } 409; return }
+                try {
+                    $who = [string]$q['user']
+                    if ($act -eq 'delete') {
+                        [void](Invoke-Helix 'DELETE' "moderation/chat?broadcaster_id=$uid&moderator_id=$uid&message_id=$([Uri]::EscapeDataString([string]$q['msg']))" $null)
+                    } elseif ($act -eq 'timeout' -or $act -eq 'ban') {
+                        if ($who -notmatch '^\d+$') { throw 'brak konta' }
+                        $d = @{ user_id = $who; reason = 'Vincent-Media' }
+                        if ($act -eq 'timeout') { $sec = 600; [void][int]::TryParse([string]$q['sec'], [ref]$sec); $d.duration = [Math]::Max(1, [Math]::Min(1209600, $sec)) }
+                        [void](Invoke-Helix 'POST' "moderation/bans?broadcaster_id=$uid&moderator_id=$uid" @{ data = $d })
+                    } else { throw 'nieznana akcja' }
+                    Log "Moderacja z kokpitu: $act $([string]$q['name'])" 'Cyan'
+                    Send-Json $ctx @{ ok = $true }
+                } catch {
+                    $code = 0; try { $code = [int]$_.Exception.Response.StatusCode } catch {}
+                    Send-Json $ctx @{ ok = $false; error = $_.Exception.Message; relogin = ($code -eq 401 -or $code -eq 403) }
+                }
+            }
             '/chat/slow' {
                 # tryb powolny czatu na Twitchu – nakładka prosi o niego, gdy w kolejce wisi za dużo wiadomości
                 $on = ([string]$q['on']) -eq '1'; $sec = 10; [void][int]::TryParse([string]$q['sec'], [ref]$sec)
@@ -2196,6 +2220,15 @@ function Invoke-Request($ctx) {
                 if ($ev -and $q['msg'] -and $ev.type -eq 'chat') { $ev.text = [string]$q['msg']; $ev.fragments = @([pscustomobject]@{ t = 'text'; v = [string]$q['msg'] }) }
                 if (-not $ev) { Send-Json $ctx @{ ok = $false; error = 'nieznany typ' } 400; return }
                 Add-Event $ev
+                Send-Json $ctx @{ ok = $true }
+            }
+            '/replay' {
+                # kokpit: powtórz alert (kopia zdarzenia z nowym numerem)
+                $rid = 0; [void][int]::TryParse([string]$q['id'], [ref]$rid)
+                $old = @($script:Events | Where-Object { $_.id -eq $rid })[0]
+                if (-not $old) { Send-Json $ctx @{ ok = $false; error = 'nie ma już tego alertu' } 404; return }
+                $copy = $old.PSObject.Copy(); $copy | Add-Member -NotePropertyName replay -NotePropertyValue $true -Force
+                Add-Event $copy
                 Send-Json $ctx @{ ok = $true }
             }
             '/transition' {

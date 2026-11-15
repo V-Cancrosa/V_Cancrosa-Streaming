@@ -35,6 +35,18 @@ Instalator można uruchomić ponownie – nie tworzy duplikatów.
 
 ## Dzień streamu
 
+**Kokpit „Na żywo”** (serwis → *Na żywo*, działa też na telefonie) – cały stream z jednej strony:
+- start i koniec transmisji, nagrywanie, czas na żywo, liczba widzów,
+- prawdziwy podgląd z OBS (co sekundę),
+- etapy: Przygotowania → Stream za… → Zaraz zaczynamy / Spóźnienie → Głosowanie → Gra · Ramka · Rozmowa → Przerwa → Koniec, przycisk **Dalej**,
+- mikrofon z miernikiem, wyciszanie mikrofonu, dźwięku gry i alertów,
+- **Zasłoń obraz** – przycisk paniki: zasłona na cały obraz i schowana gra, drugi klik odsłania,
+- czat z moderacją (🗑 usuń, ⏱ wycisz na 10 min, ⛔ ban; po aktualizacji trzeba raz zalogować się ponownie do Twitcha – nowe uprawnienia),
+- ostatnie alerty z przyciskiem ↻ (pokaż jeszcze raz; nie liczy się drugi raz do statystyk),
+- głosowanie: postać czy gra, 2/3/5 min, wynik na żywo, zakończenie przed czasem.
+
+Na razie panel w OBS dalej działa w tle (sam łapie okno gry i pilnuje nagrywania) – zniknie, gdy kokpit przejmie te rzeczy.
+
 1. **Start streamu** (skrót) → GameRadar w tle, potem OBS. Z opcją *uruchamiaj OBS razem z GameRadarem* i autostartem GameRadara wszystko wstaje samo po włączeniu komputera.
 2. **Panel → Start** pokazuje uruchamianie krok po kroku: GameRadar, OBS, Twitch, przechwytywanie gry – kółko kręci się, dopóki trwa łączenie, i rysuje ✓, gdy zadziała. Gdy wszystko działa, zostaje jedna zielona belka. Coś nie gra → lista zostaje otwarta, przy kroku jest **Napraw**.
 3. **Sceny** to jeden pulpit stanów w jednej scenie OBS:

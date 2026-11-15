@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e0f13">
+<title>Na żywo · Vincent-Media</title>
+<link rel="stylesheet" href="../themes/fonts.css">
+<link rel="stylesheet" href="site.css">
+<script src="../version.js"></script>
+<script src="../themes/games.js"></script>
+<script src="../themes/fursona.js"></script>
+<script src="../themes/library.js"></script>
+<script src="../themes/fusion.js"></script>
+<script src="../themes/layoutedit.js"></script>
+<script src="../themes/chat.js"></script>
+<script src="../themes/obsws.js"></script>
+<script src="../themes/sync.js"></script>
+<script src="site.js"></script>
+<style>
+  /*
+    Kokpit: jedna strona do prowadzenia streamu. OBS tylko nadaje.
+    OBS – przez OBS WebSocket (transmisja, nagrywanie, podgląd, dźwięk); Twitch i ekrany – przez GameRadar.
+  */
+  main { padding-top: 14px; }
+  [hidden] { display: none !important; }
+  .top { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 10px 0 12px; background: var(--bg); }
+  .pill { display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); font-weight: 700; font-size: 13px; letter-spacing: .04em; }
+  .pill i { width: 9px; height: 9px; border-radius: 50%; background: var(--dim); }
+  .pill.live { border-color: #e91916; } .pill.live i { background: #e91916; box-shadow: 0 0 10px #e91916; animation: blink 1.4s ease-in-out infinite; }
+  .pill.rec i { background: var(--bad); }
+  @keyframes blink { 50% { opacity: .35; } }
+  .top .grow { flex: 1; }
+  .big { padding: 9px 16px; font-weight: 700; border-radius: 10px; }
+  .big.go { background: #e91916; border-color: #e91916; color: #fff; }
+  .big.stop { background: var(--panel2); border-color: #e91916; color: #ffb4b4; }
+  .cock { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(320px, 1fr); gap: 16px; align-items: start; }
+  .col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .pvw { position: relative; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: #08080b; box-shadow: 0 0 0 1px var(--line); }
+  .pvw img, .pvw iframe { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; border: 0; }
+  .pvw iframe { width: 1920px; height: 1080px; transform-origin: 0 0; pointer-events: none; }
+  .pvw .tag { position: absolute; left: 10px; top: 10px; padding: 3px 8px; border-radius: 6px; background: rgba(0,0,0,.6); font-size: 11.5px; color: #cfd2dc; }
+  .stages { display: grid; gap: 10px; }
+  .stages .lbl { font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--dim); margin-bottom: 6px; }
+  .stages .seg button { padding: 9px 14px; font-size: 13.5px; border-radius: 10px; }
+  .next { width: 100%; padding: 12px; font-size: 15px; }
+  .ctl { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .ctl .card { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .ctl b { font-size: 12.5px; color: var(--dim); font-weight: 600; }
+  .meter { height: 8px; border-radius: 4px; background: #22252f; overflow: hidden; }
+  .meter i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--ok) 70%, var(--warn) 88%, var(--bad)); transition: width 80ms linear; }
+  .mute[aria-pressed="true"] { background: color-mix(in srgb, var(--bad) 30%, var(--panel2)); border-color: var(--bad); color: #ffd9dd; }
+  .panic { background: color-mix(in srgb, var(--bad) 16%, var(--panel2)); border: 1px solid var(--bad); color: #ffd9dd; font-weight: 800; padding: 12px; border-radius: 10px; }
+  .panic[aria-pressed="true"] { background: var(--bad); color: #fff; animation: blink 1s ease-in-out infinite; }
+  .list { display: flex; flex-direction: column; gap: 2px; overflow: auto; }
+  #chat { height: 46vh; min-height: 260px; }
+  #alerts { max-height: 30vh; }
+  .msg { position: relative; padding: 6px 8px; border-radius: 8px; font-size: 13.5px; line-height: 1.35; word-break: break-word; }
+  .msg:hover { background: var(--panel2); }
+  .msg b { font-weight: 700; }
+  .msg.flag { border-left: 3px solid var(--warn); } .msg.flag.suspect { border-left-color: var(--bad); }
+  .msg.gone { opacity: .35; text-decoration: line-through; }
+  .msg .act { position: absolute; right: 6px; top: 4px; display: none; gap: 4px; }
+  .msg:hover .act, .msg:focus-within .act { display: flex; }
+  .msg .act button { padding: 2px 7px; font-size: 12px; border-radius: 6px; }
+  .al { display: flex; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 8px; font-size: 13px; }
+  .al:hover { background: var(--panel2); }
+  .al span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .al small { color: var(--dim); } .al button { padding: 2px 8px; font-size: 12px; }
+  .vote { display: flex; flex-direction: column; gap: 8px; }
+  .vbar { display: flex; height: 26px; border-radius: 8px; overflow: hidden; font-size: 12px; font-weight: 700; }
+  .vbar div { display: grid; place-items: center; min-width: 0; transition: flex .4s; color: #fff; white-space: nowrap; overflow: hidden; }
+  .empty { color: var(--dim); font-size: 13px; padding: 10px; }
+  @media (max-width: 1100px) { .cock { grid-template-columns: 1fr; } #chat { height: 50vh; } }
+  @media (max-width: 760px) { .top { margin: 0 -16px; padding: 8px 16px; } .stages .seg button { flex: 1 1 auto; } .msg .act { display: flex; position: static; margin-top: 4px; } }
+</style>
+</head>
+<body>
+<div class="app"><nav class="nav"></nav><main>
+<div class="top">
+  <span class="pill" id="pLive"><i></i><span id="pLiveT">offline</span></span>
+  <span class="pill" id="pRec" hidden><i></i>REC <span id="pRecT"></span></span>
+  <span class="pill" id="pView" hidden>👁 <span id="pViewT">0</span></span>
+  <span class="grow"></span>
+  <button class="big go" id="bStream" disabled>▶ Rozpocznij stream</button>
+  <button class="big" id="bRec" disabled>● Nagrywaj</button>
+</div>
+<div class="cock">
+  <div class="col">
+    <div class="pvw" id="pvw"><span class="tag" id="pvTag">podgląd</span></div>
+    <div class="card stages">
+      <div><div class="lbl">Start</div><div class="seg" id="sgStart"></div></div>
+      <div><div class="lbl">Na wizji</div><div class="seg" id="sgLive"></div></div>
+      <div><div class="lbl">Przerwa i koniec</div><div class="seg" id="sgEnd"></div></div>
+      <div class="row" id="cdRow"><span class="hint">Odliczanie „Zaraz zaczynamy”:</span><span class="seg" id="cd"></span></div>
+      <button class="primary next" id="bNext"></button>
+    </div>
+    <div class="ctl">
+      <div class="card"><b>🎙 Mikrofon <span id="micName" style="font-weight:400"></span></b><div class="meter"><i id="micM"></i></div><button class="mute" id="mMic" aria-pressed="false">Wycisz</button></div>
+      <div class="card"><b>🎮 Dźwięk gry i pulpitu</b><button class="mute" id="mDesk" aria-pressed="false">Wycisz</button></div>
+      <div class="card"><b>🔔 Alerty</b><button class="mute" id="mAlerts" aria-pressed="false">Wycisz</button></div>
+      <div class="card"><b>🛑 Coś nie tak na ekranie?</b><button class="panic" id="bPanic" aria-pressed="false">Zasłoń obraz</button></div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card stack"><h2>Czat</h2><div class="list" id="chat"><div class="empty">Czekam na wiadomości…</div></div></div>
+    <div class="card stack"><h2>Alerty</h2><div class="list" id="alerts"><div class="empty">Jeszcze nic.</div></div></div>
+    <div class="card vote"><h2>Głosowanie</h2><div id="vote"></div></div>
+  </div>
+</div>
+</main></div>
+<script>
+(() => {
+  const S = window.VMSite, $ = S.$, esc = S.esc, GT = window.OverlayGameThemes;
+  const hub = (p, o) => fetch(S.hub() + p, { cache: 'no-store', ...(o || {}) }).then(r => r.json());
+  const STREAM_SCENE = 'VM · Stream', CAP_NAME = 'VM · Gra (automatycznie)', ALERTS_SRC = 'VM · Alerty';
+  const START = [['prep', 'Przygotowania'], ['soon', 'Stream za…'], ['start', 'Zaraz zaczynamy'], ['late', 'Spóźnienie'], ['vote', 'Głosowanie']];
+  const LIVE = [['game', '🎮 Gra'], ['frame', '▣ Ramka'], ['talk', '💬 Rozmowa']];
+  const END = [['brb', '⏸ Przerwa'], ['end', '■ Koniec']];
+  const NAMES = Object.fromEntries([...START, ...LIVE, ...END]);
+
+  // ---------------------------------------------------------------- etapy (ekrany i układy w scenie „VM · Stream”)
+  function current() {
+    const s = S.get(), st = s.stage || 'game';
+    if (st === 'screen') { const k = String(s.scene || 'prep'); return k.startsWith('brb') ? 'brb' : k; }
+    return st;
+  }
+  function nextOf(k) {
+    const s = S.get();
+    if (k === 'prep') return s.sceneAt && s.sceneAt > Date.now() ? 'soon' : 'start';
+    if (k === 'soon') return 'start';
+    if (k === 'start' || k === 'late' || k === 'vote' || k === 'brb') return 'game';
+    return null;
+  }
+  async function go(k) {
+    const s = S.get(), screen = !['game', 'frame', 'talk'].includes(k);
+    const patch = screen ? { stage: 'screen', scene: k } : { stage: k };
+    if (k === 'start' && !(s.sceneUntil > Date.now())) patch.sceneUntil = Date.now() + (s.cdMin || 5) * 60000;
+    if (k === 'vote') await startVote();
+    // przejście zasłania obraz, a etap zmienia się pod zasłoną
+    let wait = 0;
+    if (s.transitions !== false && s.transitionStyle !== 'film') {
+      const style = s.transitionStyle || 'auto';
+      try { await fetch(S.hub() + '/transition?scene=' + encodeURIComponent(screen ? 'start' : k) + '&style=' + encodeURIComponent(style), { cache: 'no-store' }); wait = 1150 + (s.transitionLength === 'short' ? 420 : s.transitionLength === 'long' ? 800 : 700); } catch (e) {}
+    }
+    setTimeout(async () => { S.set(patch); render(); await obsStage(patch.stage); }, wait);
+  }
+  function render() {
+    const now = current(), s = S.get();
+    const seg = (id, list) => { $(id).innerHTML = list.map(([k, n]) => `<button data-go="${k}" aria-pressed="${now === k}">${esc(n)}</button>`).join(''); };
+    seg('sgStart', START); seg('sgLive', LIVE); seg('sgEnd', END);
+    const nx = nextOf(now);
+    $('bNext').textContent = nx ? `Dalej: ${NAMES[nx].replace(/^\S+ /, '')} ▶` : 'Na wizji';
+    $('bNext').disabled = !nx;
+    $('cd').innerHTML = [3, 5, 10, 15].map(m => `<button data-cd="${m}" aria-pressed="${(s.cdMin || 5) === m}">${m} min</button>`).join('');
+    $('bPanic').setAttribute('aria-pressed', !!s.panic);
+    $('bPanic').textContent = s.panic ? 'Odsłoń obraz' : 'Zasłoń obraz';
+  }
+  document.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.go) go(b.dataset.go);
+    else if (b.dataset.cd) { S.set({ cdMin: +b.dataset.cd }); render(); }
+  });
+  $('bNext').onclick = () => { const nx = nextOf(current()); if (nx) go(nx); };
+  $('bPanic').onclick = async () => {
+    const on = !S.get().panic; S.set({ panic: on }); render();
+    // od razu: chowamy też przechwytywanie gry w OBS (zasłona na stronie dochodzi z małym opóźnieniem)
+    if (obs) { if (on) setCapture(false); else obsStage(S.get().stage || 'game'); }
+  };
+
+  // ---------------------------------------------------------------- OBS
+  let obs = null, ok = false, streamAt = 0, recAt = 0, micName = '', inputs = [];
+  const MIC = ['wasapi_input_capture', 'coreaudio_input_capture', 'pulse_input_capture'], DESK = ['wasapi_output_capture', 'coreaudio_output_capture', 'pulse_output_capture'];
+  async function start() {
+    const cfg = await window.OverlayOBS.config(S.get());
+    obs = window.OverlayOBS.connect({
+      ...cfg, mic: S.get().obsMic || '',
+      onStatus: (t, good) => { ok = good; $('bStream').disabled = $('bRec').disabled = !good; if (!good) { $('pLiveT').textContent = 'OBS niepołączony'; previewFallback(); } },
+      onReady: refresh,
+      onOutput: (t, d) => { if (t === 'StreamStateChanged') streamAt = d.outputActive ? (streamAt || Date.now()) : 0; else recAt = d.outputActive ? (recAt || Date.now()) : 0; refreshOut(); },
+      onLevel: (db, name) => { if (!micName || name === micName) { micName = name; $('micName').textContent = '· ' + name.replace(/^VM · /, ''); $('micM').style.width = Math.max(0, Math.min(100, (db + 60) / 60 * 100)) + '%'; } },
+    });
+  }
+  async function refresh() {
+    try {
+      const st = await obs.call('GetStreamStatus'), rc = await obs.call('GetRecordStatus');
+      streamAt = st.outputActive ? Date.now() - (st.outputDuration || 0) : 0;
+      recAt = rc.outputActive ? Date.now() - (rc.outputDuration || 0) : 0;
+      inputs = (await obs.call('GetInputList')).inputs || [];
+      for (const [id, kinds, name] of [['mMic', MIC], ['mDesk', DESK], ['mAlerts', null, ALERTS_SRC]]) {
+        const inp = name ? inputs.find(i => i.inputName === name) : inputs.find(i => kinds.includes(i.inputKind) && (id !== 'mMic' || !micName || i.inputName === micName));
+        $(id).dataset.input = inp ? inp.inputName : ''; $(id).disabled = !inp;
+        if (inp) { const m = await obs.call('GetInputMute', { inputName: inp.inputName }); $(id).setAttribute('aria-pressed', !!m.inputMuted); $(id).textContent = m.inputMuted ? '🔇 Wyciszone' : 'Wycisz'; }
+      }
+    } catch (e) {}
+    refreshOut(); preview();
+  }
+  for (const id of ['mMic', 'mDesk', 'mAlerts']) $(id).onclick = async () => {
+    const n = $(id).dataset.input; if (!obs || !n) return;
+    try { const r = await obs.call('ToggleInputMute', { inputName: n }); $(id).setAttribute('aria-pressed', !!r.inputMuted); $(id).textContent = r.inputMuted ? '🔇 Wyciszone' : 'Wycisz'; } catch (e) { S.toast('OBS: ' + e.message); }
+  };
+  const hms = ms => { const t = Math.floor(ms / 1000); return [Math.floor(t / 3600), Math.floor(t / 60) % 60, t % 60].map(x => String(x).padStart(2, '0')).join(':'); };
+  function refreshOut() {
+    $('pLive').classList.toggle('live', !!streamAt);
+    $('pLiveT').textContent = streamAt ? 'NA ŻYWO ' + hms(Date.now() - streamAt) : ok ? 'offline' : 'OBS niepołączony';
+    $('pRec').hidden = !recAt; $('pRec').classList.toggle('rec', !!recAt); $('pRecT').textContent = recAt ? hms(Date.now() - recAt) : '';
+    $('bStream').textContent = streamAt ? '■ Zakończ stream' : '▶ Rozpocznij stream'; $('bStream').className = 'big ' + (streamAt ? 'stop' : 'go');
+    $('bRec').textContent = recAt ? '■ Zatrzymaj nagrywanie' : '● Nagrywaj';
+  }
+  setInterval(refreshOut, 1000);
+  $('bStream').onclick = async () => {
+    if (!obs) return;
+    if (streamAt && !confirm('Zakończyć transmisję?')) return;
+    try { await obs.call(streamAt ? 'StopStream' : 'StartStream'); } catch (e) { S.toast('OBS: ' + e.message); }
+  };
+  $('bRec').onclick = async () => { if (!obs) return; try { await obs.call(recAt ? 'StopRecord' : 'StartRecord'); } catch (e) { S.toast('OBS: ' + e.message); } };
+  // etap w OBS: scena „VM · Stream” na wizji, przechwytywanie gry widoczne tylko w grze i w ramce
+  async function setCapture(show, rect) {
+    try {
+      const it = ((await obs.call('GetSceneItemList', { sceneName: STREAM_SCENE })).sceneItems || []).find(i => i.sourceName === CAP_NAME);
+      if (!it) return;
+      await obs.call('SetSceneItemEnabled', { sceneName: STREAM_SCENE, sceneItemId: it.sceneItemId, sceneItemEnabled: show });
+      if (!show || !rect) return;
+      const vs = await obs.call('GetVideoSettings'), kx = vs.baseWidth / 1920, ky = vs.baseHeight / 1080;
+      await obs.call('SetSceneItemTransform', { sceneName: STREAM_SCENE, sceneItemId: it.sceneItemId, sceneItemTransform: { positionX: rect[0] * kx, positionY: rect[1] * ky, boundsType: 'OBS_BOUNDS_SCALE_INNER', boundsAlignment: 0, boundsWidth: rect[2] * kx, boundsHeight: rect[3] * ky } });
+    } catch (e) {}
+  }
+  async function obsStage(st) {
+    if (!obs || !ok) return;
+    try { const sc = await obs.call('GetSceneList'); if (sc.currentProgramSceneName !== STREAM_SCENE && (sc.scenes || []).some(x => x.sceneName === STREAM_SCENE)) await obs.setSceneCut(STREAM_SCENE); } catch (e) {}
+    if (S.get().panic) return setCapture(false);
+    if (st !== 'game' && st !== 'frame') return setCapture(false);
+    const s = S.get(), CL = window.OverlayChat && window.OverlayChat.layoutOf ? window.OverlayChat.layoutOf(s) : { dir: 'v', side: 'right' };
+    const own = st === 'frame' && window.VMLayout && VMLayout.custom(s, 'game-frame', CL);
+    setCapture(true, st === 'frame' ? (own ? own.game : [CL.dir === 'v' && CL.side === 'left' ? 440 : 40, CL.dir === 'h' && CL.side === 'top' ? 70 : 40, 1440, 810]) : [0, 0, 1920, 1080]);
+  }
+
+  // ---------------------------------------------------------------- podgląd: prawdziwy obraz z OBS (co sekundę), bez OBS – widok strony
+  let pvTimer = 0, pvBusy = false;
+  async function preview() {
+    clearTimeout(pvTimer);
+    if (!obs || !ok || document.hidden) { pvTimer = setTimeout(preview, 2000); return; }
+    if (!pvBusy) {
+      pvBusy = true;
+      try {
+        const sc = await obs.call('GetCurrentProgramScene');
+        const r = await obs.call('GetSourceScreenshot', { sourceName: sc.currentProgramSceneName || sc.sceneName, imageFormat: 'jpg', imageWidth: 960, imageCompressionQuality: 70 });
+        let img = $('pvw').querySelector('img'); if (!img) { $('pvw').querySelectorAll('iframe').forEach(f => f.remove()); img = document.createElement('img'); img.alt = 'Obraz z OBS'; $('pvw').prepend(img); }
+        img.src = r.imageData; $('pvTag').textContent = 'OBS · ' + (sc.currentProgramSceneName || '').replace(/^VM · /, '');
+      } catch (e) {}
+      pvBusy = false;
+    }
+    pvTimer = setTimeout(preview, 1000);
+  }
+  function previewFallback() {
+    if ($('pvw').querySelector('iframe')) return;
+    $('pvw').querySelectorAll('img').forEach(i => i.remove());
+    const f = document.createElement('iframe'); f.src = '../stage.html'; f.tabIndex = -1; f.title = 'Widok streamu'; $('pvw').prepend(f);
+    const fit = () => { f.style.transform = `scale(${$('pvw').clientWidth / 1920})`; }; fit();
+    if (window.ResizeObserver) new ResizeObserver(fit).observe($('pvw'));
+    $('pvTag').textContent = 'widok strony (OBS niepołączony)';
+  }
+
+  // ---------------------------------------------------------------- czat i alerty (GameRadar)
+  let after = -1;
+  const ALERT_T = { follow: 'follow', sub: 'sub', resub: 'resub', gift: 'gift', cheer: 'bitsy', raid: 'raid', redeem: 'nagroda', donation: 'donacja', tip: 'donacja' };
+  const alertText = e => e.type === 'cheer' ? `${e.amount} bitsów` : e.type === 'gift' ? `×${e.count || 1}` : e.type === 'raid' ? `${e.viewers} os.` : e.type === 'resub' ? `${e.months}. miesiąc` : e.type === 'redeem' ? e.reward || '' : '';
+  const time = at => at ? new Date(at).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : '';
+  function addChat(e) {
+    const box = $('chat'); box.querySelector('.empty')?.remove();
+    const d = document.createElement('div');
+    d.className = 'msg' + (e.flag ? ' flag ' + (e.flag.level || '') : '');
+    d.title = e.flag ? 'Uwaga: ' + (e.flag.reasons || []).join(', ') : time(e.at);
+    d.innerHTML = `<b style="color:${esc(e.color || '#b9a7ff')}">${esc(e.user)}</b>: ${esc(e.text)}` +
+      (e.msgId ? `<span class="act"><button data-mod="delete" title="Usuń wiadomość">🗑</button><button data-mod="timeout" title="Wycisz na 10 minut">⏱</button><button data-mod="ban" title="Zbanuj">⛔</button></span>` : '');
+    d.dataset.msg = e.msgId || ''; d.dataset.user = e.userId || ''; d.dataset.name = e.user || '';
+    const stick = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
+    box.appendChild(d); while (box.children.length > 200) box.firstChild.remove();
+    if (stick) box.scrollTop = box.scrollHeight;
+  }
+  function addAlert(e) {
+    const box = $('alerts'); box.querySelector('.empty')?.remove();
+    const d = document.createElement('div'); d.className = 'al';
+    d.innerHTML = `<small>${time(e.at)}</small><span><b>${esc(e.user || '')}</b> · ${esc(ALERT_T[e.type])} ${esc(alertText(e))}${e.message ? ' – ' + esc(e.message) : ''}</span>${e.test ? '<small>test</small>' : ''}<button data-replay="${e.id}" title="Pokaż jeszcze raz">↻</button>`;
+    box.prepend(d); while (box.children.length > 30) box.lastChild.remove();
+  }
+  async function poll() {
+    try {
+      if (after < 0) { const j = await hub('/events'); after = Math.max(0, (j.last || 0) - 150); }
+      const j = await hub('/events?after=' + after);
+      for (const e of j.events || []) {
+        if (e.id <= after) continue;
+        after = e.id;
+        if (e.type === 'chat' && !e.hidden && !e.command) addChat(e);
+        else if (ALERT_T[e.type] && !e.replay) addAlert(e);
+      }
+    } catch (e) { after = -1; }
+    setTimeout(poll, 1000);
+  }
+  document.addEventListener('click', async e => {
+    const b = e.target.closest('[data-mod],[data-replay]'); if (!b) return;
+    if (b.dataset.replay) { try { const j = await hub('/replay?id=' + b.dataset.replay); S.toast(j.ok ? 'Alert jeszcze raz' : j.error); } catch (x) { S.toast('GameRadar nie odpowiada'); } return; }
+    const m = b.closest('.msg'), act = b.dataset.mod, name = m.dataset.name;
+    if (act === 'ban' && !confirm(`Zbanować ${name}?`)) return;
+    try {
+      const j = await hub(`/mod?do=${act}&msg=${encodeURIComponent(m.dataset.msg)}&user=${encodeURIComponent(m.dataset.user)}&name=${encodeURIComponent(name)}&sec=600`);
+      if (j.ok) { m.classList.add('gone'); S.toast(act === 'delete' ? 'Usunięte' : act === 'timeout' ? name + ' wyciszony na 10 min' : name + ' zbanowany'); }
+      else S.toast(j.relogin ? 'Zaloguj się ponownie do Twitcha (Ustawienia → Twitch) – potrzebne nowe uprawnienia' : 'Twitch: ' + (j.error || 'błąd'));
+    } catch (x) { S.toast('GameRadar nie odpowiada'); }
+  });
+
+  // ---------------------------------------------------------------- widzowie
+  async function audience() {
+    try { const a = await hub('/audience'); $('pView').hidden = !a.live; $('pViewT').textContent = a.viewers || 0; } catch (e) { $('pView').hidden = true; }
+    setTimeout(audience, 20000);
+  }
+
+  // ---------------------------------------------------------------- głosowanie: postać kontra gra
+  function voteDefaults() {
+    const s = S.get(), th = GT && GT.byId ? GT.byId(String(s.theme || '').replace(/^g-/, '')) : null;
+    let det = {}; try { det = JSON.parse(localStorage.getItem('obsGameOverlay.detected') || '{}') || {}; } catch (e) {}
+    const game = (s.mode === 'manual' && s.game) || (det.local && det.local.game && det.local.game.name) || s.game || 'Gra';
+    return [th ? th.name : 'Postać', game];
+  }
+  async function startVote() {
+    const [a, b] = [$('vA') ? $('vA').value : voteDefaults()[0], $('vB') ? $('vB').value : voteDefaults()[1]];
+    const sec = (S.get().voteMin || 3) * 60;
+    try { await hub(`/vote/start?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}&sec=${sec}`); } catch (e) { S.toast('GameRadar nie odpowiada – głosowanie nie ruszy'); }
+    vote();
+  }
+  let vTimer = 0, vActive = null;
+  async function vote() {
+    clearTimeout(vTimer);
+    let v = null; try { v = await hub('/vote'); } catch (e) {}
+    const box = $('vote');
+    if (!v) { box.innerHTML = '<p class="hint">Głosowanie działa przez GameRadar – teraz nie odpowiada.</p>'; vActive = null; vTimer = setTimeout(vote, 5000); return; }
+    if (v.active) {
+      const t = (v.va || 0) + (v.vb || 0), pa = t ? v.va / t : .5;
+      box.innerHTML = `<div class="vbar"><div style="flex:${pa};background:var(--acc)">${esc(v.a)} · ${v.va}</div><div style="flex:${1 - pa};background:#00a3c7">${v.vb} · ${esc(v.b)}</div></div>
+        <div class="row"><span class="hint">Czat pisze <b>1</b> albo <b>2</b> · zostało ${Math.floor(v.endsIn / 60)}:${String(v.endsIn % 60).padStart(2, '0')}</span><span style="flex:1"></span><button id="vStop">⏹ Zakończ teraz</button></div>`;
+      $('vStop').onclick = async () => { try { await hub('/vote/stop'); } catch (e) {} vote(); };
+    } else if (vActive !== false || !$('vA')) {
+      const [a, b] = voteDefaults(), m = S.get().voteMin || 3;
+      box.innerHTML = (v.winner ? `<p class="hint">Ostatnio wygrało: <b>${esc(v.winner === 'a' ? v.a : v.b)}</b> (${v.va}:${v.vb})</p>` : '') +
+        `<div class="row"><input id="vA" value="${esc(a)}" style="flex:1;min-width:0" aria-label="Opcja 1"><span class="hint">czy</span><input id="vB" value="${esc(b)}" style="flex:1;min-width:0" aria-label="Opcja 2"></div>
+        <div class="row"><span class="seg" id="vMin">${[2, 3, 5].map(x => `<button data-vm="${x}" aria-pressed="${m === x}">${x} min</button>`).join('')}</span><span style="flex:1"></span><button class="primary" id="vGo">Głosowanie na ekranie ▶</button></div>`;
+      $('vGo').onclick = () => go('vote');
+      $('vMin').onclick = e => { const x = e.target.closest('[data-vm]'); if (x) { S.set({ voteMin: +x.dataset.vm }); vActive = null; vote(); } };
+    }
+    vActive = !!v.active;
+    vTimer = setTimeout(vote, v.active ? 1000 : 5000);
+  }
+
+  S.onChange(render);
+  render(); start(); poll(); audience(); vote();
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) preview(); });
+})();
+</script>
+</body>
+</html>

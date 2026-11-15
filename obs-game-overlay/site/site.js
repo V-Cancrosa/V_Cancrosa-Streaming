@@ -5,6 +5,7 @@
 (function () {
   const KEY = 'obsGameOverlay.v1';
   const NAV = [
+    ['live.html', '●', 'Na żywo'],
     ['index.html', '⌂', 'Start'],
     ['games.html', '🎮', 'Gry i programy'],
     ['look.html', '🦊', 'Postać i wygląd'],

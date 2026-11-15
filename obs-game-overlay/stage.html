@@ -30,10 +30,15 @@
   @keyframes film-out { 0% { transform: none; } 25% { transform: scale(.78); } 75%, 100% { transform: translateX(-85%) scale(.78); } }
   @keyframes film-in { 0%, 25% { transform: translateX(85%) scale(.78); } 75% { transform: translateX(0) scale(.78); } 100% { transform: none; } }
   body { --film: 1300ms; }
+  /* przycisk paniki w kokpicie: zasłona na cały obraz (także na grę pod spodem) */
+  #panic { position: absolute; inset: 0; z-index: 50; display: grid; place-items: center; background: #0b0b0e; opacity: 0; pointer-events: none; transition: opacity .12s; font: 700 64px/1.2 Inter, 'Segoe UI', sans-serif; color: #e9eaf0; letter-spacing: .02em; text-align: center; }
+  #panic small { display: block; font-size: 26px; font-weight: 500; color: #8f93a3; margin-top: 14px; }
+  .panic #panic { opacity: 1; }
 </style>
 </head>
 <body>
 <div id="film"></div>
+<div id="panic"><div>Chwileczkę…<small>Zaraz wracamy</small></div></div>
 <script>
 (() => {
   const KEY = 'obsGameOverlay.v1';
@@ -49,7 +54,10 @@
   }
   const tell = () => { for (const f of Object.values(frames)) try { f.contentWindow.postMessage({ vmStage: 1, active: active && f.classList.contains('on') }, '*'); } catch {} };
   function render() {
-    const s = load(), st = SETS[s.stage] || s.stage === 'page' ? s.stage : 'game';
+    const s = load();
+    document.body.classList.toggle('panic', !!s.panic);
+    const en = s.lang === 'en'; document.querySelector('#panic div').firstChild.textContent = en ? 'One moment…' : 'Chwileczkę…'; document.querySelector('#panic small').textContent = en ? 'Be right back' : 'Zaraz wracamy';
+    const st = SETS[s.stage] || s.stage === 'page' ? s.stage : 'game';
     // strona z kreatora (Twórz → Na stream)
     const set = st === 'page' ? ['page.html?id=' + encodeURIComponent(s.pageId || '')] : SETS[st];
     const ck = st + '|' + (st === 'page' ? s.pageId : '');

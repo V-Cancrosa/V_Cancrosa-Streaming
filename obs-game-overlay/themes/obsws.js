@@ -152,7 +152,7 @@
         try { const c = JSON.parse(localStorage.getItem('obsGameOverlay.obsws') || 'null'); if (c) { url = url || c.url; password = password || c.password; } } catch (e2) {}
       }
     }
-    if (!url) url = 'ws://' + (/^https?:$/.test(location.protocol) && location.hostname ? location.hostname : 'localhost') + ':4455';
+    if (!url) url = 'ws://' + (/^https?:$/.test(location.protocol) && location.pathname.indexOf('/ui/') === 0 && location.hostname ? location.hostname : 'localhost') + ':4455';
     // telefon: OBS jest na komputerze, z którego przyszła strona
     if (/^https?:$/.test(location.protocol) && location.pathname.indexOf('/ui/') === 0) url = url.replace('localhost', location.hostname).replace('127.0.0.1', location.hostname);
     return { url, password: password || '' };
