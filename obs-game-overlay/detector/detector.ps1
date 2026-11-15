@@ -41,7 +41,11 @@ try { $gotMutex = $script:Mutex.WaitOne([TimeSpan]::FromSeconds([Math]::Max(1, $
 function Stop-StaleDetector {
     $alive = $false
     # dwie próby po 6 s: zajęty (np. skanuje bibliotekę Steama) to nie to samo co zawieszony
-    foreach ($try in 1, 2) { try { $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 6 -Uri "http://localhost:$Port/game"; if ($r.StatusCode -eq 200) { $alive = $true; break } } catch {} }
+    # każda odpowiedź HTTP (także 403 – odmowa bez klucza) znaczy, że kopia żyje; zawieszona nie odpowiada wcale
+    foreach ($try in 1, 2) {
+        try { $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 6 -Uri "http://localhost:$Port/update/status"; $alive = $true; break }
+        catch { if ($_.Exception.Response) { $alive = $true; break } }
+    }
     if ($alive) { return $false }
     $n = 0
     try {

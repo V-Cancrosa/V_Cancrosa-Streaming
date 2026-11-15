@@ -1626,7 +1626,9 @@
   let detTry = 0;
   setInterval(() => {
     if (!s.local || isRemote || s.detAutoStart === false || $('lcPill').classList.contains('on')) { detTry = 0; return; }
-    if (detTry++ % 5 === 0) $('detStart').click();
+    if (detTry++ % 5 !== 0) return;
+    // zanim uruchomimy drugą kopię: czy GameRadar naprawdę milczy? (odpowiedź – nawet odmowa – znaczy, że działa)
+    fetch(hubUrl() + '/update/status', { cache: 'no-store' }).then(() => {}, () => $('detStart').click());
   }, 6000);
   $('detStart').onclick = () => {
     const f = document.createElement('iframe'); f.style.display = 'none'; f.src = 'vincentmedia://start'; document.body.appendChild(f);

@@ -1,5 +1,5 @@
 {
-  "version": "1.53.1",
+  "version": "1.53.2",
   "date": "2026-11-15",
-  "notes": "Kreator: czeka na GameRadar do 90 s, pokazuje na żywo, co GameRadar robi, i dlaczego się zatrzymał"
+  "notes": "GameRadar: koniec ciągłych restartów (nowa kopia nie zabija działającej, panel nie uruchamia drugiej)"
 }

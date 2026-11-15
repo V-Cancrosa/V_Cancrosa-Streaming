@@ -35,7 +35,7 @@ $Work = {
     $ErrorActionPreference = 'Stop'
     $Det = Join-Path $App 'detector'; $Data = Join-Path $Det 'data'; $Port = 7777
     function Set-Step([int]$i, [string]$state, [string]$detail, [string]$action = '') { $s = $sync.steps[$i]; $s.state = $state; $s.detail = $detail; $s.action = $action; $s.rev++ }
-    function Get-Radar { try { return Invoke-RestMethod -UseBasicParsing -TimeoutSec 2 -Uri "http://localhost:$Port/update/status" } catch { return $null } }
+    function Get-Radar { foreach ($t in 1, 2) { try { return Invoke-RestMethod -UseBasicParsing -TimeoutSec 4 -Uri "http://localhost:$Port/update/status" } catch {} }; return $null }
     function Find-Obs {
         foreach ($k in 'HKLM:\SOFTWARE\OBS Studio', 'HKLM:\SOFTWARE\WOW6432Node\OBS Studio') {
             try { $d = (Get-ItemProperty $k -ErrorAction Stop).'(default)'; if ($d) { $e = Join-Path $d 'bin\64bit\obs64.exe'; if (Test-Path $e) { return $e } } } catch {}
