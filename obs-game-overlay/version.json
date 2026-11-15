@@ -1,5 +1,5 @@
 {
-  "version": "1.51.0",
+  "version": "1.52.0",
   "date": "2026-11-15",
-  "notes": "Kokpit „Na żywo”: transmisja, podgląd z OBS, etapy, dźwięk, przycisk paniki, czat z moderacją, powtórka alertów, głosowanie"
+  "notes": "Gry ze strony: lista zapamiętana w serwisie (działa bez GameRadara), okładki prosto ze Steama, dodawanie gier z otwartych okien"
 }

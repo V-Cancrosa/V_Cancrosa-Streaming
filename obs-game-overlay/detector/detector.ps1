@@ -2310,6 +2310,16 @@ function Invoke-Request($ctx) {
                 $res.Headers['Cache-Control'] = 'max-age=86400'; $res.Headers['Access-Control-Allow-Origin'] = '*'
                 $res.ContentLength64 = $bytes.Length; $res.OutputStream.Write($bytes, 0, $bytes.Length); $res.OutputStream.Close()
             }
+            '/processes' {
+                # kokpit → «Dodaj grę»: programy z otwartym oknem (bez systemowych i bez OBS)
+                $known = @{}; foreach ($v in $script:GameLib.Values) { if ($v.exe) { $known[[string]$v.exe] = [string]$v.name } }
+                $skip = '^(explorer|obs64|obs32|obs|powershell|pwsh|cmd|conhost|windowsterminal|applicationframehost|systemsettings|textinputhost|shellexperiencehost|searchhost|searchapp|startmenuexperiencehost|lockapp|wscript|msedgewebview2|taskmgr|nvidia overlay|gamebar|xboxgamebarwidgets)$'
+                $list = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne [IntPtr]::Zero -and $_.MainWindowTitle -and $_.ProcessName -notmatch $skip } | ForEach-Object {
+                    $exe = ($_.ProcessName + '.exe').ToLowerInvariant(); $path = ''; try { $path = [string]$_.Path } catch {}
+                    [pscustomobject]@{ exe = $exe; title = [string]$_.MainWindowTitle; path = $path; known = [string]$known[$exe]; custom = [bool]$script:Custom.ContainsKey($exe); ignored = [bool]$script:Ignore.ContainsKey($exe) }
+                } | Sort-Object exe -Unique)
+                Send-Json $ctx ([pscustomobject]@{ items = $list })
+            }
             '/library/launch' {
                 $err = Start-LibraryItem ([string]$q['id'])
                 Send-Json $ctx @{ ok = -not $err; error = $err }

@@ -114,6 +114,8 @@ Dla pojedynczej gry wybierasz inny motyw albo „bez motywu gry” w jej kafelku
 
 ## Gry: GameRadar
 
+**Gry dodajesz na stronie** (*Gry i programy*): uruchom grę → «Pokaż otwarte okna» → «To gra» (albo «Pomiń»). Lista gier zostaje zapamiętana w serwisie, więc otwiera się od razu, także gdy GameRadar śpi; okładki Steama idą prosto z serwerów Steama.
+
 GameRadar działa jak wykrywanie gier w Discordzie, ale bez Discorda: raz w tygodniu pobiera publiczną bazę gier (ok. 22 tys.), co 3 s sprawdza uruchomione programy, pyta Steama o grę i okładkę. Wynik jest dostępny tylko na Twoim komputerze (`http://localhost:7777`).
 
 - **Źródło gry jest zawsze auto.** Kliknięcie gry w „Co dziś?” to chwilowe nadpisanie – **↺ auto** wraca do wykrywania.
