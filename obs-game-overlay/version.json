@@ -1,5 +1,5 @@
 {
-  "version": "1.55.0",
+  "version": "1.56.0",
   "date": "2026-11-15",
-  "notes": "Głosy neuronowe Piper jako domyślne (PL i EN, bez internetu); kreator pobiera je w tle; mniej śmieci w dzienniku"
+  "notes": "Automatyczne ustawienia OBS (obraz, scena, mikrofon, Twitch z kluczem, jakość) ze strony OBS i z kokpitu"
 }

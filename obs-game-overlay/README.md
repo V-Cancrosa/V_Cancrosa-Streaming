@@ -38,6 +38,8 @@ Instalator można uruchomić ponownie – nie tworzy duplikatów.
 
 ## Dzień streamu
 
+**Ustawienia OBS** (serwis → *OBS*): Vincent-Media sam ustawia OBS przez połączenie z nim, bez zamykania OBS – obraz 1920×1080 / 60 kl./s, scenę **VM · Stream** (gra → ekrany → alerty → przejścia, Twoje źródła zostają), filtry mikrofonu, **Twitcha z kluczem transmisji pobranym od Twitcha** (przez GameRadar, bez wklejania), jakość: tryb prosty, koder Twojej karty graficznej (NVENC / AMD / QuickSync, inaczej procesor), 6000 kb/s obrazu, 160 kb/s dźwięku, 48 kHz (te działają od następnego uruchomienia OBS). Jeden przycisk **Ustaw wszystko**; zmiany obrazu, wyjścia i Twitcha czekają, gdy trwa transmisja lub nagrywanie. Kokpit przy każdym połączeniu sprawdza OBS i pokazuje baner, gdy coś się rozjedzie.
+
 **Kokpit „Na żywo”** (serwis → *Na żywo*, działa też na telefonie) – cały stream z jednej strony:
 - start i koniec transmisji, nagrywanie, czas na żywo, liczba widzów,
 - prawdziwy podgląd z OBS (co sekundę),

@@ -15,6 +15,7 @@
 <script src="../themes/layoutedit.js"></script>
 <script src="../themes/chat.js"></script>
 <script src="../themes/obsws.js"></script>
+<script src="../themes/obssetup.js"></script>
 <script src="../themes/sync.js"></script>
 <script src="site.js"></script>
 <style>
@@ -85,6 +86,7 @@
   <button class="big go" id="bStream" disabled>▶ Rozpocznij stream</button>
   <button class="big" id="bRec" disabled>● Nagrywaj</button>
 </div>
+<a id="obsFix" href="obs.html" hidden style="display:block;margin:0 0 12px;padding:10px 14px;border-radius:10px;background:color-mix(in srgb,var(--warn) 14%,var(--panel));border:1px solid color-mix(in srgb,var(--warn) 50%,transparent);text-decoration:none"></a>
 <div class="cock">
   <div class="col">
     <div class="pvw" id="pvw"><span class="tag" id="pvTag">podgląd</span></div>
@@ -193,8 +195,18 @@
         if (inp) { const m = await obs.call('GetInputMute', { inputName: inp.inputName }); $(id).setAttribute('aria-pressed', !!m.inputMuted); $(id).textContent = m.inputMuted ? '🔇 Wyciszone' : 'Wycisz'; }
       }
     } catch (e) {}
-    refreshOut(); preview();
+    refreshOut(); preview(); obsHealth();
   }
+  // czy OBS jest ustawiony jak trzeba (themes/obssetup.js) – szczegóły i poprawki na stronie OBS
+  async function obsHealth() {
+    if (!window.VMObsSetup || !obs) return;
+    try {
+      const bad = (await VMObsSetup.check(obs, { hub: S.hub() })).filter(i => !i.ok);
+      $('obsFix').hidden = !bad.length;
+      $('obsFix').innerHTML = `⚠ <b>OBS: ${bad.length} ${bad.length === 1 ? 'ustawienie' : bad.length < 5 ? 'ustawienia' : 'ustawień'} do poprawy</b> – ${bad.map(i => esc(i.title)).join(', ')} <b style="float:right">Ustaw →</b>`;
+    } catch (e) {}
+  }
+  setInterval(() => { if (ok && !document.hidden) obsHealth(); }, 60000);
   for (const id of ['mMic', 'mDesk', 'mAlerts']) $(id).onclick = async () => {
     const n = $(id).dataset.input; if (!obs || !n) return;
     try { const r = await obs.call('ToggleInputMute', { inputName: n }); $(id).setAttribute('aria-pressed', !!r.inputMuted); $(id).textContent = r.inputMuted ? '🔇 Wyciszone' : 'Wycisz'; } catch (e) { S.toast('OBS: ' + e.message); }

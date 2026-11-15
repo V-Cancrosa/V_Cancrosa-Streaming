@@ -1241,7 +1241,7 @@ function Export-Stream([string]$id, [string]$fmt, [int]$offsetSec = 0) {
 Add-Type -AssemblyName System.Security
 $TwitchCfgFile = Join-Path $DataDir 'twitch.json'
 $TwitchTokFile = Join-Path $DataDir 'twitch-token.bin'
-$TwitchScopes  = 'moderator:read:followers channel:read:subscriptions bits:read channel:read:redemptions user:read:chat moderator:manage:chat_settings moderator:manage:chat_messages moderator:manage:banned_users'
+$TwitchScopes  = 'moderator:read:followers channel:read:subscriptions bits:read channel:read:redemptions user:read:chat moderator:manage:chat_settings moderator:manage:chat_messages moderator:manage:banned_users channel:read:stream_key'
 $script:TW = [pscustomobject]@{
     status = 'off'; clientId = ''; user = ''; userId = ''; error = ''
     code = ''; uri = ''; deviceCode = ''; deviceInterval = 5; deviceUntil = [DateTime]::MinValue; nextPoll = [DateTime]::MinValue
@@ -2216,6 +2216,18 @@ function Invoke-Request($ctx) {
                 Send-Raw $ctx $txt $(if ($fmt -eq 'json') { 'application/json' } else { 'text/plain' })
             }
             '/twitch/status' { Send-Json $ctx (Get-TwitchStatus) }
+            '/twitch/streamkey' {
+                # klucz transmisji do ustawień OBS (kokpit → «Ustaw OBS»); nie trafia do dziennika
+                $uid = $script:TW.userId
+                if (-not $uid) { Send-Json $ctx @{ ok = $false; error = 'Twitch niepołączony' }; return }
+                try {
+                    $r = Invoke-Helix 'GET' "streams/key?broadcaster_id=$uid" $null
+                    Send-Json $ctx @{ ok = $true; key = [string]@($r.data)[0].stream_key }
+                } catch {
+                    $code = 0; try { $code = [int]$_.Exception.Response.StatusCode } catch {}
+                    Send-Json $ctx @{ ok = $false; error = "Twitch odmówił ($code)"; relogin = ($code -eq 401 -or $code -eq 403) }
+                }
+            }
             '/twitch/setup' {
                 $cid = [string]$q['clientId']
                 if ($cid -eq 'keep') { $cid = $script:TW.clientId }   # «Połącz» bez wpisywania ID ponownie

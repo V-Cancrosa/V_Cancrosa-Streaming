@@ -10,6 +10,7 @@
     ['games.html', '🎮', 'Gry i programy'],
     ['look.html', '🦊', 'Postać i wygląd'],
     ['voice.html', '🔊', 'Głos postaci'],
+    ['obs.html', '🎬', 'OBS'],
     ['screens.html', '⏱', 'Ekrany'],
     ['layouts.html', '✥', 'Ułożenie scen'],
     ['creator.html', '✦', 'Kreator stron'],

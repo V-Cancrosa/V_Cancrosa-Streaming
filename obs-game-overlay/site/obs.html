@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OBS · Vincent-Media</title>
+<link rel="stylesheet" href="../themes/fonts.css">
+<link rel="stylesheet" href="site.css">
+<script src="../version.js"></script>
+<script src="../themes/obsws.js"></script>
+<script src="../themes/obssetup.js"></script>
+<script src="../themes/sync.js"></script>
+<script src="site.js"></script>
+<style>
+  .chk { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .chk:last-child { border-bottom: 0; }
+  .chk b { font-size: 15px; } .chk p { margin: 2px 0 0; color: var(--dim); font-size: 13px; }
+  .ic { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; font-weight: 800; font-size: 13px; transition: border-color .3s, color .3s, transform .3s cubic-bezier(.3,1.6,.5,1); }
+  .ic.ok { border-color: var(--ok); color: var(--ok); } .ic.bad { border-color: var(--warn); color: var(--warn); } .ic.err { border-color: var(--bad); color: var(--bad); }
+  .ic.run { border-color: #2a2d38; border-top-color: #00e1ff; animation: spin .8s linear infinite; }
+  .ic.pop { transform: scale(1.18); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .tag { font-size: 11px; padding: 2px 7px; border-radius: 999px; background: var(--panel2); color: var(--dim); margin-left: 6px; }
+  .login { margin-top: 12px; padding: 14px; border-radius: 12px; background: var(--panel2); border: 1px solid var(--line); }
+  .login code { font: 700 22px 'Space Mono', monospace; letter-spacing: .12em; color: #fff; }
+</style>
+</head>
+<body>
+<div class="app"><nav class="nav"></nav><main>
+<h1>OBS</h1>
+<p class="lead">Vincent-Media sam ustawia OBS przez połączenie z nim (OBS może być włączony): obraz, scenę, mikrofon, Twitcha i jakość. Coś się rozjedzie – kokpit da znać.</p>
+<div class="split">
+  <div class="card stack">
+    <div class="row"><h2 style="margin:0;flex:1">Ustawienia OBS</h2><span class="hint" id="state">łączę z OBS…</span><button class="primary" id="all" disabled>Ustaw wszystko</button></div>
+    <div id="list"></div>
+    <div id="login" class="login" hidden></div>
+  </div>
+  <div class="card stack">
+    <h2>Co i dlaczego</h2>
+    <p class="hint"><b>Obraz 1920×1080, 60 kl./s</b> – widoki Vincent-Media są rysowane w tym rozmiarze; 60 klatek dla płynnej gry.</p>
+    <p class="hint"><b>Scena „VM · Stream”</b> – jedna scena na cały stream: gra na dole, nad nią ekrany i układy, alerty, na wierzchu przejścia. Twoje własne źródła zostają.</p>
+    <p class="hint"><b>Mikrofon</b> – redukcja szumów (RNNoise), bramka, kompresor i limiter. Dostroisz w OBS: prawy klik na mikrofon → Filtry.</p>
+    <p class="hint"><b>Twitch</b> – klucz transmisji bierzemy prosto od Twitcha (przez GameRadar), nie trzeba go nigdzie wklejać.</p>
+    <p class="hint"><b>Jakość</b> – koder karty graficznej (mniej obciąża procesor w grach), 6000 kb/s obrazu i 160 kb/s dźwięku – zalecenia Twitcha dla 1080p60. Działa od następnego uruchomienia OBS.</p>
+    <p class="hint" id="gpu"></p>
+  </div>
+</div>
+</main></div>
+<script>
+(() => {
+  const S = window.VMSite, $ = S.$, esc = S.esc, SET = window.VMObsSetup;
+  let obs = null, ok = false, items = [], live = '', running = new Set(), errs = {};
+  async function connect() {
+    const cfg = await window.OverlayOBS.config(S.get());
+    obs = window.OverlayOBS.connect({ ...cfg, onStatus: (t, good) => { ok = good; $('state').textContent = good ? '' : 'OBS niepołączony – uruchom OBS'; if (!good) { items = []; render(); } }, onReady: refresh });
+  }
+  async function refresh() {
+    if (!obs || !ok) return;
+    items = await SET.check(obs, { hub: S.hub() }); live = await SET.busy(obs);
+    render();
+  }
+  function render() {
+    const bad = items.filter(i => !i.ok);
+    $('all').disabled = !ok || !bad.length || running.size > 0;
+    $('all').textContent = bad.length ? `Ustaw wszystko (${bad.length})` : 'Wszystko ustawione ✓';
+    if (ok && live) $('state').textContent = live + ' – część zmian poczeka do końca';
+    $('list').innerHTML = items.map(i => {
+      const st = running.has(i.id) ? 'run' : errs[i.id] ? 'err' : i.ok ? 'ok' : 'bad';
+      const blocked = !i.ok && i.idle && live;
+      return `<div class="chk"><span class="ic ${st}" id="ic-${i.id}">${st === 'ok' ? '✓' : st === 'run' ? '' : st === 'err' ? '✕' : '!'}</span>
+        <div><b>${esc(i.title)}</b>${i.restart && !i.ok ? '<span class="tag">po restarcie OBS</span>' : ''}<p>${esc(errs[i.id] || i.detail)}</p></div>
+        ${i.ok || !i.fix ? '' : `<button data-fix="${i.id}" ${blocked || running.has(i.id) ? 'disabled' : ''} title="${blocked ? esc(live) : ''}">${blocked ? 'po streamie' : 'Ustaw'}</button>`}</div>`;
+    }).join('') || '<p class="hint">Czekam na OBS…</p>';
+    const g = SET.gpu(); $('gpu').textContent = g.gpu ? 'Twoja karta: ' + g.gpu + ' → koder: ' + g.name : '';
+  }
+  async function fix(id) {
+    const it = items.find(i => i.id === id); if (!it || !it.fix) return;
+    if (it.idle && live) return;
+    running.add(id); delete errs[id]; render();
+    try { const msg = await it.fix(); S.toast(it.title + ': ' + msg); }
+    catch (e) { errs[id] = 'Nie udało się: ' + e.message; if (e.relogin) relogin(); }
+    running.delete(id);
+    await refresh();
+    const ic = $('ic-' + id); if (ic) { ic.classList.add('pop'); setTimeout(() => ic.classList.remove('pop'), 300); }
+  }
+  // ponowne logowanie do Twitcha (nowe uprawnienia): kod z GameRadara, wpisujesz go na stronie Twitcha
+  async function relogin() {
+    const box = $('login'); box.hidden = false; box.innerHTML = 'Łączę z Twitchem…';
+    try {
+      let t = await (await fetch(S.hub() + '/twitch/setup?clientId=keep', { cache: 'no-store' })).json();
+      if (t.ok === false) throw new Error(t.error);
+      box.innerHTML = `<b>Zaloguj się ponownie do Twitcha</b> – potrzebne nowe uprawnienia (klucz transmisji, moderacja).<br>Wejdź na <a href="${esc(t.uri)}" target="_blank" rel="noopener">${esc(t.uri)}</a> i wpisz kod: <code>${esc(t.code)}</code>`;
+      for (let k = 0; k < 120; k++) {
+        await new Promise(r => setTimeout(r, 3000));
+        t = await (await fetch(S.hub() + '/twitch/status', { cache: 'no-store' })).json();
+        if (t.status === 'online') { box.innerHTML = '✓ Zalogowano – ustawiam Twitcha w OBS…'; delete errs.service; await fix('service'); setTimeout(() => { box.hidden = true; }, 4000); return; }
+        if (t.status === 'need-login' || t.status === 'error') { box.innerHTML = 'Logowanie przerwane: ' + esc(t.error || ''); return; }
+      }
+    } catch (e) { box.innerHTML = 'GameRadar nie odpowiada: ' + esc(e.message || ''); }
+  }
+  document.addEventListener('click', e => { const b = e.target.closest('[data-fix]'); if (b) fix(b.dataset.fix); });
+  $('all').onclick = async () => { for (const i of items.filter(x => !x.ok && !(x.idle && live))) await fix(i.id); };
+  connect(); setInterval(() => { if (!document.hidden && !running.size) refresh(); }, 15000);
+})();
+</script>
+</body>
+</html>
