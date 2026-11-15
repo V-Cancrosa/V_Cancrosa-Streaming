@@ -63,20 +63,74 @@
   const icon = net => `<svg class="soc-ic soc-${net}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"${COLORS[net] ? ` style="color:${COLORS[net]}"` : ''}>${I[net] || I.link}</svg>`;
   // HTML jednego wpisu: ikona + nazwa konta (opcjonalnie nazwa serwisu)
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const item = (s, withName) => `<span class="soc soc-n-${s.net}">${s.icon}${withName && s.name ? `<small>${esc(s.name)}</small>` : ''}<b>${esc(s.handle)}</b></span>`;
+  const item = (s, withName, k = 0) => `<span class="soc soc-n-${s.net}" style="--i:${k}" data-n="${String(k + 1).padStart(2, '0')}" data-k="link.${s.net}">${s.icon}<span class="soc-t">${withName && s.name ? `<small>${esc(s.name)}</small>` : ''}<b>${esc(s.handle)}</b></span></span>`;
+  // skórki postaci: każde konto to osobny element w stylu prowadzącej postaci (opts.skin = vince | chip | ragnar | toro | myr | zarin)
+  const SKINS = ['vince', 'chip', 'ragnar', 'toro', 'myr', 'zarin'];
   function render(el, str, opts = {}) {
     if (!el) return;
-    const list = parse(str), key = JSON.stringify(list.map(s => s.net + s.handle)) + !!opts.names;
+    const skin = SKINS.includes(opts.skin) ? opts.skin : '';
+    const list = parse(str), names = !!opts.names || !!skin, key = JSON.stringify(list.map(s => s.net + s.handle)) + names + skin;
     if (el.dataset.soc === key) return; el.dataset.soc = key;
-    el.innerHTML = list.map(s => opts.links && s.url ? `<a href="${esc(s.url)}" target="_blank" rel="noopener me">${item(s, opts.names)}</a>` : item(s, opts.names)).join('');
+    for (const c of [...el.classList]) if (c.startsWith('socs')) el.classList.remove(c);
+    if (skin) el.classList.add('socs', 'socs-skin-' + skin);
+    el.innerHTML = list.map((s, k) => opts.links && s.url ? `<a href="${esc(s.url)}" target="_blank" rel="noopener me">${item(s, names, k)}</a>` : item(s, names, k)).join('');
   }
+  const SKIN_CSS = `
+.socs{display:flex;flex-direction:column;align-items:flex-end;gap:.6em}
+.socs .soc{position:relative}.socs .soc-t{display:inline-flex;flex-direction:column;line-height:1.15}.socs .soc-t small{margin:0;opacity:.7;font-size:.56em;letter-spacing:.14em;text-transform:uppercase}
+/* Vince – adnotacje architekta: ramka z narożnikami, numer A-0n, kreskowana linia odniesienia, schodki */
+.socs-skin-vince{font-family:'Space Mono',monospace}
+.socs-skin-vince .soc{padding:.4em .75em .35em .6em;color:#f2f3f7;background:rgba(10,10,11,.74);border:1px solid rgba(242,243,247,.22);margin-right:calc(var(--i) * .9em);
+ background-image:linear-gradient(var(--accent,#7c5cff),var(--accent,#7c5cff)),linear-gradient(var(--accent,#7c5cff),var(--accent,#7c5cff)),linear-gradient(var(--accent,#7c5cff),var(--accent,#7c5cff)),linear-gradient(var(--accent,#7c5cff),var(--accent,#7c5cff));
+ background-size:.6em 2px,2px .6em,.6em 2px,2px .6em;background-position:0 0,0 0,100% 100%,100% 100%;background-repeat:no-repeat}
+.socs-skin-vince .soc::before{content:'';position:absolute;right:100%;top:50%;width:calc(1.4em + var(--i) * .35em);border-top:1px dashed rgba(242,243,247,.45)}
+.socs-skin-vince .soc::after{content:'A-' attr(data-n);position:absolute;left:.4em;top:-.75em;font-size:.48em;letter-spacing:.22em;color:var(--accent,#7c5cff);background:#0a0a0b;padding:0 .4em}
+/* Chip – karteczki z taśmą, każda inaczej przekrzywiona */
+.socs-skin-chip{font-family:'Nunito',sans-serif;gap:.9em}
+.socs-skin-chip .soc{padding:.6em .85em .5em;color:#4a2a17;background:var(--note,#ffe98a);border-radius:2px 2px 12px 2px;box-shadow:0 6px 14px rgba(74,42,23,.28);transform:rotate(var(--r,-2deg))}
+.socs-skin-chip .soc:nth-child(4n+1){--note:#ffe98a;--r:-2.6deg}.socs-skin-chip .soc:nth-child(4n+2){--note:#ffc7d6;--r:1.9deg;margin-right:1.2em}.socs-skin-chip .soc:nth-child(4n+3){--note:#bfe6ff;--r:-1.2deg;margin-right:.4em}.socs-skin-chip .soc:nth-child(4n){--note:#c9f2c0;--r:2.6deg;margin-right:1.6em}
+.socs-skin-chip .soc::before{content:'';position:absolute;top:-.45em;left:50%;width:2.6em;height:.9em;margin-left:-1.3em;background:rgba(255,255,255,.6);transform:rotate(-4deg);box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.socs-skin-chip .soc b{font-family:'Caveat',cursive;font-size:1.3em;font-weight:700}
+/* Ragnar – playlista: numer utworu, neonowy pasek, korektor */
+.socs-skin-ragnar{font-family:'Space Mono',monospace;gap:.4em}
+.socs-skin-ragnar .soc{min-width:13em;padding:.4em .8em .4em .55em;color:#f2f3f7;background:rgba(12,6,20,.84);border-left:3px solid var(--neon,#ff2e88);border-radius:4px;box-shadow:0 0 14px color-mix(in srgb,var(--neon,#ff2e88) 25%,transparent)}
+.socs-skin-ragnar .soc:nth-child(3n+1){--neon:#ff2e88}.socs-skin-ragnar .soc:nth-child(3n+2){--neon:#26c6e0}.socs-skin-ragnar .soc:nth-child(3n){--neon:#b4e03c}
+.socs-skin-ragnar .soc::before{content:attr(data-n);font-size:.7em;color:var(--neon,#ff2e88);margin-right:.2em}
+.socs-skin-ragnar .soc::after{content:'';margin-left:auto;width:1.1em;height:.95em;background:linear-gradient(var(--neon),var(--neon)) 0 100%/3px 40% no-repeat,linear-gradient(var(--neon),var(--neon)) 50% 100%/3px 80% no-repeat,linear-gradient(var(--neon),var(--neon)) 100% 100%/3px 55% no-repeat;animation:soc-eq 1.1s ease-in-out infinite alternate;animation-delay:calc(var(--i) * -.37s)}
+@keyframes soc-eq{50%{background-size:3px 90%,3px 30%,3px 75%}100%{background-size:3px 55%,3px 95%,3px 30%}}
+/* Toro – lampiony na sznurkach, każdy na innej wysokości, lekko się kołyszą */
+.socs-skin-toro{font-family:'Fraunces',serif;flex-direction:row;align-items:flex-start;gap:1em}
+.socs-skin-toro .soc{flex-direction:column;align-items:center;gap:.2em;padding:.75em .8em .85em;min-width:5.6em;text-align:center;color:#3a1d0b;background:radial-gradient(ellipse at 50% 38%,#fff1c9,#ffbe6a 58%,#e0782e);border-radius:46% 46% 40% 40%/36% 36% 50% 50%;
+ box-shadow:0 0 22px rgba(255,170,80,.6),0 0 60px rgba(255,150,60,.25);transform-origin:50% -2em;animation:soc-sway 5.5s ease-in-out infinite alternate;animation-delay:calc(var(--i) * -1.3s)}
+.socs-skin-toro .soc:nth-child(3n+2){margin-top:1.3em}.socs-skin-toro .soc:nth-child(3n){margin-top:.6em}
+.socs-skin-toro .soc::before{content:'';position:absolute;bottom:100%;left:50%;width:1px;height:30em;background:rgba(246,234,208,.45)}
+.socs-skin-toro .soc::after{content:'';position:absolute;top:-.28em;left:28%;right:28%;height:.5em;border-radius:3px;background:#3a2412}
+.socs-skin-toro .soc-t{align-items:center}.socs-skin-toro .soc b{font-size:.78em}.socs-skin-toro .soc small{font-size:.5em}
+@keyframes soc-sway{from{transform:rotate(-2.4deg)}to{transform:rotate(2.4deg)}}
+/* Myr-35 – linie terminala: > link.serwis = konto, kursor na końcu */
+.socs-skin-myr{font-family:'IBM Plex Mono',monospace;gap:.35em}
+.socs-skin-myr .soc{padding:.3em .75em .3em .6em;font-size:.86em;color:#ede6d6;background:rgba(10,11,13,.88);border-left:3px solid #d9823f;background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px)}
+.socs-skin-myr .soc::before{content:'> ' attr(data-k) ' =';color:#d9823f;margin-right:.1em;font-size:.86em}
+.socs-skin-myr .soc small{display:none}.socs-skin-myr .soc-ic{color:#d9823f!important}
+.socs-skin-myr .soc:last-child::after{content:'_';color:#d9823f;animation:soc-blink 1s steps(1) infinite}
+@keyframes soc-blink{50%{opacity:0}}
+/* Zarin – przykręcone płyty kadłuba ze śrubami i napisem z szablonu */
+.socs-skin-zarin{font-family:'Saira Stencil One',Impact,sans-serif;gap:.7em}
+.socs-skin-zarin .soc{padding:.5em 1em .65em;color:#e6e1d3;letter-spacing:.06em;border:2px solid #3a3f45;border-radius:4px;transform:rotate(var(--r,0deg));
+ background:radial-gradient(circle at 7px 7px,#3a3f45 2.6px,transparent 3.2px),radial-gradient(circle at calc(100% - 7px) 7px,#3a3f45 2.6px,transparent 3.2px),radial-gradient(circle at 7px calc(100% - 7px),#3a3f45 2.6px,transparent 3.2px),radial-gradient(circle at calc(100% - 7px) calc(100% - 7px),#3a3f45 2.6px,transparent 3.2px),linear-gradient(#8a8e93,#6e7378);
+ box-shadow:inset 0 -.32em 0 #5e7a5a,0 4px 10px rgba(0,0,0,.45)}
+.socs-skin-zarin .soc:nth-child(odd){--r:-.8deg}.socs-skin-zarin .soc:nth-child(even){--r:.9deg;margin-right:.8em}
+.socs-skin-zarin .soc small{font-family:'Space Mono',monospace;color:#1b1f24;opacity:.75}
+@media (prefers-reduced-motion:reduce){.socs .soc,.socs .soc::after{animation:none!important}}
+.reduced-motion .socs .soc,.reduced-motion .socs .soc::after{animation:none!important}`;
   // wygląd (wstrzykiwany raz – strony nie muszą mieć base.css)
   try {
     if (!document.getElementById('vm-soc-css')) {
       const st = document.createElement('style'); st.id = 'vm-soc-css';
       st.textContent = '.soc{display:inline-flex;align-items:center;gap:.45em;white-space:nowrap}.soc-ic{width:1.15em;height:1.15em;flex:none;color:currentColor}.soc small{opacity:.6;font-size:.62em;text-transform:uppercase;letter-spacing:.12em}.soc b{font-weight:inherit}';
+      st.textContent += SKIN_CSS;
       (document.head || document.documentElement).appendChild(st);
     }
   } catch (e) {}
-  window.VMSocials = { parse, render, icon, item, DEFAULT };
+  window.VMSocials = { parse, render, icon, item, DEFAULT, SKINS };
 })();

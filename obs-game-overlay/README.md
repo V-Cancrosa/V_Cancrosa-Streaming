@@ -58,6 +58,8 @@ Instalator można uruchomić ponownie – nie tworzy duplikatów.
 
 **Synchronizacja ustawień** (strona ↔ OBS ↔ telefon): pole po polu – wysyłane jest tylko to, co się zmieniło, doklejone do najnowszego stanu, a cudze zmiany nie cofają Twoich. W jednej przeglądarce synchronizuje jedna strona naraz.
 
+**Sociale w stylu postaci** (ekrany i układy): każde konto osobno – Vince: adnotacje architekta (A-01… z liniami odniesienia), Chip: karteczki z taśmą, Ragnar: playlista z korektorem, Toro: kołyszące się lampiony, Myr-35: linie terminala `> link.… =`, Zarin: przykręcone płyty kadłuba. Przy dużej postaci/herbie układają się w dwie kolumny, żeby nie wchodzić na art.
+
 **Alerty** mają ramy wielkości: poziom 1 najwyżej 42% szerokości i 26% wysokości ekranu, poziom 5 – 58% i 40%.
 
 **Kokpit w OBS:** dok *Vincent-Media* w OBS to teraz kompaktowy kokpit (`site/live.html?dock=1`) – ten sam co w przeglądarce, zawsze zsynchronizowany; stary adres `panel.html` przekierowuje sam (bez zmian w OBS). Robota dawnego panelu (łapanie okna gry, automatyczne nagrywanie, polecenia z pilota, cenzura, podpowiedzi scen dla alertów) działa w doku niewidocznie (`panel.html?engine=1`). Stary wygląd panelu: serwis → *Wszystkie ustawienia*.

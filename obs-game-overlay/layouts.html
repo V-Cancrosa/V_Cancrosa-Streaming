@@ -321,7 +321,7 @@
     item(T('lastFollow', 'Ostatni follow'), last('follow'));
     item(T('lastSub', 'Ostatni sub'), last('sub'));
     item(T('lastRaid', 'Ostatni raid'), last('raid'));
-    if (window.VMSocials && layout !== 'game-full') { const d = document.createElement('div'); d.className = 'socials'; window.VMSocials.render(d, s.socials); if (d.childElementCount) b.appendChild(d); }
+    if (window.VMSocials && layout !== 'game-full') { const d = document.createElement('div'); d.className = 'socials'; window.VMSocials.render(d, s.socials, { skin: String(s.theme || '').replace(/^g-/, '') }); if (d.childElementCount) b.appendChild(d); }
   }
   async function pollSession() {
     try { session = await C.hubGet('/session'); } catch (e) { session = C.read('obsGameOverlay.demoSession', session) || {}; }
