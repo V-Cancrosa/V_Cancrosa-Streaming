@@ -2257,20 +2257,24 @@ foreach ($m in @('censor', 'tts', 'windows')) {
 }
 Log ('Moduły: ' + (($script:Mods.Keys | ForEach-Object { "$_ $($script:Mods[$_])" }) -join ', ')) 'DarkGray'
 
-# tylko na tym komputerze
-$listener = New-Object Net.HttpListener
-$listener.Prefixes.Add("http://localhost:$Port/")
-try { $listener.Start() }
-catch {
-    # port zajęty: zawieszona stara kopia? zamknij ją i spróbuj jeszcze raz
-    $err = $_.Exception.Message
-    $retried = $false
-    if (Stop-StaleDetector) { try { $listener.Close() } catch {}; $listener = New-Object Net.HttpListener; $listener.Prefixes.Add("http://localhost:$Port/"); try { $listener.Start(); $retried = $true } catch {} }
-    if (-not $retried) {
-        Log "Nie mogę otworzyć portu $Port – może GameRadar już działa w innym oknie? ($err)" 'Red'
-        [Environment]::Exit(1)
+# tylko na tym komputerze: najpierw «localhost»; gdy Windows odmawia (np. stara rezerwacja portu po dawnym pilocie
+# przez Wi-Fi), przez tę starą rezerwację – zapytania spoza tego komputera i tak dostają 403
+function Open-Listener {
+    $errs = @()
+    foreach ($pre in @("http://localhost:$Port/", "http://+:$Port/")) {
+        $l = New-Object Net.HttpListener; $l.Prefixes.Add($pre)
+        try { $l.Start(); if ($pre -ne "http://localhost:$Port/") { Log "Port $Port: «localhost» niedostępny, słucham przez $pre" 'DarkYellow' }; return @{ l = $l; err = '' } }
+        catch { $errs += $_.Exception.Message; try { $l.Close() } catch {} }
     }
+    return @{ l = $null; err = ($errs | Select-Object -First 1) }
 }
+$open = Open-Listener
+if (-not $open.l -and (Stop-StaleDetector)) { Start-Sleep -Milliseconds 500; $open = Open-Listener }
+if (-not $open.l) {
+    Log "Nie mogę otworzyć portu $Port – może GameRadar już działa w innym oknie? ($($open.err))" 'Red'
+    [Environment]::Exit(1)
+}
+$listener = $open.l
 Log "Nasłuchuję na http://localhost:$Port/" 'Green'
 # OBS razem z GameRadarem: ze skrótu «Start streamu» albo gdy włączone w panelu (GameRadar → «Uruchamiaj OBS»)
 $LaunchFile = Join-Path $DataDir 'launch.json'
