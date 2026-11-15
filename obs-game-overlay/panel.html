@@ -1125,7 +1125,7 @@
   $('launchObs').onchange = () => launch('obs=' + ($('launchObs').checked ? 1 : 0));
   $('lnkMake').onclick = async () => { try { const j = await (await fetch(hubUrl() + '/shortcut', { cache: 'no-store' })).json(); $('launchInfo').textContent = j.ok ? 'Skrót „Start streamu” jest na pulpicie: uruchamia GameRadar w tle, a potem OBS.' : (j.error || 'GameRadar w starszej wersji – uruchom go ponownie.'); if (j.ok) vmPulse($('lnkMake')); } catch { $('launchInfo').textContent = 'GameRadar nie odpowiada.'; } setTimeout(() => launch(''), 1500); };
   $('grRestart').onclick = async () => {
-    try { const r = await fetch(hubUrl() + '/restart', { cache: 'no-store' }); const j = await r.json().catch(() => ({})); $('launchInfo').textContent = j.ok ? 'Uruchamiam GameRadar ponownie… za kilka sekund wróci.' : r.status === 404 || j.ok === undefined ? 'Ta wersja GameRadara nie umie się sama zrestartować – zrób to raz: Menedżer zadań → Windows PowerShell → Zakończ, potem Menu Start → Vincent-Media → Wykrywacz gier.' : j.error; }
+    try { const r = await fetch(hubUrl() + '/restart', { cache: 'no-store' }); const j = await r.json().catch(() => ({})); $('launchInfo').textContent = j.ok ? 'Uruchamiam GameRadar ponownie… za kilka sekund wróci.' : r.status === 404 || j.ok === undefined ? 'Ta wersja GameRadara nie umie się sama zrestartować – zrób to raz: Menedżer zadań → Windows PowerShell → Zakończ, potem Menu Start → Vincent-Media → GameRadar.' : j.error; }
     catch { $('launchInfo').textContent = 'GameRadar nie odpowiada.'; }
   };
   setTimeout(() => launch(''), 1200);
@@ -1243,7 +1243,7 @@
     $('lcIgnoreRow').hidden = true;
     $('lcAdd').hidden = !(lcOn && lc.online);
     if (!s.local) setStatus($('lcStatus'), ['Wyłączony.']);
-    else if (!lc.online) setStatus($('lcStatus'), ['Nie widzę wykrywacza. Uruchom go: ', { b: 'Menu Start → Vincent-Media → Wykrywacz gier' }, ' (albo przycisk „Uruchom wykrywacz” na karcie Start).']);
+    else if (!lc.online) setStatus($('lcStatus'), ['Nie widzę wykrywacza. Uruchom go: ', { b: 'Menu Start → Vincent-Media → GameRadar' }, ' (albo przycisk „Uruchom wykrywacz” na karcie Start).']);
     else if (lc.game) {
       setStatus($('lcStatus'), ['Wykryto: ', { b: lc.game.name }, ` (${VIA[lc.game.via] || lc.game.via}${lc.game.exe ? ', ' + lc.game.exe : ''})`]);
       $('lcIgnoreRow').hidden = false;
@@ -1729,7 +1729,7 @@
     const f = document.createElement('iframe'); f.style.display = 'none'; f.src = 'vincentmedia://start'; document.body.appendChild(f);
     setTimeout(() => f.remove(), 3000);
     $('detStartMsg').hidden = false;
-    $('detStartMsg').textContent = 'Uruchamiam… Jeśli po kilku sekundach nadal nie działa: Menu Start → Vincent-Media → Wykrywacz gier (albo uruchom instalator jeszcze raz i zgódź się na „uruchamianie z OBS”).';
+    $('detStartMsg').textContent = 'Uruchamiam… Jeśli po kilku sekundach nadal nie działa: Menu Start → Vincent-Media → GameRadar (albo uruchom instalator jeszcze raz i zgódź się na „uruchamianie z OBS”).';
   };
   $('stStatus').addEventListener('click', e => { const d = e.target.closest('[data-goto]'); if (!d) return; openGroup(d.dataset.goto === 'twPill' ? 'Twitch' : d.dataset.goto === 'obsPill' ? 'OBS' : 'GameRadar'); });
   let capLast = '', capBusy = false;
@@ -1987,7 +1987,7 @@
       const j = await r.json();
       libData = { items: arr(j.items), installed: arr(j.installed), current: j.current || '' }; libErr = j.error || '';
     } catch (e) {
-      $('libList').innerHTML = `<p class="hint" style="margin:0">Nie mogę pobrać listy z wykrywacza (${esc(e.message)}). Jeśli działa – zamknij go i uruchom ponownie (Menu Start → Vincent-Media → Wykrywacz gier), bo po aktualizacji mógł zostać stary.</p>`; return;
+      $('libList').innerHTML = `<p class="hint" style="margin:0">Nie mogę pobrać listy z wykrywacza (${esc(e.message)}). Jeśli działa – zamknij go i uruchom ponownie (Menu Start → Vincent-Media → GameRadar), bo po aktualizacji mógł zostać stary.</p>`; return;
     }
     try { const g = (await (await fetch(hubUrl() + '/game', { cache: 'no-store' })).json()).game; libLive = g && g.name ? { id: 'live', name: g.name, steam: g.steam || '', kind: g.kind || '', live: true } : null; } catch { libLive = null; }
     renderLibrary();
@@ -2705,7 +2705,7 @@
   function twRender() {
     const st = twState;
     $('twSetup').hidden = true; $('twCode').hidden = true; $('twOnline').hidden = true;
-    if (!st) { pill('twPill', false, '', 'BRAK'); setStatus($('twStatus'), ['Twitch działa przez wykrywacz, a ten teraz nie odpowiada. Uruchom go: ', { b: 'Menu Start → Vincent-Media → Wykrywacz gier' }, '.']); return; }
+    if (!st) { pill('twPill', false, '', 'BRAK'); setStatus($('twStatus'), ['Twitch działa przez wykrywacz, a ten teraz nie odpowiada. Uruchom go: ', { b: 'Menu Start → Vincent-Media → GameRadar' }, '.']); return; }
     switch (st.status) {
       case 'online': pill('twPill', true, 'POŁĄCZONO'); setStatus($('twStatus'), ['Połączono jako ', { b: st.user }, '. Alerty przychodzą na żywo.']); $('twOnline').hidden = false; break;
       case 'connecting': pill('twPill', false, '', 'ŁĄCZĘ'); setStatus($('twStatus'), ['Łączę z Twitchem', st.user ? ' jako ' : '', st.user ? { b: st.user } : '', '…']); $('twOnline').hidden = false; break;
@@ -2835,7 +2835,7 @@
     let info = null;
     try { const r = await fetch(window.vmHub(s.localUrl || DEFAULTS.localUrl) + '/remote/info', { cache: 'no-store' }); info = await r.json(); } catch {}
     $('rmOn').hidden = !(info && info.lan && info.urls && info.urls.length);
-    if (!info) { pill('rmPill', false, '', 'BRAK'); setStatus($('rmStatus'), ['Pilot działa przez wykrywacz, a ten teraz nie odpowiada. Uruchom go: ', { b: 'Menu Start → Vincent-Media → Wykrywacz gier' }, '.']); }
+    if (!info) { pill('rmPill', false, '', 'BRAK'); setStatus($('rmStatus'), ['Pilot działa przez wykrywacz, a ten teraz nie odpowiada. Uruchom go: ', { b: 'Menu Start → Vincent-Media → GameRadar' }, '.']); }
     else if (!info.lan) { pill('rmPill', false, '', 'WYŁ.'); setStatus($('rmStatus'), ['Wymaga jednej zgody administratora: ', { b: 'Menu Start → Vincent-Media → Włącz pilota z telefonu' }, '. Wykrywacz sam uruchomi się ponownie.']); }
     else {
       pill('rmPill', true, 'DZIAŁA'); setStatus($('rmStatus'), [info.urls.length > 1 ? 'Komputer ma kilka adresów – użyj tego z Twojej sieci Wi‑Fi.' : '']);

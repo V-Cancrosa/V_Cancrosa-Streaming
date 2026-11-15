@@ -1,752 +1,220 @@
-# OBS Game Overlay
+# Vincent-Media – stream w OBS
 
-Nakładka „Teraz gram” do OBS na nagrania i streamy na YouTube i Twitchu. Nazwę gry możesz wpisać sam albo pozwolić, żeby została wykryta automatycznie – tak jak robi to Discord. Nakładka sama dobiera kolor do gry.
+Komplet do streamowania na Twitchu i nagrywania: karta „Teraz gram”, ekrany przed streamem i przerwy, alerty, czat na ekranie, postacie (fursony) jako prowadzący, motywy gier, cenzura ekranu, Kreator własnych stron i pilot z telefonu.
 
-- `overlay.html` – sama nakładka; w OBS dodajesz ją jako **źródło przeglądarki** (Browser Source)
-- `panel.html` – panel sterowania; w OBS dodajesz go jako **dock przeglądarki** (Custom Browser Dock)
-- `scenes.html` – ekrany: przygotowania, stream za X, start, spóźnienie, przerwa, koniec z napisami
-- `layouts.html` – układy: gra na pełny ekran (dymki czatu), gra w ramce (czat obok), rozmowa; z miejscem na avatara/kamerkę
-- `chat.html` – czat z Twitcha: dymki albo panel, z wyglądem wybieranym przez widzów
-- `alerts.html` – alerty z Twitcha (follow, sub, raid…); w OBS osobne **źródło przeglądarki**
-- `detector/` – wykrywacz gier i połączenie z Twitchem dla Windows (skrypt PowerShell, nic nie trzeba instalować)
+**Jak to jest zbudowane:**
 
-Do wpisywania gry ręcznie wystarczą dwa pliki HTML.
-
-## Motywy
-
-`neon` · `glass` · `minimal` · `retro` (pixel art) · `esport` (pasek)
-
-**Motywy gier** (włączają się same, gdy gra ma swój motyw; można to wyłączyć w panelu):
-Talisman (obie edycje) · Palworld · Mass Effect · Warframe · Deadlock · Darkest Dungeon · Hollow Knight (też Silksong) · Cyberpunk 2077 · Counter-Strike 2 · C&C: Red Alert · C&C: Tiberium · C&C: Generals.
-
-**Mass Effect Legendary Edition** startuje launcherem, a potem uruchamia jedną z części jako osobny program. Wykrywacz to widzi i podaje część: *Mass Effect 1/2/3 (Legendary Edition)*. Każda ma własny wygląd i teksty – ME1 niebieski Sojusz i SR-1, ME2 pomarańczowy Cerber i misja samobójcza, ME3 czerwień Żniwiarzy i zasoby wojenne, Andromeda turkus pionierów. Sam launcher ma neutralny „wybór misji”.
-
-**Części innych gier** – wykrywacz albo nazwa gry podaje część, a motyw zmienia kolory, napis i teksty:
-- Red Alert: 1 / Remastered, 2, *Yuri's Revenge* (fiolet kontroli umysłów), 3, *Uprising*,
-- Tiberium: *Tiberian Dawn* / Remastered, *Tiberian Sun*, *Firestorm*, *C&C 3*, *Kane's Wrath* (czerwień Bractwa), *C&C 4*,
-- Generals / *Zero Hour*, Hollow Knight / *Silksong*, Darkest Dungeon / *Darkest Dungeon II* (dyliżans i droga ku Górze), Talisman 4. / 5. edycja.
-
-**Visual Novel** – motyw okna dialogowego z plakietką imienia. Włącza się sam dla SoulCreeka (ma własny wariant „Blackrunner”) i dla **każdej gry na silniku Ren'Py**: wykrywacz rozpoznaje silnik po plikach gry i bierze nazwę z folderu, np. „Soulcreek-0.10-pc” → „Soulcreek”.
-
-**Blender / 3D** – gdy działa Blender (albo ZBrush, Substance, Houdini, Maya, 3ds Max, Cinema 4D; a bez własnego motywu także Krita, Aseprite, Clip Studio, Photoshop, Unity, Unreal, Godot), karta mówi **„Teraz tworzę”** zamiast „Teraz gram”. Motyw ma obracającą się siatkę, a ekrany i alerty mówią po modelarsku („Render się liczy – zaraz wracam”). Flagowanie botów nie traktuje tego jak grania.
-
-**Darkest Dungeon** mówi głosem narratora: podniośle, mrocznie i z gorzkim humorem – w alertach, na ekranach przerw i w przejściach (teksty napisane od zera, w duchu gry).
-W plikach są też Elden Ring, Minecraft, Fortnite, League of Legends, VALORANT i GTA V – działają przy wykryciu gry, ale nie ma ich na liście w panelu (nie ma ich w bibliotece). Listę ukrytych zmienisz w `themes/library.js`.
-Długie nazwy gier i nicki nie są ucinane „…”: czcionka się zmniejsza, a w razie potrzeby tekst przechodzi do drugiej linijki.
-Mają animowane ozdobniki wystające nad panel i cząsteczki wokół niego. Cała grafika jest narysowana od zera (SVG i canvas), bez logotypów i grafik z gier – licencja CC0. Definicje są w `themes/games.js` i `themes/games.css`.
-
-**Motywy postaci:** Vince · Chip · Ragnar · Toro · Myr-35 · Zarin (w panelu: *Postać*; „bez postaci” wraca do wybranego stylu, a gra zostaje; w adresie `theme=g-vince` itd.).
-Myr-35 ma głowę protogena w ujęciu 3/4 z gęstą matrycą LED (mimika: spokój, mrugnięcie, uśmiech, mówienie przy mikrofonie, zakłócenia przy Nanite Syndrome). Domyślnie losuje rejestr; w panelu można go ustawić na stałe (protokół / człowiek / terminal / Nanite Syndrome).
-Kolory, czcionki i motywy pochodzą ze stron postaci. Każda postać ma swój napis nad nazwą gry, dopóki w panelu zostaje domyślny „Teraz gram”.
-Gdy gra ma własny motyw i opcja *gra ma własny motyw → włącz go sam* jest zaznaczona, motyw gry wygrywa z motywem postaci.
-Portrety w `themes/fursona/` należą do autorów ilustracji (patrz `themes/fursona/CREDITS.md`) i nie są na licencji CC0.
-
-**Fuzja postaci z grą** (panel → Wygląd → Karta → „Gdy gra ma własny motyw”):
-
-| Tryb | Proporcja | Wygląd | Teksty |
-|---|---|---|---|
-| **Pół na pół** (domyślny) | 50:50 | karta postaci z wymieszanymi kolorami, obwódką i odznaką gry | pół na pół |
-| Sam motyw gry | – | tylko gra | tylko gra |
-| Ignoruj motywy gier | – | tylko postać / styl | tylko postać |
-| 🧪 Postać bazą, gra dodatkiem | 66:33 | eksperymentalny – do dopracowania | ⅔ postać, ⅓ gra |
-| 🧪 Gra bazą, postać dodatkiem | 33:66 | eksperymentalny – do dopracowania | ⅓ postać, ⅔ gra |
-
-Każda gra z motywem ma własne teksty alertów (i na duże zdarzenia). Przykładowe wiadomości w alertach testowych też są w stylu aktywnej postaci i gry.
-
-**Animacje** są zawsze włączone, niezależnie od ustawień systemu. Wyłącza je tylko opcja *ogranicz animacje* w panelu (albo `motion=reduced` w adresie).
-
-Kolor akcentu jest liczony z nazwy gry, więc każda gra ma swój stały kolor. Możesz też ustawić własny kolor w panelu.
-Gry ze Steama dostają okładkę ze sklepu Steam, pozostałe wykryte gry – ikonę z Discorda. Jeśli nie ma żadnego obrazka, nakładka pokazuje monogram, np. **ER** dla Elden Ring.
-
-## Instalacja automatyczna (zalecana)
-
-1. Pobierz **[Zainstaluj-Vincent-Media.bat](https://github.com/V-Cancrosa/Vincent-Media/raw/main/Zainstaluj-Vincent-Media.bat)** i kliknij go dwa razy.
-   Jeśli Windows pokaże „System Windows ochronił ten komputer”: *Więcej informacji → Uruchom mimo to*.
-   Zamiast pliku możesz wkleić w PowerShellu: `irm "https://raw.githubusercontent.com/V-Cancrosa/Vincent-Media/main/install.ps1?t=$(Get-Random)" | iex`
-2. Instalator:
-   - pobiera pliki do `%LOCALAPPDATA%\Vincent-Media\obs-game-overlay` (nie potrzebuje uprawnień administratora),
-   - pyta, czy skonfigurować OBS (OBS musi być wtedy zamknięty). Jeśli tak, dodaje:
-     - źródła przeglądarki `VM · Teraz gram`, `VM · Alerty`, `VM · Ekran start/przerwa/koniec`,
-     - scenę **`VM · Nakładki`** (karta z grą + alerty) i – jeśli chcesz – kładzie ją na wierzch Twoich istniejących scen,
-     - sceny `VM · Zaraz zaczynamy`, `VM · Przerwa`, `VM · Koniec`,
-     - dok **Vincent-Media** z panelem,
-     - i wszystko dopasowuje do rozdzielczości Twojego płótna OBS,
-   - przed zmianami robi kopię zapasową plików OBS (`*.vm-backup-data-godzina` obok oryginału),
-   - tworzy skróty w menu Start (*Vincent-Media → Wykrywacz gier / Aktualizuj / Folder*) i opcjonalnie autostart wykrywacza.
-3. Uruchom OBS.
-
-Instalator można uruchomić ponownie, np. po zmianie kolekcji scen. Nie tworzy wtedy duplikatów, tylko aktualizuje adresy.
-
-### Aktualizacje
-
-- Gdy działa wykrywacz, co 10 minut sprawdza na GitHubie, czy jest nowa wersja. Jeśli jest, podmienia zmienione pliki i uruchamia się od nowa. Nakładki i panel w OBS same się odświeżają. **W trakcie transmisji albo nagrywania nic się nie aktualizuje ani nie restartuje** (panel w OBS melduje to wykrywaczowi). Aktualizacja odbywa się zaraz po zakończeniu. Odliczanie do następnego sprawdzenia widać w *Więcej → Wersja*.
-- Twoje dane zostają: logowanie Twitcha, baza gier i `my-games.txt`. Ustawienia panelu są w OBS, więc aktualizacja ich nie rusza.
-- W panelu, w sekcji **Wersja**, widać zainstalowaną wersję, jest przycisk *Sprawdź aktualizacje* / *Aktualizuj teraz* i można wyłączyć automatyczne aktualizacje.
-- Ręcznie: *Menu Start → Vincent-Media → Aktualizuj* (albo `update.bat` w folderze nakładek).
-
-### Odinstalowanie
-
-Usuń sceny `VM · …` i dok w OBS, folder `%LOCALAPPDATA%\Vincent-Media`, folder *Vincent-Media* w menu Start i skrót *Vincent-Media wykrywacz* w autostarcie (`Win+R` → `shell:startup`).
-
-## Porządek: OBS i panel
-
-**OBS – jedna scena.** Instalator zakłada tylko `VM · Stream` (cały stream) i `VM · Nakładki` (karta z alertami do Twoich własnych scen). Jeśli w OBS zostały stare sceny VM (Gra – pełny ekran, Gra – w ramce, Przerwa, Rozmowa, Start streamu, Głosowanie, Koniec…), na karcie Start pojawi się **🧹 Uporządkuj OBS**. Po potwierdzeniu panel:
-1. dokłada do `VM · Stream` komplet: przechwytywanie gry na dole, ekran, alerty, cenzurę, przejścia i mikrofon;
-2. przełącza OBS na `VM · Stream`;
-3. usuwa stare sceny VM oraz źródła VM, których nic już nie używa.
-
-Twoje własne sceny i źródła zostają.
-
-**Panel – tryb pilota.** Na karcie Start, pod scenami, jest przełącznik **„to okno jako pilot (tylko Start i Sterowanie)”**. Zaznacz go w doku OBS: zostają tam tylko rzeczy do prowadzenia streamu, a całą konfigurację robisz w serwisie w przeglądarce (https://v-cancrosa.github.io/Vincent-Media/). Zmiany przychodzą do OBS same. Przełącznik zapamiętuje się osobno w każdym oknie.
-
-## Start streamu jednym kliknięciem
-
-**Start streamu** to skrót w Menu Start → Vincent-Media. Na pulpicie tworzysz go przyciskiem w panelu: Więcej → GameRadar → *Skrót „Start streamu” na pulpicie*. Skrót uruchamia GameRadar w tle, bez okna, a zaraz po nim OBS. Gdy GameRadar już działa, włącza tylko OBS.
-
-Zaznacz **„uruchamiaj OBS razem z GameRadarem”** i ustaw w instalatorze autostart GameRadara z Windowsem. Wtedy po włączeniu komputera wszystko startuje samo: najpierw GameRadar, potem OBS. Panel w OBS łączy się z oboma, a pierwsze 45 s pokazuje „łączę…”.
-
-**↻ Uruchom GameRadar ponownie** wczytuje nową wersję od razu, bez czekania. W trakcie transmisji i nagrywania GameRadar zrestartuje się dopiero po zakończeniu.
-
-## Pilot z telefonu (przekaźnik)
-
-Więcej → **Pilot z telefonu** → **Włącz pilota**. Panel pokaże kod QR. Skanujesz go telefonem i dostajesz stronę `site/pilot.html` z dużymi przyciskami:
-- start streamu: Dalej, Przygotowania, Zaraz zaczynamy, Spóźnienie, Głosowanie;
-- w trakcie: Gra, Ramka, Rozmowa;
-- przerwa i koniec;
-- karta „Teraz gram”: ukryj, pokaż, auto;
-- wybór gry i sceny, test alertu.
-
-Klucz zostaje zapamiętany w telefonie.
-
-Jak to działa: telefon wysyła polecenie na prywatny temat darmowego przekaźnika **ntfy.sh**. GameRadar na komputerze co 2 sekundy je odbiera i wykonuje tak samo jak `!vm …` z czatu, a panel w OBS przełącza sceny. Nie potrzeba Wi-Fi ani otwierania portów, nic nie pojawia się na czacie. Temat to długi losowy klucz. **↻ Nowy klucz** unieważnia stary link, a **Wyłącz** zatrzymuje odbieranie. Przez czat Twitcha (`!vm …`) dalej też działa.
-
-Polecenia wykonuje panel w doku OBS. Kopia panelu w serwisie (Wszystkie ustawienia) ich nie wykonuje, żeby nic nie poszło dwa razy.
-
-## GameRadar i porządki w „Więcej”
-
-Wykrywacz gier nazywa się w panelu **GameRadar**. W „Więcej” zostało to, co potrzebne:
-- Wykrywanie gier, GameRadar, OBS, Twitch;
-- GameRadar – podgląd na żywo (z przyciskami: dziennik, pobierz, **📂 Otwórz folder Vincent-Media**);
-- Pilot z telefonu, Wersja.
-
-Zniknęły sekcje „Link bez panelu”, „Funkcje” (Twitch i OBS są zawsze włączone), „Discord (Lanyard)” i „Źródła w OBS”. Adresy widoków do OBS są w serwisie na stronie Start.
-
-## Zaufany korytarz: kto może rozmawiać z wykrywaczem
-
-Wykrywacz zna hasło do OBS WebSocket i steruje czatem. Dlatego **nie odpowiada każdej stronie z internetu**, tylko tym, którym ufa:
-- **Twoje GitHub Pages** (domyślnie `https://v-cancrosa.github.io`). Rozpoznaje je po adresie. Inne własne adresy dopisujesz po jednym w linijce do `detector\data\trusted-origins.txt`.
-- **Strony z dysku** (źródła w OBS, panel z pliku). Wykrywacz przy starcie zapisuje obok panelu plik `vm-key.js` z tajnym kluczem, a `version.js` dokleja go do zapytań. Strona z internetu nie ma dostępu do plików na Twoim dysku, więc nie podszyje się pod nakładkę. Plik nie trafia do repo (`.gitignore`).
-- **Strony samego wykrywacza** (`http://localhost:7777/ui/…`) i pilot z telefonu z kluczem pilota.
-
-Ikony, okładki gier i stan aktualizacji są dostępne dla wszystkich, bo nic nie zdradzają. Każda obca strona, która spróbuje się połączyć, trafia do dziennika jako „Zablokowano stronę spoza zaufanych: …” (zapis raz na każdy adres).
-
-Dziennik: Więcej → Wykrywacz → **📄 Otwórz pełny dziennik** (Notatnik; folder i plik zakładają się same) albo **⬇ Pobierz dziennik**.
-
-## Serwis na GitHub Pages: ustawiasz w przeglądarce, OBS tylko pokazuje
-
-Adres: **https://v-cancrosa.github.io/Vincent-Media/** (przekierowuje do `obs-game-overlay/site/`). To zwykła strona w Twojej przeglądarce, bez ograniczeń doku w OBS. Ma menu po lewej i osobne strony:
-
-| Strona | Co tam robisz | Podgląd (prawdziwy widok 1920×1080) |
+| Część | Gdzie działa | Co robi |
 |---|---|---|
-| **Start** | stan, co jest na wizji, adresy widoków do OBS | `stage.html` – cała scena „VM · Stream” |
-| **Gry i programy** | lista z wykrywacza z okładkami/logo Steama i ikonami, wybór gry, motyw dla gry, uruchamianie | karta „Teraz gram”, gra w ramce |
-| **Postać i wygląd** | kto prowadzi, gdzie stoi karta, Sąsiedzi / sama gra / sama postać, czat | pełny ekran, ramka, rozmowa, ekran |
-| **Ekrany** | który ekran, odliczanie, termin, podpisy, sociale, „Pokaż na streamie” | wybrany ekran |
-| **Ułożenie scen** | edytor ułożenia na całą szerokość | – |
-| **Kreator stron** | Kreator jak Bubble na całą szerokość | – |
-| **Wszystkie ustawienia** | pełny panel (czat, alerty, cenzura, Twitch, OBS) w kolumnach | – |
+| **Serwis** (`site/`) | przeglądarka – <https://v-cancrosa.github.io/Vincent-Media/> | wszystkie ustawienia i Kreator, z podglądem widoków 1920×1080 |
+| **Panel** (`panel.html`) | dok w OBS | prowadzenie streamu: stan, gra, sceny, testy |
+| **Widoki** (`stage.html`, `overlay.html`, `alerts.html`…) | źródła przeglądarki w OBS | to, co widzą widzowie |
+| **GameRadar** (`detector/`) | Twój komputer, w tle | wykrywa grę, łączy z Twitchem, aktualizuje, przekazuje zmiany między serwisem a OBS |
 
-Każdy podgląd ma **⤢ 1920×1080** (otwiera widok w pełnym rozmiarze) i **⧉ Adres do OBS**, czyli adres źródła przeglądarki. Pod widokami z grą podgląd podkłada „obraz gry”, bo w OBS w tym miejscu jest przechwytywanie.
+Wszystko jest w HTML i PowerShellu (wbudowanym w Windows) – nic nie trzeba instalować poza OBS.
 
-**Jak zmiany trafiają do OBS.** Przeglądarka i OBS mają osobne pamięci, więc łączy je wykrywacz na Twoim komputerze (`themes/sync.js`):
-- ustawienia idą kanałem `/settings`;
-- strony z Kreatora, stany i widoczność idą kanałem `/kv` (zapis w `detector\data\kv.json`);
-- w OBS odbierają je `stage.html` i `page.html`, więc dok z panelem nie musi być otwarty.
+---
 
-W lewym dolnym rogu serwisu widać, czy wykrywacz działa i czy zmiany idą do OBS.
+## Instalacja
 
-## Z GitHub Pages zamiast z dysku
+1. Pobierz **[Zainstaluj-Vincent-Media.bat](https://github.com/V-Cancrosa/Vincent-Media/raw/main/Zainstaluj-Vincent-Media.bat)** i kliknij go dwa razy (przy „System Windows ochronił ten komputer”: *Więcej informacji → Uruchom mimo to*).
+2. Instalator (bez uprawnień administratora):
+   - pobiera pliki do `%LOCALAPPDATA%\Vincent-Media`,
+   - za Twoją zgodą konfiguruje OBS (OBS musi być zamknięty; najpierw robi kopię zapasową): scena **`VM · Stream`** na cały stream, scena **`VM · Nakładki`** do Twoich własnych scen, dok **Vincent-Media** z panelem,
+   - tworzy skróty w *Menu Start → Vincent-Media*: **Start streamu**, GameRadar, Aktualizuj, Folder,
+   - opcjonalnie: GameRadar razem z Windows, uruchamianie go z panelu i strażnik w Harmonogramie zadań.
+3. Uruchom **Start streamu** – włącza GameRadar w tle, a po nim OBS.
 
-Strony mogą iść prosto z repo: każdy push na `main` jest na streamie po kilku minutach i nic nie trzeba pobierać.
+Instalator można uruchomić ponownie – nie tworzy duplikatów.
 
-1. Repo na GitHubie → **Settings → Pages** → *Deploy from a branch*, gałąź `main`, folder `/ (root)` → Save. Po chwili strony są pod `https://<konto>.github.io/<repo>/obs-game-overlay/`.
-2. W OBS: **Docki → Własne docki przeglądarki**. Zmień adres panelu na `https://<konto>.github.io/<repo>/obs-game-overlay/panel.html`.
-3. To wszystko. Po połączeniu z OBS panel sam przepina adresy źródeł VM (Scena, Alerty, Przejścia, Cenzura…) na GitHub Pages. Panel i nakładki muszą iść z tego samego miejsca, bo inaczej nie widzą wspólnych ustawień.
+**Panel z GitHub Pages zamiast z dysku** (zmiany są na streamie kilka minut po wypchnięciu do repo): w OBS *Docki → Własne docki przeglądarki* zmień adres panelu na `https://v-cancrosa.github.io/Vincent-Media/obs-game-overlay/panel.html`. Panel sam przepnie źródła VM w OBS na ten sam adres.
 
-- Powrót: przywróć w doku adres panelu z dysku (`file:///…/panel.html`), a panel przepnie źródła z powrotem.
-- Wykrywacz dalej działa na komputerze (`localhost:7777`). Strony z GitHuba łączą się z nim i z OBS WebSocket normalnie.
-- Nakładki co 2 minuty sprawdzają `version.json` na GitHub Pages i same się przeładowują, ale nie w trakcie transmisji ani nagrywania. GitHub trzyma pliki w pamięci podręcznej do ok. 10 minut.
-- Bez internetu źródła są puste, więc lokalna instalacja zostaje jako zapas.
-- Repo jest publiczne: strony może otworzyć każdy, ale ustawienia, hasła i tokeny zostają w OBS i w wykrywaczu na Twoim komputerze.
+**Odinstalowanie:** usuń sceny `VM · …` i dok w OBS, folder `%LOCALAPPDATA%\Vincent-Media` i folder *Vincent-Media* w Menu Start.
 
-## Instalacja ręczna w OBS
+---
 
-1. Pobierz folder `obs-game-overlay` na dysk, np. do `C:\OBS\obs-game-overlay\`.
-2. **Nakładka:** *Źródła → + → Przeglądarka*
-   - **Nie** zaznaczaj „Plik lokalny”. W polu URL wpisz:
-     `file:///C:/OBS/obs-game-overlay/overlay.html`
-   - Szerokość `1920`, wysokość `1080` (albo rozdzielczość Twojej sceny).
-3. **Panel:** *Doki → Własne doki przeglądarki…*
-   - Nazwa: `Gra`
-   - URL: `file:///C:/OBS/obs-game-overlay/panel.html`
+## Dzień streamu
 
-> Oba adresy muszą zaczynać się od `file:///`, czyli tak samo. Tylko wtedy panel i nakładka „widzą się” nawzajem. Opcja „Plik lokalny” zmienia adres na `http://absolute/…` i synchronizacja przestaje działać.
+1. **Start streamu** (skrót) → GameRadar w tle, potem OBS. Z opcją *uruchamiaj OBS razem z GameRadarem* i autostartem GameRadara wszystko wstaje samo po włączeniu komputera.
+2. **Panel → Start** pokazuje uruchamianie krok po kroku: GameRadar, OBS, Twitch, przechwytywanie gry – kółko kręci się, dopóki trwa łączenie, i rysuje ✓, gdy zadziała. Gdy wszystko działa, zostaje jedna zielona belka. Coś nie gra → lista zostaje otwarta, przy kroku jest **Napraw**.
+3. **Sceny** to jeden pulpit stanów w jednej scenie OBS:
+   - start: *Przygotowania → Stream za… → Zaraz zaczynamy (→ spóźnienie) → Głosowanie → Gra* – przycisk **Dalej**, kliknięcie etapu przeskakuje do niego,
+   - **Na wizji:** Gra · Gra w ramce · Rozmowa,
+   - **Przerwa i koniec:** Przerwa · Przedłuża się · Koniec (z napisami).
+4. **Koniec dnia:** w serwisie **⏻ Zamknij OBS i GameRadar** – kończy transmisję i nagrywanie (pyta), zamyka OBS normalnie i wyłącza GameRadar. Nic nie uruchomi się samo, dopóki nie włączysz tego sam albo nie zrestartujesz komputera.
 
-Gotowe. W docku wpisujesz nazwę gry i wciskasz Enter, a nakładka zmienia się z animacją. Ostatnie gry zostają w panelu jako przyciski do szybkiego wyboru.
+Start transmisji w OBS sam przechodzi z przygotowań dalej; koniec odliczania bez przejścia dalej zmienia ekran w „Spóźnienie”; wynik głosowania ustawia motyw i po 8 s przełącza na grę.
 
-## Automatyczne wykrywanie gry (Windows)
+---
 
-W folderze `detector` jest wykrywacz, który działa tak jak wykrywanie gier w Discordzie, ale bez Discorda:
+## Serwis (GitHub Pages)
 
-1. raz w tygodniu pobiera publiczną bazę gier Discorda (ok. 22 tys. gier i ich plików `.exe`),
-2. co 3 sekundy sprawdza, jakie programy są uruchomione, i szuka wśród nich gry,
-3. pyta Steama, jaka gra jest właśnie włączona – stąd pewna nazwa i okładka,
-4. przekazuje wynik nakładce pod adresem `http://localhost:7777` (tylko na Twoim komputerze, nic nie wychodzi na zewnątrz).
+Zwykła strona w przeglądarce, bez ciasnoty doku. Każda strona ma po prawej podgląd prawdziwego widoku 1920×1080 (**⤢** pełny rozmiar, **⧉** adres do OBS).
 
-### Uruchomienie
-
-Dwuklik na **`detector\start-detector.bat`**. Otworzy się okno, w którym widać, co zostało wykryte, np.:
-
-```
-[20:14:03] Wczytano bazę: 11197 gier/plików
-[20:14:03] Nasłuchuję na http://localhost:7777/
-[20:15:41] Gra: ELDEN RING   (steam, eldenring.exe)
-```
-
-Okno możesz zminimalizować. Zamknięcie okna wyłącza wykrywacz. Nakładka sama to zauważy i wróci do gry wpisanej ręcznie.
-
-W panelu, w sekcji **Lokalny wykrywacz**, powinien pojawić się zielony napis **DZIAŁA**.
-
-> Przy pierwszym uruchomieniu skrypt pobiera bazę gier (ok. 12 MB) – może to potrwać kilkanaście sekund.
-> Jeśli Windows pokaże „System Windows ochronił ten komputer”, kliknij *Więcej informacji → Uruchom mimo to*. Żeby tego uniknąć, przed rozpakowaniem ZIP-a kliknij go prawym → *Właściwości* → zaznacz *Odblokuj*.
-
-**Bez okna / autostart:** `start-detector-hidden.bat` uruchamia wykrywacz w tle. Żeby startował razem z Windows, wciśnij `Win+R`, wpisz `shell:startup` i wrzuć tam skrót do `start-detector-hidden.bat`. Wyłączenie: Menedżer zadań → *Windows PowerShell* → Zakończ zadanie.
-
-### Gra nie została wykryta albo wykryło się coś, co nie jest grą
-
-- **Gry nie ma w bazie** (np. mała gra z itch.io albo emulator): włącz grę, przełącz się na nią na chwilę i wróć do OBS. W panelu wybierz jej okno z listy, wpisz nazwę i kliknij **Dodaj jako grę**.
-- **Wykryło coś, co nie jest grą:** w panelu kliknij **To nie gra – ignoruj**.
-
-Obie rzeczy zapisują się w pliku `detector\my-games.txt`, który możesz też edytować ręcznie:
-
-```
-# plik.exe = Nazwa gry | opcjonalny adres okładki
-dolphin.exe = Dolphin (GameCube)
-mygame.exe = Moja Gra | https://example.com/cover.jpg
-# ignorowanie:
-!wallpaper64.exe
-!steam:431960
-```
-
-Nazwy z tego pliku mają pierwszeństwo przed bazą Discorda, więc możesz w nim też zmienić nazwę wykrywanej gry.
-
-### Kolejność, gdy działa kilka źródeł naraz
-
-| Tryb (panel → *Wykrywanie gier*) | Co pokazuje |
+| Strona | Co tam robisz |
 |---|---|
-| **Auto** (domyślny) | gra z wykrywacza → gra z Discorda → gra wpisana ręcznie |
-| **Tylko ręcznie** | tylko to, co wpiszesz |
-| **Tylko wykryta automatycznie** | wykrywacz albo Discord; gdy nic nie jest uruchomione, nakładka się chowa |
+| **Start** | co jest na wizji, adresy widoków do OBS |
+| **Gry i programy** | lista z GameRadara z okładkami/logo Steama i ikonami programów; wybór gry, motyw dla gry, uruchamianie |
+| **Postać i wygląd** | kto prowadzi, gdzie stoi karta, tryb motywu, układ czatu |
+| **Ekrany** | który ekran, odliczanie, termin, podpisy, sociale, „Pokaż na streamie” |
+| **Ułożenie scen** | edytor ułożenia |
+| **Kreator stron** | strony i liczniki jak w Bubble |
+| **Wszystkie ustawienia** | pełny panel (czat, alerty, cenzura, Twitch, OBS) w kolumnach |
+| **Pilot (telefon)** | przyciski do sterowania z telefonu |
 
-Jeśli wpiszesz ręcznie tę samą nazwę co wykryta gra, Twój podtytuł i okładka mają pierwszeństwo.
-Licznik czasu przy wykrytej grze liczy od uruchomienia gry, przy wpisanej ręcznie – od chwili jej ustawienia.
+Przeglądarka i OBS mają osobne pamięci – łączy je GameRadar (`themes/sync.js`: ustawienia przez `/settings`, strony z Kreatora, stany i widoczność przez `/kv`). W OBS odbiera je `stage.html`, więc dok nie musi być otwarty. Kropki w lewym dolnym rogu serwisu mówią, czy GameRadar działa i czy zmiany idą do OBS.
 
-## Start streamu jako jeden ciąg
+**Panel w doku jako sam pilot:** *Więcej → Wersja → „to okno jako pilot”* zostawia w doku tylko Start i Sterowanie.
 
-**Przygotowania → Stream za… → Zaraz zaczynamy (→ spóźnienie) → Głosowanie → Gra**. Na karcie Start łańcuch pokazuje, gdzie jesteś, a przycisk **Dalej** (albo `!vm dalej` z czatu) przechodzi do następnego kroku:
-- **start transmisji w OBS** sam przechodzi z przygotowań dalej: na „Stream za…”, jeśli w Ekranach jest termin w przyszłości, w przeciwnym razie na „Zaraz zaczynamy” z odliczaniem;
-- **koniec odliczania** bez przejścia dalej sam zmienia ekran w „Spóźnienie”;
-- **Dalej** uruchamia głosowanie, a bez gry albo bez Twitcha od razu przechodzi do gry;
-- **wynik głosowania** ustawia motyw i po 8 sekundach przełącza na grę.
+---
 
-Cały ciąg do gry dzieje się w **jednej scenie OBS `VM · Start streamu`** (panel tworzy ją sam: ekran startu, alerty, przejścia). Ekran w środku sam zmienia etap, więc w OBS nie trzeba przełączać pięciu scen. Kliknięcie etapu w łańcuchu przeskakuje do niego ręcznie.
+## Wygląd
 
-Lista kontrolna na ekranie przygotowań (Scena, Dźwięk, Mikrofon, Czat, Alerty, Gra) pokazuje prawdziwe wyniki szybkiego testu panelu, a nie odhacza punktów na czas.
+### Postacie i motywy
 
-## Jedna scena OBS na cały stream
+**Postacie:** Vince · Chip · Ragnar · Toro · Myr-35 · Zarin. Przy każdym uruchomieniu OBS jedna jest losowana jako prowadząca (można od razu zmienić). Każda ma swoje kolory, czcionki, napis nad nazwą gry, głos w alertach i wygląd czatu. Myr-35 to głowa protogena z matrycą LED i czterema rejestrami (protokół / człowiek / terminal / Nanite Syndrome).
 
-Scena **`VM · Stream`** zawiera przechwytywanie gry, jedno źródło przeglądarki `stage.html` („VM · Scena”), alerty, przejścia i mikrofon. Panel tworzy ją sam przy pierwszym przełączeniu. Przyciski scen w panelu (Start streamu, Gra, Gra w ramce, Rozmowa, Przerwa, Koniec) oraz `!vm` z czatu zmieniają tylko to, co pokazuje strona w środku. Scena OBS się nie zmienia:
-- przechwytywanie gry samo przechodzi na pełny ekran albo w ramkę z edytora ułożenia, a na przerwie, w rozmowie i na ekranach jest schowane;
-- alerty i czat dalej wiedzą, co jest na wizji (panel podaje im dawną nazwę sceny).
+**Motywy gier** włączają się same: Talisman, Palworld, Mass Effect (ME1/2/3/Andromeda osobno), Warframe, Deadlock, Darkest Dungeon (głos narratora), Hollow Knight / Silksong, Cyberpunk 2077, Counter-Strike 2, C&C Red Alert / Tiberium / Generals (z częściami), Townscaper, visual novel (Ren'Py rozpoznawane po plikach), Blender i programy 3D („Teraz tworzę”). Grafika motywów jest narysowana od zera (SVG i canvas) – bez logotypów gier.
 
-Przejście **„taśma filmowa”** (Sterowanie → Przejścia → styl) działa tylko w tej jednej scenie. Ekran maleje do klatki, taśma z perforacją przesuwa się o jedną klatkę, a nowy ekran rośnie do pełnego obrazu. Pomysł pochodzi z przejścia `film()` biblioteki [SSGOI](https://github.com/meursyphus/ssgoi) (pen „SSGOI + React Router” na CodePen). Kodu nie kopiowaliśmy, to własna wersja w CSS, bez Reacta.
+**Gdy postać i gra mają swoje motywy** – cztery tryby (Wygląd → Postać i gra):
 
-Działa domyślnie. Wyłączenie: Więcej → OBS → „wszystko w jednej scenie OBS”. Wtedy wraca stary podział na sceny `VM · …`.
-
-Czego HTML nie zrobi: nie złapie obrazu z innego okna, kamerki ani dźwięku. To zawsze robi OBS (źródło przechwytywania), a panel tylko je ustawia.
-
-## Twórz: Kreator stron (HUB, jak Bubble.io)
-
-Zakładka **Twórz** w panelu. **✦ Otwórz kreator** zaczyna od ekranu **„Co robimy?”**: wybierasz gotowy pomysł albo pustą stronę i dostajesz działającą stronę do przerobienia. Gotowe pomysły:
-- ekran „zaraz zaczynamy”;
-- licznik śmierci;
-- podziękowanie za follow;
-- ostatni followerzy;
-- pasek z linkami;
-- pilot;
-- pusta strona.
-
-Kreator ma trzy widoki (pasek z lewej):
-- **✎ Projekt** – paleta elementów jak w Bubble. Element przeciągasz na stronę albo klikasz, wtedy ląduje na środku. Po prawej zmieniasz wygląd, układ i zachowanie: *widoczny od razu*, *tylko w pilocie*, animacja pojawienia się.
-  - *Elementy wizualne:* Tekst, Przycisk, Ikona, Obrazek, Kształt, Wideo, HTML.
-  - *Kontenery:* Grupa (elementy położone na niej przesuwają się i znikają razem z nią), Grupa powtarzalna (lista z danych: ostatnie followy, suby, raidy, osoby na czacie, wiadomości), Popup (ukryty na start, z przyciemnieniem).
-  - *Pola formularza:* Pole tekstowe, Checkbox, Lista wyboru. Działają w pilocie i zapisują wpisaną wartość do stanu.
-  - *Stream:* Postać, Gra, Odliczanie, Zegar, Linki, Czat, Miejsce na alerty.
-- **⚡ Workflow** – zasady „**Kiedy** → **Zrób**”.
-  - Kiedy: kliknięto element, przyszedł alert, ktoś napisał komendę na czacie, co jakiś czas, zmienił się ekran.
-  - Zrób: pokaż, ukryj, przełącz albo mrugnij elementem (opcjonalnie na N sekund), ustaw stan, dodaj do stanu (licznik), pokaż stronę na streamie.
-  - Przykład: *Kiedy* komenda `!smierc` → dodaj 1 do `smierci` → mrugnij napisem.
-- **▤ Dane** – stany, czyli zapamiętane wartości wspólne dla wszystkich stron, np. `smierci`, `temat`, `user`. W napisach wpisujesz `{nazwa}`; przycisk *＋ wstaw dane* podpowiada znaczniki (`{gra}`, `{postac}`, `{godzina}`, `{odliczanie}`, `{follow}`…).
-
-**HUD (cyberpunk)** to osobna kategoria w palecie, do tego tło „cyber” i gotowy pomysł **Cyberpunk HUD**. Masz w niej:
-- tag statusu z pulsującą kropką;
-- kartę statystyki;
-- cytat z wyróżnionym `*słowem*`;
-- ramkę CAM ze ściętym rogiem i podpisem; w środku może być przezroczyste okno na kamerę albo grę z OBS, postać, okładka gry albo obrazek;
-- efekty tekstu *cyber* (różowo-miętowe przesunięcie), *neon* i *kursywa*.
-
-Styl wzorowany na banerze „Yuffie // Cyberpunk Edgerunners” autorstwa [velkaa](https://codepen.io/velkaa) na CodePen (MIT). Wzięliśmy tylko wygląd. GIF-ów z anime i muzyki z oryginału nie ma, bo to cudze materiały.
-
-Strona trafia na stream na trzy sposoby, wszystkie z karty strony w Twórz:
-- **▶ Na stream** – strona 1920×1080 w scenie `VM · Stream`;
-- **＋ OBS** – osobne źródło `page.html?id=…`;
-- **🎛 Pilot** – ta sama strona z działającymi przyciskami i polami, do klikania w panelu.
-
-Zdarzenie z czatu albo alert działa raz, nawet gdy strona jest otwarta w kilku miejscach (OBS, podgląd, pilot).
-
-Skróty klawiszowe: Ctrl+Z / Ctrl+Y, Ctrl+D (kopia), Delete, strzałki. Kopia zapasowa stron: Twórz → *Kopia zapasowa stron*.
-
-## Edytor ułożenia
-
-Wygląd → **✥ Edytor ułożenia** (albo `editor.html` w przeglądarce). Na podglądzie prawdziwej sceny przeciągasz okno gry, avatara, czat, pasek z linkami i strefę alertów. Elementy przyciągają się do siatki 10 px, krawędzi i środka ekranu oraz do siebie nawzajem (różowe linie). Róg zmienia rozmiar: gra trzyma 16:9, avatar kwadrat, a z Shiftem proporcje są dowolne. Strzałki przesuwają o 1 px.
-
-- Zmiany zapisują się od razu, a scena w OBS układa się na bieżąco. Panel przestawia też przechwytywanie gry w OBS pod nowe okno.
-- W „Gra – pełny ekran” przeciągasz też **kartę „Teraz gram”**. Róg zmienia jej wielkość, a strona postaci i ozdoby idą za tym, w której części ekranu ją postawisz. Kliknięcie rogu w Wygląd → Pozycja wraca do zwykłego ustawienia w rogu.
-- Każdy układ czatu (pionowy, poziomy) ma osobne ułożenie. *Wszystko automatycznie* wraca do układu liczonego samodzielnie.
-
-## Fuzje szyte na miarę
-
-Niektóre pary postać + gra mają zamiast ogólnych „sąsiadów” własny pomysł (`themes/combos.js`). Działa to w trybie *Sąsiedzi*. Na razie Townscaper:
-- **Vince** – plan architekta na kalce: złote linie kreślą domki, które po kolei wypełniają się kolorami gry. Jego portret jest oknem kamieniczki z czerwonym dachem.
-- **Ragnar** – słupki korektora to wieże z kolorowych domków, rosnące i malejące w rytmie 128 BPM.
-- **Toro** – pod kartą most z łukami nad wodą, w każdym łuku lampion.
-- **Chip** – piernikowe miasteczko z lukrowanymi dachami i parą z kominów.
-- **Myr** – panorama miasteczka z diod LED jak w jej wizjerze; w oknach zapalają się kolorowe światełka.
-- **Zarin** – domki skręcone ze złomu, z nitami, blachami pomalowanymi w kolory palety i wiatraczkiem.
-
-## Co nowego w 1.24
-
-- **Głosowanie: postać kontra gra** – przycisk *Głosowanie ⚔* w scenach „Przed streamem”. Panel sam tworzy scenę `VM · Głosowanie`, startuje głosowanie i ją włącza.
-  - Na ekranie linia przesuwa się najpierw po elementach motywu postaci, potem gry: kolory, czcionka, emblemat, cząsteczki, napis, głos.
-  - Czat pisze **1** albo **2** (albo nazwę), a wskazówka jedzie w lewo lub w prawo.
-  - Koniec po 5 minutach albo wcześniej, jeśli po minucie wszystkie głosy (co najmniej 5) są po jednej stronie.
-  - Wygrywa postać → sam motyw postaci. Wygrywa gra → motyw gry.
-- **Przed streamem tylko postać** – przygotowania, „stream za…”, „zaraz zaczynamy” i spóźnienie zawsze w motywie postaci. Przy starcie OBS postać jest losowana, ale od razu można ją zmienić.
-- **Motyw Townscaper** – pastelowe miasteczko na wodzie z paletą dachów, kołyszącymi się domkami i własnymi tekstami alertów.
-- **Słownik czatu:** polskie (i angielskie) przekleństwa z odmianą, np. kurwa, pierdolić, jebać, chuj, pizda. Twitch na przekleństwa pozwala, więc domyślnie są zamieniane na głupio-mądre zamienniki: „kurza twarz”, „pieprzyć to sianem”, „impulsator kinetyczny z naprowadzaniem trzonkowym”. Można też zakryć albo zostawić. Doszły wyzwiska, które Twitch zakazuje jako obelgi („simp”, „incel”), oraz „dziwka”. Obelgi rasowe i homofobiczne są nadal zawsze zakryte.
-- **Furry zamienniki** (domyślnie): zakazane słowo zamienia się w delikatny futrzany żart, po polsku albo po angielsku według języka streama. Obelgi stają się np. „pluszak”, „*boop w nosek*”, „uwu” / „floof”, „*boops snoot*”. Przekleństwa np. „jasna łapka”, „futro mać”, „pieprzyć to sierścią” / „oh my paws”, „heckin”. Na czacie podmienia się tekst, a na ekranie zamiennik jest na puchatej naklejce z uszkami i łapką, w kolorze prowadzącej postaci. *Słowa zakazane → Zamiast zakazanego słowa → klasycznie* przywraca ▇▇▇ i głupio-mądre zamienniki.
-- **Cenzura ekranu** domyślnie włączona (skanuj każde okno, ramki skanera). Długa lista programów skanowanych w pierwszej kolejności. Objaśnienia są zwinięte.
-
-## Co nowego w 1.23
-
-- **Kto prowadzi:** przy każdym starcie OBS panel pyta, która postać prowadzi stream (portrety, nie lista). W *Wyglądzie* zmienisz ją tak samo.
-- **Gra obok postaci („Sąsiedzi”):** gra nie miesza się z postacią. Dostaje własną tabliczkę przyczepioną do karty (logo albo emblemat, pełne kolory gry), wstążkę z pasami w swoich kolorach i swoje cząsteczki.
-- **Czat na każdej scenie pionowo albo poziomo:** *Czat → Układ*. Pionowo z lewej albo z prawej (gra w ramce i rozmowa odbijają się lustrzanie), poziomo u góry albo u dołu. Prędkość paska dobiera się sama.
-- **Co dziś?:** kafelki z ikoną i nazwą, rozwijane po kliknięciu, w dwóch działach: Gry i Programy. Gry ze Steam, Epic, GOG, Ubisoft, EA, Battle.net, Riot, Xbox i od innych wydawców są na liście same. Te, których już nie ma na dysku, są przygaszone.
-- **Wykrywacz:** panel sam go uruchamia, kiedy jest potrzebny. Jego dziennik widać na żywo w *Więcej → Wykrywacz – podgląd na żywo*, więc okno PowerShella może być schowane. Aktualizacje sprawdzają się co 10 minut i instalują same.
-- **Pilot przez czat Twitcha** zamiast Wi-Fi: napisz na swoim czacie (np. z telefonu) `!vm przerwa`, `!vm start`, `!vm koniec`, `!vm gra`, `!vm ramka`, `!vm rozmowa`, `!vm scena <nazwa>`, `!vm gra <tytuł>`, `!vm auto`, `!vm ukryj`, `!vm pokaz` albo `!vm test`. Działa tylko z konta streamera, a polecenie nie pojawia się na ekranie.
-- **Więcej:** zamiast podzakładek jedna strona ze zwijanymi grupami.
-
-## Start: wszystko na co dzień w jednej zakładce
-
-Panel otwiera się na zakładce **Start**:
-- **autotest**: co kilka sekund panel sam sprawdza wykrywacz (czy działa i czy to ta sama wersja), listę gier, połączenie z OBS, sceny VM, przechwytywanie uruchomionej gry, mikrofon, cenzurę ekranu (gdy włączona) i Twitcha. Gdy wszystko przechodzi, widać jedną zieloną linijkę „✓ Wszystko działa samo”, a statusy i ustawienia automatyki są schowane. Gdy coś nie działa, lista rozwija się sama i przy problemie jest przycisk **Napraw**,
-- **stan** wykrywacza, OBS i Twitcha (kliknięcie prowadzi do ustawień). Gdy wykrywacz nie odpowiada, panel po kilku sekundach sam go uruchamia (raz), a przycisk *Uruchom wykrywacz* zostaje na wszelki wypadek. Działa, jeśli przy instalacji zgodzisz się na „uruchamianie z OBS i strażnika” (adres `vincentmedia://start` + zadanie, które co 5 minut sprawdza, czy wykrywacz żyje),
-- **Co dziś?** – główny sposób wyboru gry. Lista gier i programów, które już uruchamiałeś (dopisują się same), a pod nią **wszystkie zainstalowane gry ze Steama**. *Wybierz* = ta gra jest na nakładce bez względu na wykrywanie; pod każdą pozycją wybierasz **motyw gry** (automatycznie, dowolny motyw z listy albo „bez motywu – sama postać”). ▶ uruchamia grę, ✕ chowa ją z listy, *↺ auto* wraca do automatycznego wykrywania,
-- **automatyczne przechwytywanie**: panel dodaje źródło `VM · Gra (automatycznie)` do wszystkich scen (odznaczysz w *W których scenach*) i ustawia je na okno uruchomionej gry: Windows Graphics Capture, z kursorem, tylko zawartość okna,
-- **mikrofon**: jeśli OBS nie ma mikrofonu ani w *Ustawienia → Dźwięk*, ani jako źródła, panel dodaje `VM · Mikrofon` (domyślny mikrofon Windows) do scen,
-- **Sceny** – jedyne miejsce do zmiany scen: ekrany VM (przed streamem, przerwa, koniec), gra, rozmowa i Twoje własne sceny z OBS, zawsze z przejściem,
-- **szybki test** alertów, czatu i bota.
-
-Reszta jest w zakładkach **Sterowanie** (gra ręcznie, odliczanie i napisy ekranów, alerty), **Wygląd**, **Czat** i **Więcej** (Twitch, OBS, wykrywacz, funkcje, telefon, wersja).
-
-### Postać prowadzi, gra jest naszyta (tryb „Łatka”)
-
-Stream zawsze prowadzi jedna z postaci, więc domyślny tryb fuzji to **Łatka**: karta, czcionki, kolory i portret są postaci, a gra jest na nią naszyta – naszywka z **logo gry** (dla gier ze Steama) albo emblematem motywu, wstążka w kolorach gry przyszyta do dołu karty i cząsteczki gry. Pozostałe tryby (50:50, sam motyw gry, eksperymentalne) są w *Wygląd → Gdy gra ma własny motyw*.
-
-Portret postaci jest **wkomponowany w kartę**: dolna krawędź karty jest przed postacią, a górna – za nią (głowa wychodzi ponad kartę). W lewym rogu ekranu postać stoi z lewej i patrzy w prawo, w prawym – z prawej i patrzy w lewo (portret odbija się sam). Na pełnoekranowej grze nie ma już drugiego, dużego portretu w rogu – jest tylko ten w karcie.
-
-### Grafiki gier
-
-Logo, okładkę i tło gry ze Steama nakładka bierze **z pamięci Steama na Twoim komputerze** (`Steam\appcache\librarycache`, przez wykrywacz), a gdy ich tam nie ma – z publicznego CDN Steama. Repozytorium nie zawiera i nie rozpowszechnia tych grafik. Wszystkie logotypy, okładki i grafiki gier są własnością ich wydawców i twórców; używam ich z sympatii do tych gier, wyłącznie po to, żeby pokazać, w co gram. Jeśli właściciel praw ma zastrzeżenia – napisz (zgłoszenie w repozytorium), a grafika zostanie usunięta od razu. Wyłączenie: `gameLogo: false` w ustawieniach (wtedy zostaje emblemat motywu).
-
-Reszta jest w zakładkach **Sterowanie** (gra ręcznie, ekrany, alerty), **Wygląd**, **Czat** i **Więcej** (Twitch, OBS, wykrywacz, funkcje, telefon, wersja).
-
-## Panel i pilot z telefonu
-
-Panel ma zakładki **Na żywo** (gra, ekrany przerw, alerty testowe), **Wygląd**, **Połączenia** i **Ustawienia**.
-W *Ustawienia → Funkcje* włączasz tylko to, czego używasz – wyłączone rzeczy (np. Discord) znikają z panelu.
-
-**Pilot z telefonu:** ten sam panel na telefonie w domowej sieci Wi‑Fi – zmieniasz grę, motyw, ekran przerwy albo wywołujesz alert testowy, a OBS od razu to pokazuje (nawet przy zamkniętym doku).
-
-1. Raz: *Menu Start → Vincent-Media → Włącz pilota z telefonu* (albo zgoda w instalatorze). Windows poprosi o zgodę administratora: wykrywacz dostaje pozwolenie na nasłuchiwanie w sieci, a zapora przepuszcza port 7777 **tylko w sieciach prywatnych**.
-2. W panelu w OBS: *Ustawienia → Pilot z telefonu* – zeskanuj kod QR telefonem.
-
-Adres zawiera klucz dostępu (bez niego wykrywacz nie odpowiada nikomu spoza komputera) – nie pokazuj go na streamie.
-Jeśli telefon się nie łączy, sprawdź, czy sieć Wi‑Fi jest w Windows ustawiona jako *prywatna*.
-Wyłączenie pilota: `detector\enable-remote.bat -Disable`.
-
-Ustawienia panelu są teraz zapisywane w wykrywaczu (`detector\data\settings.json`), więc dok i telefon widzą to samo. Bez wykrywacza panel działa jak wcześniej, tylko w OBS.
-
-## Ekrany i układy
-
-Instalator dodaje wszystko jako sceny OBS `VM · …`. Każdy ekran ma motyw aktywnej postaci (z fuzją z grą), cząsteczki na całym ekranie, przelatujący snop światła przy zmianie ekranu i teksty w głosie postaci.
-
-**Ekrany pełnoekranowe** – `scenes.html?scene=…`:
-
-| Ekran | `scene=` | Co pokazuje |
-|---|---|---|
-| Stream w przygotowaniu | `prep` | „W przygotowaniu” + odhaczana lista (scena, dźwięk, mikrofon, czat…) |
-| Stream za X czasu | `soon` | odliczanie do terminu (dni/godziny), „start jutro o 20:00” |
-| Stream się zaczyna | `start` | odliczanie minut |
-| Stream się spóźnia | `late` | licznik spóźnienia „+05:12”; włącza się sam 30 s po końcu odliczania startu |
-| Przerwa | `brb` | odliczanie; po jego końcu sam przechodzi w „przerwa się przedłuża” (`brb-late`) |
-| Koniec | `end` | przewijane napisy: obecni na czacie i każdy follow, sub, gift, bitsy, raid i nagroda z tego streama |
-
-**Układy** – `layouts.html?layout=…` (źródło gry/kamerki w OBS kładziesz **pod** układem):
-
-| Układ | `layout=` | Co jest na ekranie |
-|---|---|---|
-| Gra na pełny ekran | `game-full` | przezroczysty; czat jako **pasek przewijany w bok** (jak w wiadomościach – nie zasłania gry), dymki albo bez czatu; avatar w rogu |
-| Gra w ramce | `game-frame` | gra w animowanej ramce 1440×810 (lewy górny róg 40,40), obok avatar i czat na stałe, pod grą ostatnie zdarzenia i linki |
-| Rozmowa | `talk` | duży avatar, temat rozmowy, czat |
-
-**Avatar / kamerka** (panel → Wygląd → Avatar): *art postaci* (ożywa, gdy mówisz), *kamerka* (przezroczyste okno w ramce – kamerkę ustaw w OBS pod układem w tym miejscu), *VTuber* (okno bez ramki) albo *bez avatara*.
-Możesz też podać własne obrazki „cisza” i „mówię” (PNGtuber).
-
-W panelu (Na żywo → Ekrany) wybierasz ekran, odliczanie, termin dla „Stream za…”, temat rozmowy, podpis i linki w stopce.
-
-### Ułożenie i miejsce na alerty
-
-Nic na siebie nie nachodzi:
-- **Ekrany przerw** – u góry jest pas na alerty, po prawej postać (albo napisy końcowe), na dole stopka. Karta z odliczaniem stoi w tym, co zostaje, i sama się zmniejsza, gdy tekst jest długi.
-- **Alerty wiedzą, która scena jest na wizji** (OBS mówi to źródłom, a panel podaje nazwę sceny). Na przerwach pokazują się w pasie u góry, w grze na pełnym ekranie u góry na środku, a w układach z czatem (*Gra – w ramce*, *Rozmowa*) **są częścią czatu**, jako wyróżniona wiadomość z dźwiękiem. Wyłączysz to w *Na żywo → Alerty* – wtedy alert w ramce pojawi się nad paskiem pod grą, a w rozmowie nad tematem.
-- Karta alertu zawsze mieści się na ekranie (zmniejsza się zamiast wychodzić poza krawędź).
-- **Gra na pełnym ekranie** – avatar stoi nad kartą „Teraz gram”, a pasek czatu podnosi oba.
-- **Rozmowa** – długi temat dostaje mniejszą czcionkę (najwyżej trzy linijki).
-
-### Przejścia między ekranami
-
-Źródło `VM · Przejścia` (`transition.html`) leży na wierzchu każdej sceny VM. Gdy zmieniasz ekran albo scenę z panelu (także z telefonu), obraz najpierw zasłania animacja, potem OBS przełącza scenę cięciem, a na końcu obraz się odsłania. W środku pojawia się napis w głosie postaci albo gry, np. narratora Darkest Dungeon.
-
-| Rodzaj | Kiedy (automatycznie) |
+| Tryb | Wygląd |
 |---|---|
-| mrok i pochodnia | Darkest Dungeon, Talisman, Elden Ring |
-| hologram (heksy, skan) | Mass Effect, Warframe, Tiberium |
-| glitch | Cyberpunk 2077, Myr-35 |
-| stalowe wrota | Red Alert, Generals, Deadlock, Zarin |
-| jedwab i nić | Hollow Knight |
-| koło (przesłona) | Palworld, Chip |
-| granat hukowy | Counter-Strike 2 |
-| korektor (słupki w rytm) | Ragnar |
-| drzwi shoji | Toro |
-| plan architekta | Vince |
-| piksele | Retro, Minecraft |
-| skośne pasy | pozostałe style |
+| **Fuzja 50:50** (domyślny) | kolory, czcionki i teksty po równo z obu |
+| **Gra + postać** | karta w czystym motywie gry, postać wchodzi portretem, plakietką z imieniem i swoim kolorem |
+| **Sam motyw gry** | tylko gra |
+| **Sama postać** | tylko postać, gra z nazwy |
 
-W środku przejścia mówi postać albo gra: zdanie o ekranie, na który przechodzisz, czasem komentarz do samej zmiany, a przy powrocie do gry – zdanie o powrocie (np. narrator Darkest Dungeon: „Z powrotem w ciemność”, Myr: „Ta jednostka wznawia operację”). Wszystkie te zdania widać w galerii powiadomień.
+Dla pojedynczej gry wybierasz inny motyw albo „bez motywu gry” w jej kafelku na liście. Kropka przy grze: kolorowa – ma motyw, przerywana – czeka na motyw, szara – sama postać.
 
-**Długość przejścia** (Na żywo → Ekrany → Przejścia): *krótkie* – sam napis, ok. 1,4 s; *zwykłe* – napis i zdanie, 2–4 s; *długie* – czas na przeczytanie, 4–9 s zależnie od długości tekstu. Scena w OBS przełącza się zawsze w chwili, gdy obraz jest zasłonięty.
+### Karta, ułożenie, avatar
 
-Rodzaj możesz też wybrać na stałe (Na żywo → Ekrany → Przejścia), wyłączyć napis albo całe przejścia. Po aktualizacji ze starszej wersji kliknij tam *Dodaj źródło przejść do scen OBS* – panel doda je przez WebSocket (bez ponownej instalacji). Przełączanie scen bezpośrednio w OBS działa jak dotąd, bez tej animacji.
+- **Pozycja karty:** lewy/prawy górny, lewy/środkowy/prawy dolny – albo dowolne miejsce w edytorze ułożenia.
+- **Edytor ułożenia** (Wygląd → ✥ albo serwis): przeciągasz okno gry, avatara, czat, pasek z linkami, strefę alertów i kartę. Przyciąganie do siatki 10 px, krawędzi i innych elementów; gra trzyma 16:9 (Shift – dowolnie); strzałki – o 1 px. Panel przestawia też przechwytywanie gry w OBS. Każdy układ czatu ma osobne ułożenie.
+- **Avatar: tak / nie.** Postać ożywa, gdy mówisz – przy karcie, w portrecie „Gra + postać” i na zdjęciu na ekranach przerw.
+- **Ekrany przed streamem i przerwy:** karta na dole przy zdjęciu postaci, lewa górna część ekranu wolna dla alertów, sociale w prawym górnym rogu.
+- **Przejścia:** zasłona w stylu postaci/gry albo **taśma filmowa** (ekrany przesuwają się jak klatki – wzorowane na `film()` z SSGOI).
+- **Język streama:** polski albo angielski (wszystko, co widać na streamie; panel zostaje po polsku).
 
-## Połączenie z OBS: avatar reagujący na głos i przełączanie scen
+---
 
-Nakładki łączą się z wbudowanym w OBS **WebSocketem** (OBS 28+). Instalator włącza go sam, ustawia hasło i przekazuje je nakładkom – nic nie trzeba wpisywać.
-- **Avatar ożywa, gdy mówisz:** nakładki czytają poziom Twojego mikrofonu z OBS (bez dostępu do mikrofonu w przeglądarce). Art postaci podskakuje i świeci, a na ekranach przerw reaguje duża postać. Własne obrazki „cisza” / „mówię” ustawisz w panelu (Wygląd → Avatar).
-- **Sceny OBS z panelu i z telefonu:** w zakładce *Na żywo* są przyciski wszystkich scen OBS (aktualna podświetlona na czerwono). Wybór ekranu (np. „Przerwa”) przełącza też scenę `VM · Przerwa`.
-- W *Połączenia → OBS* wybierasz mikrofon i próg głosu (z podglądem poziomu na żywo).
+## Gry: GameRadar
 
-Ręcznie: OBS → *Narzędzia → Ustawienia serwera WebSocket* → włącz, ustaw hasło i wpisz je w panelu (*Połączenia → OBS → Ręczne połączenie*).
+GameRadar działa jak wykrywanie gier w Discordzie, ale bez Discorda: raz w tygodniu pobiera publiczną bazę gier (ok. 22 tys.), co 3 s sprawdza uruchomione programy, pyta Steama o grę i okładkę. Wynik jest dostępny tylko na Twoim komputerze (`http://localhost:7777`).
 
-## Czat i komendy dla widzów
+- **Źródło gry jest zawsze auto.** Kliknięcie gry w „Co dziś?” to chwilowe nadpisanie – **↺ auto** wraca do wykrywania.
+- **Lista „Co dziś?”**: gry (Steam, Epic, GOG, Ubisoft, EA, Battle.net, Xbox) i programy, których używasz. Bez dodatków – soundtracki, artbooki, *Bonus Content*, DLC, serwery, SDK, narzędzia i biblioteki nie trafiają na listę (gra ze Steama musi mieć `.exe`).
+- **Gra niewykryta albo wykryte coś, co nie jest grą:** w panelu *Dodaj jako grę* / *To nie gra – ignoruj*. Zapisuje się w `detector\my-games.txt`:
+  ```
+  # plik.exe = Nazwa gry | opcjonalny adres okładki
+  dolphin.exe = Dolphin (GameCube)
+  # ignorowanie:
+  !wallpaper64.exe
+  !steam:431960
+  ```
+- **Przechwytywanie gry** dodaje się samo do `VM · Stream` (okno, z kursorem, Windows Graphics Capture) i przesuwa się z układem: pełny ekran, ramka albo schowane na ekranach.
 
-`chat.html` pokazuje czat z Twitcha na nakładce (wymaga połączenia z Twitchem – patrz niżej):
-- `chat.html` – **dymki**: wiadomości wyskakują i po chwili znikają (do gry na pełnym ekranie). `?pos=br|bl|tr|tl`, `?life=12` (sekundy), `?width=560`.
-- `chat.html?mode=panel` – **czat na stałe** (do układu z grą w ramce).
-- Pasek czatu jest też na samej nakładce „Teraz gram” – czyli w każdej scenie z grą (wyłączysz w Czat → Na ekranie). Wiadomości to wyraźne kafelki z kolorem widza.
-- `chat.html?mode=ticker` – **pasek** u dołu ekranu, wiadomości jadą od prawej do lewej; przy większym ruchu pasek przyspiesza. `?pos=top`, `?speed=140`.
+---
 
-Emotki, kolory nicków i odznaki (HOST, MOD, VIP, SUB) są pokazywane. Wygląd czatu łączy się z aktywnym motywem (i grą przy fuzji).
+## Czat i moderacja
 
-**Widzowie sami decydują o swoim wyglądzie** – komendy w czacie (wybór zapamiętuje wykrywacz w `detector\data\viewers.json`):
+- **Układ czatu** (jeden dla wszystkich scen): pionowo z lewej/prawej, pasek u góry/u dołu albo bez. Wygląd w stylu prowadzącej postaci (Myr – terminal, Vince – adnotacje architekta, Chip – karteczki, Ragnar – playlista, Toro – lampiony, Zarin – tabliczki z kadłuba).
+- **Tempo:** przy zalewie czat zwalnia, a w razie potrzeby włącza na Twitchu tryb powolny („ciach”).
+- **Komendy widzów:** `!styl neon|szklo|pixel|komiks|terminal|papier|holo|sakura|ogien|lod`, `!kolor turkus|#rrggbb…`, `!efekt konfetti|serca|gwiazdy|fajerwerki|iskry|babelki` (efekty też jako nagrody za punkty), `!reset`, `!linki`. Przełącznik **tylko motyw** ignoruje style widzów.
+- **Słowa zakazane:** obelgi zakazane regulaminem Twitcha (też polskie) i ich przeróbki (leet, rozbijanie, cyrylica, „pod TTS”) – na czacie, w nickach alertów, w napisach końcowych i w skanie ekranu. Zamiana na zakrycie albo na furry żart (PL/EN). Przekleństwa opcjonalnie.
+- **Cenzura ekranu:** GameRadar czyta tekst z przechwytywanych okien (OCR Windows, bez internetu, nic nie zapisuje), a warstwa `VM · Cenzura` zakleja zakazane słowa naklejkami z łapką. Ramki skanera tylko na życzenie. *Opóźnij okna o 0,5 s* sprawia, że zasłona jest na streamie, zanim słowo będzie widać.
+- **Podejrzane konta:** świeże konta, nicki z generatora, brak awatara i bio, reklamy, fale followów bez raidu, zdrowie widowni (widzowie na piszącego, płaski wykres). Legalne boty (Nightbot, StreamElements…) mają znaczek BOT. Flaga to podpowiedź, nie wyrok.
+- **Archiwum:** każdy stream w `detector\data\archive\streams\` (cały czat i alerty, podsumowanie); w panelu statystyki i pobieranie czatu jako TXT, SRT (napisy do nagrania) albo JSON. OBS może sam nagrywać lokalnie razem ze streamem.
 
-| Komenda | Co robi |
-|---|---|
-| `!styl neon` | styl dymka: `neon`, `szklo`, `pixel`, `komiks`, `terminal`, `papier`, `holo`, `sakura`, `ogien`, `lod` |
-| `!kolor turkus` | kolor nicku: `czerwony`, `pomaranczowy`, `zolty`, `zielony`, `turkus`, `niebieski`, `fiolet`, `rozowy`, `bialy`, `zloty` albo `#rrggbb` |
-| `!efekt konfetti` | efekt na cały ekran: `konfetti`, `serca`, `gwiazdy`, `fajerwerki`, `iskry`, `babelki` (raz na minutę na osobę, co najmniej 15 s przerwy między efektami) |
-| `!reset` | powrót do wyglądu domyślnego |
+---
 
-Komenda nie pojawia się w czacie na ekranie – zamiast niej widać krótkie potwierdzenie („LunaFox → styl: pixel ✓”).
-Efekty można też dać jako **nagrody za punkty kanału**: nagroda o nazwie zawierającej np. „Efekt: konfetti” uruchamia efekt bez limitu.
-Efekty pokazuje źródło `alerts.html`, więc musi być w scenie.
+## Alerty i głosowanie
 
-## Język streama: polski albo angielski
-
-Panel → Wygląd → **Język streama**. Po angielsku jest wszystko, co widać na streamie: napisy nad grą („Now playing”), alerty i ich opisy, ekrany przerw i napisy końcowe, przejścia, pasek czatu i głosy postaci (każda zachowuje swój charakter – Chip dalej małymi literami, Myr w czterech rejestrach, narrator Darkest Dungeon po angielsku). Panel zostaje po polsku. Własny napis wpisany w panelu nie jest tłumaczony.
-
-## Sociale i czat w stylu postaci
-
-**Sociale z ikonami** (`themes/socials.js`) są w stopce ekranów przerw, na pasku pod grą w ramce, w rozmowie i rotują co kilka sekund na końcu paska czatu w grze. Domyślnie są tam Twoje konta: Telegram, Bluesky, Instagram, X, Reddit i GitHub. Zmienisz je w *Sterowanie → Ekrany → Sociale* (np. `bluesky: @ktoś.bsky.social`; sieć rozpoznaje się też po samym adresie), a `-` ukrywa wszystkie.
-
-**Czat jest na każdej scenie** i dopasowuje się do tego, kto prowadzi stream:
-- **Myr-35** – log terminala jednostki (`[12:04] nick> …` z migającym kursorem),
-- **Vince** – adnotacje architekta na siatce (№ i linia odniesienia),
-- **Chip** – kolorowe karteczki przyklejone taśmą, pisane odręcznie,
-- **Ragnar** – playlista „NOW PLAYING”: każda wiadomość to utwór z numerem i korektorem,
-- **Toro** – lampiony w ciepłym świetle,
-- **Zarin** – metalowe tabliczki z kadłuba, log radia „CH-4”,
-- bez postaci, w motywie gry: pergamin (Darkest Dungeon i inne mroczne), komunikator (Mass Effect, Cyberpunk, Warframe), transmisja EVA (Command & Conquer).
-
-Gdzie czat jest na poszczególnych scenach:
-- **ekrany przerw** – kolumna z prawej strony (postać i napisy końcowe przesuwają się w lewo),
-- **gra w ramce i rozmowa** – panel w tym samym stylu,
-- **gra na pełnym ekranie** – pasek z kafelkami w stylu postaci.
-
-Wiadomości widzów, którzy wybrali własny styl (`!styl`), zostają w ich stylu. Przełącznik **tylko motyw postaci / gry** (*Czat → Na ekranie* albo szybki przycisk *Czat: tylko motyw* na karcie Start) tymczasowo ignoruje style i kolory wybrane przez widzów (`!styl`, `!kolor`). Zmienia też wiadomości, które już są na ekranie, a po wyłączeniu wszystko wraca do wyborów widzów. Wyłączniki są w *Czat → Na ekranie*.
-
-## Słowa zakazane i cenzura ekranu
-
-**Filtr słów** (`themes/wordfilter.js`) zakrywa ▇▇▇ obelgi zakazane regulaminem Twitcha – rasowe, homofobiczne, transfobiczne, ableistyczne, także polskie – oraz ich przeróbki: leet (`n1gg3r`, `f@g`), powtórzone litery, kropki i kreski w środku, litery pisane osobno, słowa rozbite na dwa „pod TTS” (np. `knee grow`), cyrylicę i inne podobne litery, znaki zerowej szerokości, `q` zamiast `g`. Działa na czacie na ekranie, na nickach w alertach i w napisach końcowych (hate raid z kont o obraźliwych nazwach) oraz w skanie ekranu. Przekleństw nie rusza – Twitch na nie pozwala. Zwykłe słowa, które tylko zawierają podobne litery (`Niger`, `snigger`, `raccoon`), przechodzą. Ustawienia: *Czat → Moderacja → Słowa zakazane* (zakryj słowo / ukryj wiadomość, słowa dwuznaczne, własne słowa, wyjątki). Wzorce są w pliku zapisane szyfrem ROT13, więc plik nie wygląda jak lista obelg.
-
-Nakładka nie usuwa wiadomości z samego Twitcha. Żeby Twitch w ogóle ich nie wpuszczał, włącz w Panelu twórcy → Moderacja **AutoMod** i **Zablokowane wyrażenia**.
-
-**Napisz na czat (test)**: w *Czat → Moderacja* wpisujesz wiadomość jako dowolny nick, z wybranym wiekiem konta. Wiadomość przechodzi przez ocenę bota i filtr słów, a potem trafia na ekran tak jak prawdziwy czat. Na Twitchu nic się nie pojawia.
-
-**Cenzura ekranu**: gdy przeglądasz internet na wizji, wykrywacz kilka razy na sekundę czyta tekst z okna na pierwszym planie. Używa do tego wbudowanego rozpoznawania tekstu Windows, bez internetu, i niczego nie zapisuje. Warstwa `VM · Cenzura` (`censor.html`, na wierzchu scen) zasłania zakazane słowa dokładnie tam, gdzie są na scenie. Położenie okna na scenie panel odczytuje z OBS, więc panel musi być otwarty w OBS. Domyślnie skanowane są przeglądarki i Discord; można dopisać inne programy albo skanować każde okno.
-- **Opóźnij okna o 0,5 s** dodaje do każdego przechwytywania okna, ekranu i gry filtr *Opóźnienie renderowania* (500 ms). Rozpoznanie tekstu trwa 0,2–0,4 s, więc zasłona jest na streamie, zanim słowo w ogóle będzie widać.
-- **Opóźnienie całego streama** nie pomaga zasłonie, bo opóźnia także ją. Daje za to czas, żeby przełączyć na „Przerwę”, zanim widzowie coś zobaczą.
-- Rozpoznawanie tekstu wymaga pakietu OCR dla języka Windows (zwykle jest; jeśli nie: *Ustawienia → Czas i język → Język → Opcje języka*). Status pokazuje się w panelu.
-- To siatka bezpieczeństwa, nie gwarancja: OCR może przeoczyć bardzo mały, ozdobny albo ruchomy tekst.
-
-## Testy: galeria, stały napływ, test bota
-
-- **Galeria powiadomień** (Na żywo → Alerty → *Galeria*) – wszystkie teksty aktywnej postaci i gry naraz, w prawdziwym wyglądzie karty: zwykłe, na duże zdarzenia, części gier, rejestry Myr; pod spodem teksty ekranów i alerty w czacie.
-- **Stały napływ czatu / alertów** (Czat → Na ekranie) – co chwilę wiadomość albo alert; co kilka wiadomości wpada bot.
-- **Test bota** – wiadomość w stylu bota przechodzi przez ocenę czatu, a wynik (poziom i powody) pojawia się od razu pod przyciskami. *Pokazuj podejrzane* wyświetla je na ekranie z ⚑ zamiast ukrywać.
-
-## Archiwum, statystyki i podejrzane konta
-
-**Boty – co jest sprawdzane** (*Czat → Moderacja → Podejrzane konta*):
-- **pojedyncze konto:** świeże konto, nick jak z generatora (`user_12345`, losowe litery i cyfry), domyślny awatar razem z pustym bio, link albo reklama widzów na dzień dobry, ogólnikowe „fajnie grasz”, ten sam szablon powtarzany przez tę samą osobę albo przez kilka kont;
-- **followboty:** fala co najmniej 8 followów w półtorej minuty bez raidu. Panel i dziennik pokazują, ile kont w fali ma nicki z generatora, ile ma mniej niż 7 dni i ile jest bez awatara;
-- **viewboty („Zdrowie widowni”):** liczba widzów na jednego piszącego (naturalnie 6–20; ostrzeżenie powyżej 40 albo przy martwym czacie), płaski wykres widowni przez 10+ minut, skok widowni bez raidu;
-- **legalne boty** (Nightbot, StreamElements, Fossabot, Moobot, Streamlabs…) nie są oceniane. Na czacie mają znaczek **BOT** i można je ukryć z ekranu przełącznikiem *ukryj boty kanału*.
-
-Flaga to podpowiedź, nie wyrok – wielu widzów po prostu lurkuje.
-
-Wykrywacz zapisuje każdy stream (od startu do końca na Twitchu) w `detector\data\archive\streams\`:
-- `<data_godzina>.jsonl` – cały czat i wszystkie alerty z godziną,
-- `<data_godzina>.json` – podsumowanie: czas, kategoria i gry, widzowie co minutę (szczyt, średnia), wiadomości, czatownicy (w tym nowi), follow, suby, gifty, bitsy, raidy, najaktywniejsi na czacie, oflagowani.
-
-`detector\data\archive\chatters.json` pamięta każdego czatownika: pierwszą i ostatnią wizytę, liczbę wiadomości i streamów, wiek konta.
-
-W panelu, w zakładce **Czat**:
-- **Statystyki** – bieżący stream (z wykresem widzów) i lista poprzednich. Każdy możesz pobrać jako **TXT** (czat z czasem od startu), **SRT** (napisy z czatem do nagrania) albo **JSON**.
-- **Moderacja** – wiadomości z flagą. Flaga to podpowiedź, nie wyrok. Liczą się:
-  - wiek konta z Twitcha (godziny / dni),
-  - link albo reklama widzów i followów na początku znajomości,
-  - ogólnikowe „fajnie grasz / nice stream” jako pierwsza wiadomość,
-  - pisanie o graniu, gdy kategoria to np. *Art*, *Software and Game Development*, *Just Chatting* i nic nie jest uruchomione (np. modelujesz w Blenderze, a ktoś pisze „fajnie grasz”),
-  - ten sam tekst od kilku kont w ciągu minuty.
-
-  Suby, VIP-y i moderatorzy nie są oceniani. *Zaufaj* zdejmuje flagę na stałe. Wiadomości z flagą „podejrzane” domyślnie nie trafiają na ekran (do wyłączenia w *Czat → Na ekranie*).
-- **Nagrywanie** – OBS może sam zacząć nagrywać lokalnie, gdy zaczynasz stream (i zatrzymać po końcu). Twitch trzyma VOD-y tylko 7 dni (afilianci 14, partnerzy 60), a lokalne nagranie zostaje na zawsze. Plik SRT z czatem pasuje do takiego nagrania.
-
-## Alerty z Twitcha
-
-Follow, sub, resub, gifty, bitsy, raid i nagrody za punkty kanału – bez StreamElements. Alerty mają wygląd aktywnego motywu (bazowego, gry albo postaci), własne napisy postaci i dźwięki generowane w przeglądarce (bez plików, bez licencji).
-
-### W OBS
-
-*Źródła → + → Przeglądarka*, odznaczone „Plik lokalny”, URL:
-`file:///C:/OBS/obs-game-overlay/alerts.html`, 1920×1080. Ustaw źródło **nad** resztą sceny.
-Żeby dźwięk alertów szedł przez mikser OBS, zaznacz w źródle *Kontroluj dźwięk przez OBS*.
-
-**Poziomy reakcji (1–5):** im większe zdarzenie, tym większy, dłuższy i głośniejszy alert. Od poziomu 3 – efekt na cały ekran, gwiazdki i inne teksty postaci (Myr częściej mówi wtedy „ja”), od 4 – drżenie ekranu i bas, 5 – fanfara i „LEGENDARNE”. Avatar w układach i postać na ekranach podskakują tym mocniej, im wyższy poziom.
+Follow, sub, resub, gifty, bitsy, raid i nagrody za punkty – bez StreamElements, w stylu postaci i gry, z dźwiękami generowanymi w przeglądarce. **Poziomy 1–5**: im większe zdarzenie, tym większy i dłuższy alert (od 3 efekt na cały ekran, od 4 drżenie i bas, 5 – „LEGENDARNE”).
 
 | Zdarzenie | 2 | 3 | 4 | 5 |
 |---|---|---|---|---|
 | Bitsy | 100+ | 500+ | 1000+ | 5000+ |
-| Gift (liczba subów) | 2+ | 5+ | 10+ | 50+ |
+| Gift (suby) | 2+ | 5+ | 10+ | 50+ |
 | Resub (miesiące) | 3+ | 6+ | 12+ | 24+ |
 | Raid (widzowie) | 5+ | 20+ | 50+ | 200+ |
-| Nagroda (koszt w punktach) | 500+ | 2000+ | 10 000+ | 50 000+ |
+| Nagroda (punkty) | 500+ | 2000+ | 10 000+ | 50 000+ |
 
-Sub to poziom 2, Tier 2 i Tier 3 podnoszą poziom o 1 i 2. Progi zmienisz w `themes/tiers.js`.
+Każda scena mówi alertom, gdzie jest na niej wolne miejsce (`themes/zones.js`), więc alert nie zasłania gry, avatara ani czatu. Testy: Sterowanie → Alerty (z wyborem wielkości), Galeria wszystkich tekstów.
 
-**Szybkie powiadomienia** (⚡ na podglądzie w panelu albo w sekcji Alerty): alert pojawia się od razu, nowy przerywa bieżący, a całość trwa 2,5 s – do szybkiego sprawdzania wyglądu. Wyłączone = normalna kolejka.
-Przy przyciskach testowych wybierasz **wielkość zdarzenia** (1–5), żeby sprawdzić każdy poziom.
+**Głosowanie** (etap startu): czat wybiera między postacią a grą (`1`/`2` albo nazwą). **⏹ Zakończ głosowanie** obok *Dalej* (albo w pilocie, albo `!vm koniecglosowania`) kończy od razu.
 
-W panelu, w sekcji **Alerty**, są przyciski testowe i ustawienia: które alerty pokazywać, głośność, czas, pozycja i wielkość.
-Przyciski testowe działają także bez połączenia z Twitchem.
+**Twitch – połączenie raz:** <https://dev.twitch.tv/console/apps> → *Register Your Application* (Redirect `http://localhost`, kategoria *Broadcaster Suite*, typ **Public**) → skopiuj **Client ID** → panel *Więcej → Twitch* → *Połącz z Twitchem* → kod na <https://www.twitch.tv/activate>. Logowanie jest zapamiętane (zaszyfrowane kontem Windows) i odświeża się samo.
 
-### Połączenie z Twitchem (raz, ok. 3 minuty)
+---
 
-Alerty przychodzą przez wykrywacz (`detector\start-detector.bat`), więc musi być uruchomiony.
+## Kreator stron (HUB)
 
-1. Wejdź na <https://dev.twitch.tv/console/apps> i zaloguj się kontem kanału. Twitch wymaga włączonego logowania dwuetapowego.
-2. **Register Your Application**:
-   - *Name*: dowolna, unikalna, np. `VincentMedia Overlay`
-   - *OAuth Redirect URLs*: `http://localhost` (pole jest wymagane, ale nieużywane)
-   - *Category*: `Broadcaster Suite`
-   - *Client Type*: **Public**
-3. Kliknij **Manage** przy aplikacji i skopiuj **Client ID**. Sekretu nie trzeba.
-4. W panelu, w sekcji **Twitch**, wklej Client ID i kliknij **Połącz z Twitchem**.
-5. Panel pokaże kod. Wejdź na <https://www.twitch.tv/activate> (może być na telefonie), wpisz kod i zatwierdź.
-6. Panel pokaże **POŁĄCZONO**. W oknie wykrywacza zobaczysz, które zdarzenia są aktywne.
+Panel → **Twórz** albo serwis → *Kreator stron*. Strony do 1920×1080, jak w Bubble.io:
+- **Co robimy?** – gotowe pomysły: ekran „zaraz zaczynamy”, licznik śmierci, podziękowanie za follow, ostatni followerzy, pasek z linkami, Cyberpunk HUD, pilot, pusta strona.
+- **✎ Projekt** – paleta: *wizualne* (tekst, przycisk, ikona, obrazek, kształt, wideo, HTML), *kontenery* (grupa, grupa powtarzalna, popup), *HUD* (tag statusu, statystyka, cytat, ramka CAM), *formularze* (pole, checkbox, lista), *stream* (postać, gra, odliczanie, zegar, linki, czat, miejsce na alerty). Przeciągasz na stronę, po prawej wygląd, układ i zachowanie.
+- **⚡ Workflow** – „Kiedy (klik, alert, komenda, co jakiś czas, zmiana ekranu) → Zrób (pokaż, ukryj, mrugnij, ustaw/dodaj do stanu, pokaż stronę na streamie)”.
+- **▤ Dane** – stany (np. `{smierci}`), wspólne dla wszystkich stron.
 
-Logowanie zostaje zapamiętane (zaszyfrowane Twoim kontem Windows w `detector\data\twitch-token.bin`) i odświeża się samo.
-Jeśli nie używasz komputera z Twitchem przez ponad 30 dni, trzeba będzie połączyć się jeszcze raz.
+Na stream: **▶ Na stream** (strona 1920×1080 w `VM · Stream`), **＋ OBS** (osobne źródło `page.html?id=…`), **🎛 Pilot** (strona z działającymi przyciskami). Kopia zapasowa stron do pliku JSON.
 
-> Sub, resub, gifty i bitsy działają tylko na kanałach z afiliacją lub partnerstwem. Bez nich wykrywacz po prostu pominie te zdarzenia.
+---
 
-## Wykrywanie przez Discord (opcjonalnie)
+## Pilot z telefonu
 
-Zamiast wykrywacza (albo obok niego) możesz użyć Discorda przez [Lanyard](https://github.com/Phineas/lanyard). Nie trzeba wtedy niczego uruchamiać, ale Discord musi być włączony.
+*Więcej → Pilot z telefonu → Włącz pilota* → zeskanuj kod QR. Strona pilota ma przyciski: Dalej, etapy startu, Głosowanie i jego koniec, Gra / Ramka / Rozmowa, Przerwa / Koniec, karta ukryj/pokaż/auto, wybór gry i sceny, test alertu. Po kliknięciu telefon pokazuje **„✓ Komputer odebrał”**.
 
-1. Dołącz do serwera Lanyard: <https://discord.gg/lanyard>. Wystarczy być na serwerze.
-2. W Discordzie: *Ustawienia → Prywatność aktywności → Udostępniaj wykrytą aktywność innym* musi być **włączone**.
-3. Skopiuj swoje **User ID**: *Ustawienia → Zaawansowane → Tryb dewelopera: włącz*, potem prawy klik na swój avatar → *Kopiuj ID użytkownika*.
-4. Wklej ID w panelu, w sekcji **Discord (Lanyard)**.
+Polecenia idą przez darmowy przekaźnik **ntfy.sh** pod długim losowym kluczem (**↻ Nowy klucz** unieważnia stary link) – bez Wi-Fi i bez otwierania portów. Wykonuje je panel w doku OBS. Alternatywa: na swoim czacie `!vm przerwa`, `!vm gra`, `!vm dalej`, `!vm scena <nazwa>`, `!vm gra <nazwa>`, `!vm auto`, `!vm ukryj`/`pokaz`, `!vm test`, `!vm koniecglosowania` (tylko z konta streamera, nie pojawia się na ekranie).
 
-> Prywatność: po dołączeniu do serwera Lanyard Twój status Discorda (gra, Spotify itp.) jest dostępny publicznie przez API dla każdego, kto zna Twoje ID. Lokalny wykrywacz nie ma tej wady.
+---
 
-## Bez panelu – wszystko w adresie URL
+## Głos i mikrofon
 
-Nakładka działa też sama, z ustawieniami w adresie. W panelu, w sekcji *Link bez panelu*, jest gotowy adres z obecnymi ustawieniami. Przykład:
+- **Mikrofon:** panel → Start, wybór urządzenia (np. DGM20 USB Microphone). Przy „domyślnym w Windows” i jednym mikrofonie USB panel sam na niego przełącza. Wskaźnik i avatar słuchają mikrofonu, który naprawdę gra.
+- **✨ Popraw głos:** jedno kliknięcie dokłada na mikrofon w OBS filtry w kolejności: redukcja szumów **RNNoise** → **bramka** (−36/−44 dB) → **kompresor** (4:1 od −20 dB, +4 dB) → **limiter** (−3 dB). Drugie kliknięcie zdejmuje. Dostrajasz w OBS: prawy klik na mikrofon → Filtry.
+
+---
+
+## Aktualizacje i bezpieczeństwo
+
+- **Aktualizacje:** GameRadar co 10 minut sprawdza GitHuba, podmienia pliki i uruchamia się od nowa; nakładki i panel odświeżają się same. **W trakcie transmisji i nagrywania nic się nie aktualizuje.** *Więcej → Wersja* (odliczanie, *Sprawdź teraz*), *↻ Uruchom GameRadar ponownie*. Twoje dane (logowanie Twitcha, biblioteka gier, `my-games.txt`, ustawienia) zostają.
+- **Zaufany korytarz:** GameRadar zna hasło do OBS i steruje czatem, więc odpowiada tylko zaufanym stronom: Twoim GitHub Pages (inne adresy w `detector\data\trusted-origins.txt`), stronom z dysku z kluczem `vm-key.js` (zapisuje go GameRadar; nie trafia do repo) i własnym stronom. Obce próby trafiają do dziennika.
+- **Dziennik:** *Więcej → GameRadar – podgląd na żywo*, **📄 Otwórz pełny dziennik** / **⬇ Pobierz**, **📂 Otwórz folder Vincent-Media**.
+
+---
+
+## Dla programisty
 
 ```
-file:///C:/OBS/obs-game-overlay/overlay.html?panel=0&game=Elden%20Ring&theme=esport&pos=br
+obs-game-overlay/
+  site/             serwis (GitHub Pages): menu, podglądy, synchronizacja
+  panel.html        dok w OBS
+  stage.html        jedna scena: ekrany, układy i strony z Kreatora jako ramki
+  overlay.html      karta „Teraz gram” i pasek czatu
+  layouts.html      gra pełny ekran / w ramce / rozmowa
+  scenes.html       ekrany przed streamem, przerwy, koniec
+  alerts.html  transition.html  censor.html  vote.html  page.html
+  builder.html      Kreator stron      editor.html   edytor ułożenia
+  themes/           motywy, postacie, czat, głosy, słowa, Kreator (pagekit.js), synchronizacja (sync.js)…
+  detector/         GameRadar (PowerShell 5.1 – pliki .ps1 z polskimi znakami muszą mieć BOM UTF-8)
+tools/check-ps1.py  sprawdzenie .ps1 przed commitem (BOM, cudzysłowy, nawiasy)
 ```
 
-| Parametr | Wartości | Domyślnie |
-|---|---|---|
-| `game` | nazwa gry | – |
-| `sub` | podtytuł | – |
-| `cover` | URL obrazka | – |
-| `discord` | Discord User ID | – |
-| `mode` | `auto`, `manual`, `detect` (tylko wykryta) | `auto` |
-| `ignore` | lista nazw gier po przecinku | – |
-| `local` | `0` wyłącza lokalny wykrywacz | `1` |
-| `localUrl` | adres wykrywacza | `http://localhost:7777` |
-| `theme` | `neon`, `glass`, `minimal`, `retro`, `esport` albo motyw gry: `g-elden`, `g-mc`, `g-fn`, `g-lol`, `g-val`, `g-cs`, `g-gta`, `g-cp` | `neon` |
-| `pos` | `tl`, `tc`, `tr`, `bl`, `bc`, `br` | `bl` |
-| `label` | napis nad nazwą | `Teraz gram` |
-| `accent`, `accent2` | kolor hex bez `#`, np. `ff3366` | auto |
-| `scale` | np. `1.5` | `1` |
-| `margin` | odstęp od krawędzi w px | `40` |
-| `timer`, `icon`, `showLabel` | `0` wyłącza | `1` |
-| `gameThemes` | `0` = nie zmieniaj motywu na motyw gry | `1` |
-| `motion` | `reduced` = ogranicz animacje | `full` |
-| `panel` | `0` = ignoruj ustawienia z panelu | – |
+- **Wspólny stan:** `localStorage` `obsGameOverlay.v1` (ustawienia), `…pages` / `…pageState` / `…pageVis` (Kreator), `…detected`, `…activeTheme`, `…ready`; `BroadcastChannel('obsGameOverlay')`.
+- **GameRadar (`http://localhost:7777`):** `/game`, `/library`, `/icon`, `/art`, `/events`, `/settings`, `/kv`, `/session`, `/vote…`, `/censor…`, `/relay`, `/launch`, `/shortcut`, `/restart`, `/shutdown`, `/log…`, `/update/…`.
+- Przed commitem: `python3 tools/check-ps1.py`. Typograficzne cudzysłowy („ ”) w `.ps1` psują PowerShella – używaj « ».
+- Wersja: `version.json` i `version.js`.
 
-Z `panel=0` możesz zrobić kilka źródeł z różnymi stałymi ustawieniami. Bez `panel=0` ustawienia z panelu nadpisują te z adresu.
+---
 
-## Zamknij OBS i GameRadar („zamykamy budę”)
+## Podziękowania i licencje
 
-W serwisie w lewym menu, na każdej stronie, jest czerwony przycisk **⏻ Zamknij OBS i GameRadar**. Po kliknięciu:
-1. strona pyta o potwierdzenie;
-2. jeśli trwa transmisja albo nagrywanie, pyta drugi raz, potem je kończy przez OBS WebSocket i czeka, aż nagranie się zapisze;
-3. GameRadar zamyka OBS normalnie, jak krzyżykiem, więc przy następnym starcie nie ma pytania o tryb awaryjny; jeśli OBS nie zamknie się w 20 s, zamyka go na siłę;
-4. GameRadar zapisuje swoje dane i kończy pracę.
-
-**Nic nie odpala się samo z powrotem.** GameRadar zostawia znacznik `detector\data\stopped.flag`. Strażnik z Harmonogramu zadań i start w tle widzą go i od razu się kończą. Nie uruchamiają też OBS z opcji „uruchamiaj OBS razem z GameRadarem”. Znacznik znika, gdy sam uruchomisz GameRadar albo skrót „Start streamu”, gdy sam otworzysz OBS albo po ponownym uruchomieniu komputera.
-
-## 1.47: miejsce na alerty, cenzura bez ramek, głos widać, pilot z potwierdzeniem
-
-- **Ekrany przed streamem i przerwy** (przygotowania, stream za…, zaraz zaczynamy, spóźnienie, przerwa):
-  - karta schodzi na dół, na poziom zdjęcia postaci, nad czat i listę kontrolną;
-  - lewe górne ~42% ekranu jest wolne dla alertów, także legendarnych;
-  - sociale stoją w prawym górnym rogu.
-  
-  Napisy końcowe zostają po staremu.
-- **Cenzura ekranu.** Niebieskie ramki skanera i napis „brak mapy sceny” pokazują się tylko wtedy, gdy sam włączysz „ramki skanera”. Wcześniej były włączone domyślnie i było je widać na streamie.
-- **Widać, że mówisz.** Postać przy karcie „Teraz gram”, portret w trybie „Gra + postać” i zdjęcie na ekranach przerw podskakują i świecą, gdy mówisz do mikrofonu.
-- **Pilot z telefonu z potwierdzeniem.** Po kliknięciu telefon czeka, aż GameRadar odpisze, i pokazuje „✓ Komputer odebrał” albo „Komputer nie potwierdził”. W panelu (Więcej → Pilot) widać, kiedy GameRadar ostatnio sprawdzał przekaźnik i czy łączy się z ntfy.sh. Błędy połączenia trafiają do dziennika.
-- **Głosowanie można zakończyć od razu.** Robisz to przyciskiem „⏹ Zakończ głosowanie (wynik, czas)” obok *Dalej*, przyciskiem w pilocie albo komendą `!vm koniecglosowania`. Wygrywa ten, kto prowadzi.
-- **Pozycja karty bez środka u góry.** Zasłaniał alerty i pasek czatu; kto go miał, dostaje lewy górny róg.
-
-## Panel 1.46: Gra + postać, avatar tak/nie, „Popraw głos”
-
-- **Nowy tryb motywu „Gra + postać”** (Wygląd → Postać i gra, także w serwisie). Karta, czcionki i tło są w czystym motywie gry. Prowadząca postać wchodzi w kartę portretem w okrągłej ramce, plakietką z imieniem i paskiem w swoim kolorze. Postać i gra się nie mieszają. Teraz są cztery tryby: Fuzja 50:50, Gra + postać, Sam motyw gry, Sama postać.
-- **Avatar: tak / nie.** Kamerka i VTuber są na razie schowane.
-- **Art postaci „czasem nie działał”.** Przy motywie samej gry układy brały grę za postać i pokazywały emblemat gry albo pustą poświatę. Teraz avatar to zawsze prowadząca postać.
-- **✨ Popraw głos** (Start, przy mikrofonie). Jedno kliknięcie dokłada na mikrofon w OBS filtry, w tej kolejności:
-  1. redukcja szumów **RNNoise** – zdejmuje szum tła;
-  2. **bramka szumów** (otwiera się przy −36 dB, zamyka przy −44 dB) – cisza między zdaniami;
-  3. **kompresor** (4:1 od −20 dB, +4 dB) – wyrównuje głośność;
-  4. **limiter** (−3 dB) – krzyk nie przesteruje.
-  
-  Drugie kliknięcie je zdejmuje. Dostrajasz w OBS: prawy klik na mikrofon → Filtry.
-
-## Panel 1.45: porządki
-
-- **Start → Teraz.** Gdy wszystko działa, widać jedną zieloną belkę. Lista pokazuje się przy uruchamianiu albo przy kłopocie i zawiera cztery najważniejsze rzeczy: **GameRadar, OBS, Twitch, Przechwytywanie gry**. Reszta (wersja, lista gier, sceny, mikrofon, cenzura, nakładki) pojawia się tylko wtedy, gdy coś z nią nie gra, albo po kliknięciu belki. Kafelki stanu i sekcja „Automatyka” zniknęły: przechwytywanie gry i mikrofon zawsze działają same.
-- **Mikrofon.** Pod listą jest wybór urządzenia, które nagrywa OBS i na które reaguje avatar. Jeśli OBS ma ustawiony „domyślny w Windows”, a w komputerze jest dokładnie jeden mikrofon USB (np. DGM20 USB Microphone), panel raz sam przełącza na niego.
-- **Wersje.** Jeśli GameRadar jest nowszy niż panel, panel sam się odświeża (nie w trakcie streamu). Nie każe już restartować GameRadara.
-- **Sceny** to pulpit stanów:
-  - łańcuch startu z przyciskiem *Dalej*; klikniesz etap, to do niego przeskoczysz;
-  - **Na wizji**: Gra, Gra w ramce, Rozmowa;
-  - **Przerwa i koniec**: Przerwa, Przedłuża się, Koniec.
-  
-  Bez dodatkowych przycisków i podpowiedzi. Przełącznik „to okno jako pilot” przeszedł do Więcej → Wersja.
-- **Co dziś?** Każda gra ma kropkę: kolorowa (w kolorze motywu) – ma swój motyw; przerywana – czeka na motyw; szara – ręcznie ustawiona „sama postać”. Przy nagłówku „Gry” jest licznik: ile z motywem, ile czeka.
-- **Motywy: trzy tryby.** **Fuzja 50:50** (domyślny), **Sam motyw gry** i **Sama postać**. „Sąsiedzi” i eksperymenty 66:33 / 33:66 usunięte – kto je miał, dostaje fuzję 50:50. Dla pojedynczej gry wybierasz inny tryb w jej kafelku („motyw: … / bez motywu gry”).
-- **Czat i Sterowanie** bez podzakładek – wszystko widać naraz, w szerokim oknie w kolumnach.
-
-## Start panelu: animowany przebieg
-
-Karta Start pokazuje uruchamianie krok po kroku: GameRadar, OBS, sceny, mikrofon, nakładki, Twitch. Każdy krok ma kółko, które kręci się, dopóki trwa łączenie. Gdy krok zadziała, kółko rysuje ✓, a wiersz na chwilę się podświetla. Pasek w nagłówku pokazuje postęp (np. 4/6). Przez pierwsze 45 s brak połączenia to „uruchamiam”, a nie błąd. Gdy wszystko działa, lista zostaje na moment, żeby było widać ostatni ✓, potem sama się zwija do zielonego „✓ Wszystko działa”. Jeśli coś nie zadziała, lista zostaje otwarta, a przy kroku jest przycisk **Napraw**.
-
-Sterowanie nie ma już podzakładek: Gra, Ekrany, Sceny OBS i Alerty są widoczne naraz. W „Więcej” grupy są zawsze rozwinięte. W szerokim oknie obie zakładki układają się w kolumny bez dziur.
-
-## Lista gier bez dodatków
-
-Soundtracki, artbooki, *Bonus Content*, DLC, season passy, serwery dedykowane, SDK, narzędzia do modów i biblioteki (Redistributable, Proton, Steamworks) nie trafiają na listę „Co dziś?”. Gra ze Steama musi mieć w swoim folderze plik `.exe`, więc np. ścieżka dźwiękowa w `steamapps\music` odpada sama.
-
-## Panel w wąskim i szerokim doku
-
-W wąskim doku przy zakładkach pojawiają się strzałki ‹ ›: pokazują, że za krawędzią są kolejne zakładki, i przewijają pasek.
-
-Progi szerokości są w jednym miejscu: `themes/bp.js` ustawia `html[data-bp]` na `sm`, `md`, `lg` albo `xl`, a CSS panelu tylko z tego korzysta. Więcej → Wersja pokazuje na żywo szerokość panelu i aktywny próg.
-- **sm** (< 420 px): zakładki przewijają się w bok i nic się nie zgniata.
-- **md** (420–759 px): jak dotąd.
-- **lg** (760–1199 px) i **xl** (≥ 1200 px): ustawienia układają się w 2 albo 3 kolumny, a podgląd stoi obok zakładek.
-
-Rozciągnięty albo odpięty dok w OBS przestaje więc być jedną długą kolumną. Pomysł pochodzi z pena „Responsive Grid with @custom-media” autorstwa [Chrisa Coyiera](https://codepen.io/chriscoyier) (CodePen, MIT): aliasy zapytań o szerokość definiuje się raz. Przeglądarki nie znają jeszcze `@custom-media`, a projekt nie ma kroku budowania (PostCSS), dlatego alias ustawia mały skrypt.
-
-## Ruch i animacje
-
-Panel, edytor ułożenia, czat i karta trzymają się wspólnych zasad ruchu (`themes/motion.css`):
-- wejście ease-out ok. 250 ms, wyjście o 20% krótsze i ease-in;
-- przycisk przy wciśnięciu zmniejsza się do 0,97;
-- treść zakładki i rozwijanej grupy wchodzi z rozłożeniem co 30 ms;
-- okienka zaczynają od skali 0,95;
-- wybraną zakładkę pokazuje jeden znacznik, który przesuwa się między przyciskami;
-- udane kopiowanie i zapis potwierdza krótki puls;
-- w edytorze element wyciągnięty za krawędź ekranu stawia opór jak guma, zamiast stanąć w miejscu;
-- wiadomości czatu nie odbijają się (bez sprężyny), bo to codzienny element.
-
-`panel.html?slow=1` albo `editor.html?slow=1` zwalnia wszystko 4×, żeby obejrzeć krzywe.
-
-Źródło i podziękowania:
-- pen **„20 UI Animation Rules”** autorstwa [web-strategist](https://codepen.io/web-strategist/pen/XJMOdGw), CodePen, licencja MIT;
-- zasady według artykułu [Pixic Studio – UI animation best practices: 20 rules](https://pixicstudio.medium.com/ui-animation-best-practices-20-rules-e855e845f7e5).
-
-## Wskazówki
-
-- Nakładka ma przezroczyste tło, więc nie trzeba dodawać żadnego CSS w ustawieniach źródła.
-- Odśwież źródło w OBS (*Właściwości → Odśwież pamięć podręczną bieżącej strony*), jeśli podmienisz pliki na nowszą wersję.
-- Czcionki są pobierane z Google Fonts. Bez internetu nakładka użyje czcionek systemowych.
+- Grafika motywów i dźwięki: napisane od zera, CC0.
+- Portrety postaci w `themes/fursona/` należą do autorów ilustracji – zobacz `themes/fursona/CREDITS.md`; nie są na CC0.
+- Ikony serwisów społecznościowych: [Simple Icons](https://simpleicons.org) (CC0). Czcionki: Google Fonts (OFL).
+- Inspiracje z CodePen (MIT; wzięty pomysł lub wygląd, kod napisany na nowo):
+  - zasady ruchu – „20 UI Animation Rules”, [web-strategist](https://codepen.io/web-strategist/pen/XJMOdGw), wg artykułu [Pixic Studio](https://pixicstudio.medium.com/ui-animation-best-practices-20-rules-e855e845f7e5),
+  - przejście „taśma filmowa” – `film()` z biblioteki [SSGOI](https://github.com/meursyphus/ssgoi),
+  - HUD cyberpunk – baner „Yuffie // Cyberpunk Edgerunners”, [velkaa](https://codepen.io/velkaa) (bez GIF-ów i muzyki z oryginału),
+  - progi szerokości panelu – „Responsive Grid with @custom-media”, [Chris Coyier](https://codepen.io/chriscoyier).
+- Przekaźnik pilota: [ntfy.sh](https://ntfy.sh).
