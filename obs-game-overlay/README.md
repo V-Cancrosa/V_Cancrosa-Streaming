@@ -194,6 +194,7 @@ Polecenia idą przez darmowy przekaźnik **ntfy.sh** pod długim losowym kluczem
 
 ## Aktualizacje i bezpieczeństwo
 
+- **Moduły GameRadara** (`detector/mods/`): cenzura ekranu, głos postaci i lista okien są w osobnych plikach. Gdy antywirus albo błąd zablokuje moduł, GameRadar startuje bez niego, a log mówi, który moduł nie ruszył (np. «Moduł „tts” nie wczytany (antywirus)»).
 - **Aktualizacje:** GameRadar co 10 minut sprawdza GitHuba, podmienia pliki i uruchamia się od nowa; nakładki i panel odświeżają się same. **W trakcie transmisji i nagrywania nic się nie aktualizuje.** *Więcej → Wersja* (odliczanie, *Sprawdź teraz*), *↻ Uruchom GameRadar ponownie*. Twoje dane (logowanie Twitcha, biblioteka gier, `my-games.txt`, ustawienia) zostają.
 - **Zaufany korytarz:** GameRadar zna hasło do OBS i steruje czatem, więc odpowiada tylko zaufanym stronom: Twoim GitHub Pages (inne adresy w `detector\data\trusted-origins.txt`), stronom z dysku z kluczem `vm-key.js` (zapisuje go GameRadar; nie trafia do repo) i własnym stronom. Obce próby trafiają do dziennika.
 - **Dziennik:** *Więcej → GameRadar – podgląd na żywo*, **📄 Otwórz pełny dziennik** / **⬇ Pobierz**, **📂 Otwórz folder Vincent-Media**.

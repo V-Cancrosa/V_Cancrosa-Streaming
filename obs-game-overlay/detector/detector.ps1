@@ -1773,110 +1773,9 @@ function Test-Trusted($req, $q) {
 # Które słowa zasłonić, decyduje warstwa (themes/wordfilter.js – ten sam filtr co czat). Nic nie jest zapisywane.
 $script:Censor = [hashtable]::Synchronized(@{ on = $false; exes = @(); until = [DateTime]::MinValue; result = $null; status = 'wyłączona'; fps = 0; lang = ''; err = '' })
 $script:CensorPS = $null
-$CensorScript = {
-    param($C)
-    try {
-        Add-Type -AssemblyName System.Drawing, System.Windows.Forms, System.Runtime.WindowsRuntime
-        if (-not ('VMCensor.W' -as [type])) {
-            Add-Type -Namespace VMCensor -Name W -MemberDefinition @'
-[DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
-[DllImport("user32.dll")] public static extern IntPtr SetThreadDpiAwarenessContext(IntPtr ctx);
-[DllImport("user32.dll")] public static extern bool SetProcessDpiAwarenessContext(IntPtr ctx);
-[DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
-[DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
-[DllImport("user32.dll")] public static extern bool GetClientRect(IntPtr h, out RECT r);
-[DllImport("user32.dll")] public static extern bool ClientToScreen(IntPtr h, ref POINT p);
-[DllImport("user32.dll")] public static extern bool IsIconic(IntPtr h);
-[DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
-[DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr h, IntPtr hdc, uint flags);
-[StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
-[StructLayout(LayoutKind.Sequential)] public struct POINT { public int X, Y; }
-'@
-        }
-        # piksele fizyczne (skalowanie Windows 125% itd.): bez tego zrzut okna i współrzędne słów wychodzą w różnej skali
-        # (zasłony za wysoko i za bardzo w lewo). PER_MONITOR_AWARE_V2 = -4 – dla procesu i dla tego wątku.
-        try { [void][VMCensor.W]::SetProcessDpiAwarenessContext([IntPtr](-4)) } catch {}
-        try { [void][VMCensor.W]::SetThreadDpiAwarenessContext([IntPtr](-4)) } catch {}
-        try { [void][VMCensor.W]::SetProcessDPIAware() } catch {}
-        $null = [Windows.Media.Ocr.OcrEngine, Windows.Foundation, ContentType = WindowsRuntime]
-        $null = [Windows.Graphics.Imaging.BitmapDecoder, Windows.Graphics, ContentType = WindowsRuntime]
-        $asTask = @([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' })[0]
-        $await = { param($op, [Type]$t) $task = $asTask.MakeGenericMethod($t).Invoke($null, @($op)); [void]$task.Wait(-1); $task.Result }
-        $engine = [Windows.Media.Ocr.OcrEngine]::TryCreateFromUserProfileLanguages()
-        if (-not $engine) { $C.status = 'brak OCR'; $C.err = 'Windows nie ma rozpoznawania tekstu dla Twoich języków (Ustawienia → Czas i język → Język → Opcje języka → Rozpoznawanie tekstu)'; return }
-        $C.lang = [string]$engine.RecognizerLanguage.LanguageTag
-        $maxDim = [int][Windows.Media.Ocr.OcrEngine]::MaxImageDimension
-        $exeOf = @{}; $times = New-Object Collections.Queue
-        Add-Type -AssemblyName System.Web.Extensions
-        $ser = New-Object Web.Script.Serialization.JavaScriptSerializer; $ser.MaxJsonLength = 16777216
-        while (-not $C.quit) {
-            if (-not $C.on -or (Get-Date) -gt $C.until) { $C.status = 'wyłączona'; $C.result = $null; Start-Sleep -Milliseconds 500; continue }
-            try {
-                # okno do skanu: to, które OBS przechwytuje w bieżącej scenie (target = plik .exe), także gdy jest pod innymi oknami;
-                # bez celu – okno na pierwszym planie z listy skanowanych programów
-                $h = [IntPtr]::Zero; $exe = ''
-                if ($C.target) {
-                    $tp = @(Get-Process -Name ([IO.Path]::GetFileNameWithoutExtension([string]$C.target)) -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne [IntPtr]::Zero })
-                    $tp = @($tp | Sort-Object { -not $_.MainWindowTitle }) | Select-Object -First 1
-                    if ($tp) { $h = $tp.MainWindowHandle; $exe = ([string]$C.target).ToLowerInvariant() }
-                }
-                if ($h -eq [IntPtr]::Zero) {
-                    $h = [VMCensor.W]::GetForegroundWindow(); $procId = [uint32]0; [void][VMCensor.W]::GetWindowThreadProcessId($h, [ref]$procId)
-                    if (-not $exeOf.ContainsKey($procId)) { $pe = ''; try { $pe = [IO.Path]::GetFileName((Get-Process -Id $procId -ErrorAction Stop).Path).ToLowerInvariant() } catch {}; $exeOf[$procId] = $pe }
-                    $exe = $exeOf[$procId]
-                    $list = @($C.exes)
-                    if ($list.Count -and -not ($list -contains $exe)) { $t0 = [DateTimeOffset]::Now.ToUnixTimeMilliseconds(); $C.json = $ser.Serialize(@{ at = $t0; exe = $exe; skip = $true; lines = @() }); $C.result = @{ at = $t0 }; $C.status = "czeka (na wierzchu: $exe)"; Start-Sleep -Milliseconds 250; continue }
-                }
-                $r = New-Object VMCensor.W+RECT; [void][VMCensor.W]::GetClientRect($h, [ref]$r)
-                $pt = New-Object VMCensor.W+POINT; [void][VMCensor.W]::ClientToScreen($h, [ref]$pt)
-                $w = $r.Right - $r.Left; $hh = $r.Bottom - $r.Top
-                if ($w -lt 80 -or $hh -lt 40 -or [VMCensor.W]::IsIconic($h)) { Start-Sleep -Milliseconds 250; continue }
-                # PrintWindow (PW_RENDERFULLCONTENT) – zawartość samego okna, nawet przykrytego; potem wycinamy obszar klienta (to samo, co łapie OBS)
-                $wr = New-Object VMCensor.W+RECT; [void][VMCensor.W]::GetWindowRect($h, [ref]$wr)
-                $ww = $wr.Right - $wr.Left; $wh = $wr.Bottom - $wr.Top
-                $full = New-Object Drawing.Bitmap $ww, $wh
-                $g = [Drawing.Graphics]::FromImage($full); $hdc = $g.GetHdc(); $okPw = [VMCensor.W]::PrintWindow($h, $hdc, 2); $g.ReleaseHdc($hdc); $g.Dispose()
-                $bmp = New-Object Drawing.Bitmap $w, $hh
-                $g = [Drawing.Graphics]::FromImage($bmp)
-                if ($okPw) { $g.DrawImage($full, (New-Object Drawing.Rectangle 0, 0, $w, $hh), (New-Object Drawing.Rectangle ($pt.X - $wr.Left), ($pt.Y - $wr.Top), $w, $hh), [Drawing.GraphicsUnit]::Pixel) }
-                else { $g.CopyFromScreen($pt.X, $pt.Y, 0, 0, $bmp.Size) }
-                $g.Dispose(); $full.Dispose()
-                $sc = [Math]::Min(1.0, $maxDim / [double]([Math]::Max($w, $hh)))
-                if ($sc -lt 1) { $b2 = New-Object Drawing.Bitmap $bmp, ([int]($w * $sc)), ([int]($hh * $sc)); $bmp.Dispose(); $bmp = $b2 }
-                $ms = New-Object IO.MemoryStream; $bmp.Save($ms, [Drawing.Imaging.ImageFormat]::Bmp); $bmp.Dispose(); $ms.Position = 0
-                $ras = [System.IO.WindowsRuntimeStreamExtensions]::AsRandomAccessStream($ms)
-                $dec = & $await ([Windows.Graphics.Imaging.BitmapDecoder]::CreateAsync($ras)) ([Windows.Graphics.Imaging.BitmapDecoder])
-                $sb = & $await ($dec.GetSoftwareBitmapAsync()) ([Windows.Graphics.Imaging.SoftwareBitmap])
-                $res = & $await ($engine.RecognizeAsync($sb)) ([Windows.Media.Ocr.OcrResult])
-                $sb.Dispose(); $ms.Dispose()
-                $lines = New-Object Collections.ArrayList
-                foreach ($ln in $res.Lines) {
-                    $ws = New-Object Collections.ArrayList
-                    foreach ($wd in $ln.Words) { $b = $wd.BoundingRect; [void]$ws.Add(@{ t = [string]$wd.Text; x = [int]($pt.X + $b.X / $sc); y = [int]($pt.Y + $b.Y / $sc); w = [int]($b.Width / $sc); h = [int]($b.Height / $sc) }) }
-                    [void]$lines.Add(@{ words = @($ws) })
-                }
-                $mon = [System.Windows.Forms.Screen]::FromHandle($h).Bounds
-                $now = [DateTimeOffset]::Now.ToUnixTimeMilliseconds()
-                $C.json = $ser.Serialize(@{ at = $now; exe = $exe; client = @{ x = $pt.X; y = $pt.Y; w = $w; h = $hh }; monitor = @{ x = $mon.X; y = $mon.Y; w = $mon.Width; h = $mon.Height }; lines = @($lines) })
-                $C.result = @{ at = $now }
-                $times.Enqueue($now); while ($times.Count -gt 10) { [void]$times.Dequeue() }
-                if ($times.Count -gt 1) { $C.fps = [Math]::Round(($times.Count - 1) * 1000.0 / ($now - $times.Peek()), 1) }
-                $C.status = 'działa'; $C.err = ''
-            } catch { $C.err = $_.Exception.Message; Start-Sleep -Milliseconds 500 }
-        }
-    } catch { $C.status = 'błąd'; $C.err = $_.Exception.Message }
-}
 function Stop-Censor {
     $script:Censor.quit = $true
     if ($script:CensorPS) { try { [void]$script:CensorPS.BeginStop($null, $null) } catch {} }
-}
-function Start-Censor {
-    if ($script:CensorPS -and -not $script:CensorPS.InvocationStateInfo.State.ToString().StartsWith('Complet') -and $script:CensorPS.InvocationStateInfo.State -ne 'Failed') { return }
-    $rs = [runspacefactory]::CreateRunspace(); $rs.Open()
-    $ps = [powershell]::Create(); $ps.Runspace = $rs
-    [void]$ps.AddScript($CensorScript).AddArgument($script:Censor)
-    [void]$ps.BeginInvoke(); $script:CensorPS = $ps
-    Log 'Cenzura ekranu: skan włączony' 'DarkCyan'
 }
 
 $MimeTypes = @{ '.html' = 'text/html; charset=utf-8'; '.css' = 'text/css; charset=utf-8'; '.js' = 'application/javascript; charset=utf-8'
@@ -1915,68 +1814,6 @@ function Send-Json($ctx, $obj, [int]$code = 200) {
     $res.ContentLength64 = $bytes.Length
     $res.OutputStream.Write($bytes, 0, $bytes.Length)
     $res.OutputStream.Close()
-}
-
-# ---------------------------------------------------------------- głos (TTS): głosy Windows – OneCore przez WinRT, zapasowo SAPI
-# Za darmo i bez internetu. Barwę postaci (wysokość, tempo) daje SSML, a efekty (robot, radio, pogłos) dokłada przeglądarka.
-$script:Tts = @{ ready = $false; err = ''; voices = @(); raw = @{}; cache = [ordered]@{}; mode = '' }
-function Initialize-Tts {
-    if ($script:Tts.ready -or $script:Tts.err) { return }
-    try {
-        Add-Type -AssemblyName System.Runtime.WindowsRuntime
-        $null = [Windows.Media.SpeechSynthesis.SpeechSynthesizer, Windows.Media.SpeechSynthesis, ContentType = WindowsRuntime]
-        $script:Tts.asTask = @([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' })[0]
-        $script:Tts.synth = New-Object Windows.Media.SpeechSynthesis.SpeechSynthesizer
-        $list = New-Object Collections.ArrayList
-        foreach ($v in [Windows.Media.SpeechSynthesis.SpeechSynthesizer]::AllVoices) {
-            $script:Tts.raw[[string]$v.Id] = $v
-            [void]$list.Add([pscustomobject]@{ id = [string]$v.Id; name = ([string]$v.DisplayName -replace '^Microsoft\s+', ''); lang = [string]$v.Language; gender = ([string]$v.Gender).ToLowerInvariant() })
-        }
-        if (-not $list.Count) { throw 'brak głosów OneCore' }
-        $script:Tts.voices = @($list); $script:Tts.mode = 'onecore'
-    } catch {
-        try {
-            Add-Type -AssemblyName System.Speech
-            $script:Tts.sapi = New-Object System.Speech.Synthesis.SpeechSynthesizer
-            $script:Tts.voices = @($script:Tts.sapi.GetInstalledVoices() | Where-Object { $_.Enabled } | ForEach-Object { $i = $_.VoiceInfo; [pscustomobject]@{ id = [string]$i.Name; name = ([string]$i.Name -replace '^Microsoft\s+', '' -replace '\s+Desktop$', ''); lang = [string]$i.Culture.Name; gender = ([string]$i.Gender).ToLowerInvariant() } })
-            $script:Tts.mode = 'sapi'
-        } catch { $script:Tts.err = $_.Exception.Message; Log "Głos (TTS) niedostępny: $($script:Tts.err)" 'Yellow'; return }
-    }
-    $script:Tts.ready = $true
-    Log ("Głos (TTS): {0} głosów Windows ({1})" -f $script:Tts.voices.Count, ((@($script:Tts.voices | ForEach-Object { $_.lang }) | Sort-Object -Unique) -join ', ')) 'DarkGray'
-}
-function Get-TtsWav([string]$text, [string]$voice, [double]$rate, [int]$pitch) {
-    $text = ($text -replace '\s+', ' ').Trim()
-    if ($text.Length -gt 400) { $text = $text.Substring(0, 400) }
-    if (-not $text) { return $null }
-    $inv = [Globalization.CultureInfo]::InvariantCulture
-    $rate = [Math]::Max(0.5, [Math]::Min(2.0, $rate)); $pitch = [Math]::Max(-50, [Math]::Min(50, $pitch))
-    $key = "$voice|$rate|$pitch|$text"
-    if ($script:Tts.cache.Contains($key)) { return $script:Tts.cache[$key] }
-    $v = @($script:Tts.voices | Where-Object { $_.id -eq $voice })[0]
-    if (-not $v) { $v = @($script:Tts.voices)[0] }
-    $esc = [Security.SecurityElement]::Escape($text)
-    $ps = $(if ($pitch -ge 0) { "+$pitch%" } else { "$pitch%" })
-    if ($script:Tts.mode -eq 'onecore') {
-        $sy = $script:Tts.synth
-        $sy.Voice = $script:Tts.raw[$v.id]
-        $ssml = "<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='$($v.lang)'><prosody rate='$($rate.ToString('0.00', $inv))' pitch='$ps'>$esc</prosody></speak>"
-        $task = $script:Tts.asTask.MakeGenericMethod([Windows.Media.SpeechSynthesis.SpeechSynthesisStream]).Invoke($null, @($sy.SynthesizeSsmlToStreamAsync($ssml)))
-        [void]$task.Wait(15000)
-        $st = $task.Result
-        $ns = [System.IO.WindowsRuntimeStreamExtensions]::AsStreamForRead($st.GetInputStreamAt(0))
-        $ms = New-Object IO.MemoryStream; $ns.CopyTo($ms); $bytes = $ms.ToArray(); $ns.Dispose(); $st.Dispose()
-    } else {
-        $sy = $script:Tts.sapi; $ms = New-Object IO.MemoryStream
-        try {
-            $sy.SelectVoice($v.id); $sy.Rate = [int][Math]::Round(($rate - 1) * 10)
-            $sy.SetOutputToWaveStream($ms); $sy.Speak($text)
-        } finally { $sy.SetOutputToNull() }
-        $bytes = $ms.ToArray()
-    }
-    $script:Tts.cache[$key] = $bytes
-    while ($script:Tts.cache.Count -gt 40) { $script:Tts.cache.RemoveAt(0) }
-    return $bytes
 }
 
 function Send-Bytes($ctx, [byte[]]$bytes, [string]$type) {
@@ -2258,7 +2095,7 @@ function Invoke-Request($ctx) {
                 $script:Censor.on = ([string]$q['on']) -eq '1'
                 if ($q.ContainsKey('target')) { $script:Censor.target = ([string]$q['target']).Trim() }   # bez parametru (np. autotest) cel zostaje
                 if ($q.ContainsKey('exes')) { $script:Censor.exes = @(([string]$q['exes']).ToLowerInvariant().Split(',') | ForEach-Object { $_.Trim() } | Where-Object { $_ }) }
-                if ($script:Censor.on) { $script:Censor.until = (Get-Date).AddSeconds(15); Start-Censor }
+                if ($script:Censor.on) { $script:Censor.until = (Get-Date).AddSeconds(15); if (Get-Command Start-Censor -ErrorAction SilentlyContinue) { Start-Censor } else { $script:Censor.status = 'moduł zablokowany'; $script:Censor.err = 'moduł cenzury nie wczytał się (antywirus?) – zobacz log GameRadara' } }
                 Send-Json $ctx @{ ok = $true; status = $script:Censor.status; fps = $script:Censor.fps; lang = $script:Censor.lang; error = $script:Censor.err }
             }
             '/censor' {
@@ -2268,10 +2105,12 @@ function Invoke-Request($ctx) {
                 Send-Raw $ctx ([string]$script:Censor.json) 'application/json'
             }
             '/tts/voices' {
+                if (-not (Get-Command Initialize-Tts -ErrorAction SilentlyContinue)) { Send-Json $ctx ([pscustomobject]@{ ok = $false; error = 'moduł głosu nie działa (antywirus?) – zobacz log'; voices = @() }); return }
                 Initialize-Tts
                 Send-Json $ctx ([pscustomobject]@{ ok = $script:Tts.ready; mode = $script:Tts.mode; error = $script:Tts.err; voices = @($script:Tts.voices) })
             }
             '/tts' {
+                if (-not (Get-Command Initialize-Tts -ErrorAction SilentlyContinue)) { Send-Json $ctx @{ ok = $false; error = 'moduł głosu nie działa' } 503; return }
                 Initialize-Tts
                 if (-not $script:Tts.ready) { Send-Json $ctx @{ ok = $false; error = "głos niedostępny: $($script:Tts.err)" } 503; return }
                 $rate = 1.0; [void][double]::TryParse([string]$q['rate'], [Globalization.NumberStyles]::Float, [Globalization.CultureInfo]::InvariantCulture, [ref]$rate)
@@ -2312,12 +2151,8 @@ function Invoke-Request($ctx) {
             }
             '/processes' {
                 # kokpit → «Dodaj grę»: programy z otwartym oknem (bez systemowych i bez OBS)
-                $known = @{}; foreach ($v in $script:GameLib.Values) { if ($v.exe) { $known[[string]$v.exe] = [string]$v.name } }
-                $skip = '^(explorer|obs64|obs32|obs|powershell|pwsh|cmd|conhost|windowsterminal|applicationframehost|systemsettings|textinputhost|shellexperiencehost|searchhost|searchapp|startmenuexperiencehost|lockapp|wscript|msedgewebview2|taskmgr|nvidia overlay|gamebar|xboxgamebarwidgets)$'
-                $list = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne [IntPtr]::Zero -and $_.MainWindowTitle -and $_.ProcessName -notmatch $skip } | ForEach-Object {
-                    $exe = ($_.ProcessName + '.exe').ToLowerInvariant(); $path = ''; try { $path = [string]$_.Path } catch {}
-                    [pscustomobject]@{ exe = $exe; title = [string]$_.MainWindowTitle; path = $path; known = [string]$known[$exe]; custom = [bool]$script:Custom.ContainsKey($exe); ignored = [bool]$script:Ignore.ContainsKey($exe) }
-                } | Sort-Object exe -Unique)
+                if (-not (Get-Command Get-OpenWindows -ErrorAction SilentlyContinue)) { Send-Json $ctx @{ ok = $false; error = 'moduł okien nie działa (antywirus?) – zobacz log' } 503; return }
+                $list = @(Get-OpenWindows)
                 Send-Json $ctx ([pscustomobject]@{ items = $list })
             }
             '/library/launch' {
@@ -2409,6 +2244,18 @@ Import-Index
 Initialize-CustomFile
 Import-Custom
 Initialize-Twitch
+
+# moduły: każdy w osobnym pliku – zablokowany (antywirus, błąd) wyłącza tylko swoją funkcję
+$script:Mods = [ordered]@{}
+foreach ($m in @('censor', 'tts', 'windows')) {
+    $mf = Join-Path $PSScriptRoot "mods\$m.ps1"
+    try { . $mf; $script:Mods[$m] = 'ok' }
+    catch {
+        $script:Mods[$m] = $(if ($_.FullyQualifiedErrorId -match 'Malicious') { 'antywirus' } else { 'błąd' })
+        Log ("Moduł «{0}» nie wczytany ({1}): {2}" -f $m, $script:Mods[$m], $_.Exception.Message) 'Yellow'
+    }
+}
+Log ('Moduły: ' + (($script:Mods.Keys | ForEach-Object { "$_ $($script:Mods[$_])" }) -join ', ')) 'DarkGray'
 
 # tylko na tym komputerze
 $listener = New-Object Net.HttpListener

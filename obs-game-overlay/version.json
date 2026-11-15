@@ -1,5 +1,5 @@
 {
-  "version": "1.52.0",
+  "version": "1.52.1",
   "date": "2026-11-15",
-  "notes": "Gry ze strony: lista zapamiętana w serwisie (działa bez GameRadara), okładki prosto ze Steama, dodawanie gier z otwartych okien"
+  "notes": "GameRadar w modułach: cenzura, głos i lista okien w osobnych plikach – gdy antywirus zablokuje moduł, reszta działa"
 }
