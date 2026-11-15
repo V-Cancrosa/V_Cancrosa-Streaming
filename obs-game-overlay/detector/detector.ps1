@@ -1596,6 +1596,7 @@ function Get-UpdateStatus {
         nextIn = [int][Math]::Min([double]86400, [Math]::Max([double]0, ($script:UP.nextCheck - (Get-Date)).TotalSeconds)); everyMin = 10
         paused = [bool]$live; pausedWhy = $(if (-not $live) { '' } elseif ($script:Live.stream -and $script:Live.rec) { 'transmisja i nagrywanie' } elseif ($script:Live.stream) { 'transmisja' } else { 'nagrywanie' })
         pending = [bool]$script:RestartPending
+        cockpitAgo = $(if ($script:CockpitSeen) { [int]((Get-Date) - $script:CockpitSeen).TotalSeconds } else { -1 })
         installed = $script:AppVersion; latest = $script:UP.latest; notes = $script:UP.notes; auto = $script:UP.auto
         error = $script:UP.error; canUpdate = $script:CanUpdate
         lastCheck = $(if ($script:UP.lastCheck) { $script:UP.lastCheck.ToString('HH:mm') } else { '' })
@@ -2216,6 +2217,11 @@ function Invoke-Request($ctx) {
                 Send-Raw $ctx $txt $(if ($fmt -eq 'json') { 'application/json' } else { 'text/plain' })
             }
             '/twitch/status' { Send-Json $ctx (Get-TwitchStatus) }
+            '/ping' {
+                # otwarty kokpit melduje się co kilkanaście sekund – kreator nie otwiera wtedy drugiego
+                if ([string]$q['who'] -eq 'cockpit') { $script:CockpitSeen = Get-Date }
+                Send-Json $ctx @{ ok = $true }
+            }
             '/twitch/streamkey' {
                 # klucz transmisji do ustawień OBS (kokpit → «Ustaw OBS»); nie trafia do dziennika
                 $uid = $script:TW.userId

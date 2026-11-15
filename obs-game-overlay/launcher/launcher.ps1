@@ -161,7 +161,12 @@ $Work = {
             while (((Get-Date) - $t0).TotalSeconds -lt 90) {
                 Start-Sleep -Milliseconds 600
                 $st = Get-Radar; if ($st) { break }
-                if ($p.HasExited -and (Test-RadarRunning)) { $st = 'running'; break }
+                # nasza kopia się wycofała, bo GameRadar już działa (np. właśnie przechodzi na nową wersję) – czekamy, aż odpowie
+                if ($p.HasExited -and (Test-RadarRunning)) {
+                    for ($k = 0; $k -lt 40 -and -not $st; $k++) { Set-Step 3 'run' 'Uruchamia się w nowej wersji – czekam…'; Start-Sleep -Seconds 1; $st = Get-Radar }
+                    if (-not $st) { $st = 'running' }
+                    break
+                }
                 if ($p.HasExited) { Start-Sleep -Milliseconds 400; break }
                 $last = ''; try { $last = [string](Get-Content $lg -Tail 1 -Encoding UTF8 -ErrorAction Stop) } catch {}
                 if ($last) { Set-Step 3 'run' ('Uruchamiam… ' + ($last -replace '^[\d-]*\s*\[[\d:]+\]\s*', '')) }
@@ -191,7 +196,7 @@ $Work = {
             if (-not $obs) { Set-Step 4 'warn' 'Nie znalazłem OBS Studio na tym komputerze' 'obsdl' }
             else {
                 Set-Step 4 'run' 'Uruchamiam…'
-                Start-Process -FilePath $obs -WorkingDirectory (Split-Path $obs)
+                Start-Process -FilePath $obs -WorkingDirectory (Split-Path $obs) -WindowStyle Minimized     # OBS w tle – stream prowadzisz z kokpitu
                 $ok = $false
                 for ($k = 0; $k -lt 40; $k++) { Start-Sleep -Milliseconds 500; if (Get-Process -Name obs64 -ErrorAction SilentlyContinue) { $ok = $true; break } }
                 if ($ok) { Set-Step 4 'ok' ('Uruchomiony' + $(if ($theme) { ' · ' + $theme } else { '' })) } else { Set-Step 4 'warn' 'Nie wystartował w 20 s – uruchom go ręcznie' }
@@ -200,7 +205,10 @@ $Work = {
 
         # 6. kokpit
         $i = 5
-        if ($sync.cockpit) { Set-Step 5 'run' 'Otwieram w przeglądarce…'; Start-Process $sync.url; Start-Sleep -Milliseconds 600; Set-Step 5 'ok' 'Otwarty – stream prowadzisz stamtąd' }
+        # kokpit: tylko gdy nie jest już otwarty (otwarty kokpit co kilkanaście sekund melduje się GameRadarowi)
+        $seen = $null; if ($st -isnot [string] -and $st) { $u = Get-Radar; if ($u -and $u.PSObject.Properties['cockpitAgo']) { $seen = [int]$u.cockpitAgo } }
+        if ($sync.cockpit -and $null -ne $seen -and $seen -ge 0 -and $seen -lt 130) { Set-Step 5 'ok' 'Już otwarty w przeglądarce – nie otwieram drugiego' }
+        elseif ($sync.cockpit) { Set-Step 5 'run' 'Otwieram w przeglądarce…'; Start-Process $sync.url; Start-Sleep -Milliseconds 600; Set-Step 5 'ok' 'Otwarty – stream prowadzisz stamtąd' }
         else { Set-Step 5 'skip' 'Pominięty' }
 
         # 7. głosy Piper (domyślne głosy postaci) – pobierane raz, w GameRadarze w tle

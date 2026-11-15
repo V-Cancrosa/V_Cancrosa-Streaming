@@ -398,6 +398,11 @@
     f.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none;border:0';
     document.body.appendChild(f);
   }
+  // pełny kokpit w przeglądarce melduje się GameRadarowi (kreator startu nie otworzy drugiego); dok w OBS się nie liczy
+  if (!document.documentElement.classList.contains('dock')) {
+    const ping = () => fetch(S.hub() + '/ping?who=cockpit', { cache: 'no-store' }).catch(() => {});
+    ping(); setInterval(ping, 20000);
+  }
   S.onChange(render);
   render(); start(); poll(); audience(); vote();
   document.addEventListener('visibilitychange', () => { if (!document.hidden) preview(); });

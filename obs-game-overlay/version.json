@@ -1,5 +1,5 @@
 {
-  "version": "1.60.0",
+  "version": "1.60.1",
   "date": "2026-11-15",
-  "notes": "Koniec przeskoków (ustawienia łączone pole po polu), Ekrany jako siatka plansz z ustawieniami i uwagami, herby jako znaczki, ramy wielkości alertów, menu w grupach"
+  "notes": "Kreator czeka na GameRadar przy przejściu na nową wersję, nie otwiera drugiego kokpitu, OBS startuje zminimalizowany"
 }
