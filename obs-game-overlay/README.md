@@ -38,6 +38,8 @@ Instalator można uruchomić ponownie – nie tworzy duplikatów.
 
 ## Dzień streamu
 
+**Nora** (aplikacja z ikoną – pulpit, menu Start, folder Vincent-Media; `nora/Nora.exe`): okno Windows w stylu serwisu, które samo sprawdza **blokady → GameRadar → najnowszą wersję → pliki → głosy Piper** (aktualizacje i naprawy robi przez GameRadar), a potem jednym przyciskiem **▶ Start streamu** uruchamia OBS zminimalizowany w tle i kokpit – drugiego kokpitu nie otworzy, gdy jeden już jest otwarty. Do tego: OBS w tle, Kokpit, Serwis, Dziennik, **Zamknij wszystko** (OBS i GameRadar) i przełącznik **Uruchamianie ze strony** (adres `nora://`, wtedy przycisk *▶ Nora* w serwisie otwiera aplikację). Druga Nora się nie uruchomi – pokaże okno, które już działa. Bez WebView2 (rzadkie na Windows 11) uruchamia się dawny kreator.
+
 **Ustawienia OBS** (serwis → *OBS*): Vincent-Media sam ustawia OBS przez połączenie z nim, bez zamykania OBS – obraz 1920×1080 / 60 kl./s, scenę **VM · Stream** (gra → ekrany → alerty → przejścia, Twoje źródła zostają), filtry mikrofonu, **Twitcha z kluczem transmisji pobranym od Twitcha** (przez GameRadar, bez wklejania), jakość: tryb prosty, koder Twojej karty graficznej (NVENC / AMD / QuickSync, inaczej procesor), 6000 kb/s obrazu, 160 kb/s dźwięku, 48 kHz (te działają od następnego uruchomienia OBS). Jeden przycisk **Ustaw wszystko**; zmiany obrazu, wyjścia i Twitcha czekają, gdy trwa transmisja lub nagrywanie. Kokpit przy każdym połączeniu sprawdza OBS i pokazuje baner, gdy coś się rozjedzie.
 
 **Kokpit „Na żywo”** (serwis → *Na żywo*, działa też na telefonie) – cały stream z jednej strony:
@@ -230,11 +232,13 @@ obs-game-overlay/
   detector/         GameRadar (PowerShell 5.1 – pliki .ps1 z polskimi znakami muszą mieć BOM UTF-8)
     mods/           moduły: cenzura (OCR), głos (TTS Windows), Piper (głosy neuronowe), lista okien – zablokowany moduł nie zatrzymuje reszty
   obs-theme/        motyw wyglądu OBS (Yami_VincentMedia.ovt)
-  launcher/         program «Vincent-Media»: kreator startu (WPF), launcher.vbs, ikona
+  nora/             aplikacja Nora: Nora.exe + WebView2, interfejs nora/ui/index.html (źródła: ../nora/, budowanie: tools/build-nora.py)
+  launcher/         dawny kreator w PowerShell (zapasowy) i autostart GameRadara: kreator startu (WPF), launcher.vbs, ikona
   update.ps1        aktualizacja, spis plików, porządek w folderze i skrótach (używają go kreator, GameRadar, instalator)
   manifest.json     spis plików z sumami SHA-256 (tools/make-manifest.py)
 tools/check-ps1.py  sprawdzenie .ps1 przed commitem (BOM, cudzysłowy, nawiasy, „$zmienna:”) i aktualności manifestu
 tools/make-icon.py  rysuje ikonę Vincent-Media
+tools/build-nora.py  buduje Nora.exe (.NET Framework 4.8 + WebView2; działa też na Linuksie z dotnet SDK)
 tools/make-crests.py rysuje herby Myr-35 i Zarin (themes/fursona/*-crest.svg)
 ```
 

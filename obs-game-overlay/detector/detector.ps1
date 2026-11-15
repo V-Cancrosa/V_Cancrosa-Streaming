@@ -1605,13 +1605,14 @@ function Get-UpdateStatus {
 }
 function Test-VMNewerSafe([string]$a, [string]$b) { try { return ([version]$a) -gt ([version]$b) } catch { return $false } }
 
-function Invoke-UpdateCheck([switch]$Install) {
+function Invoke-UpdateCheck([switch]$Install, [switch]$Force) {
     if (-not $script:CanUpdate) { $script:UP.error = 'brak update.ps1 obok wykrywacza'; return }
     $script:UP.lastCheck = Get-Date; $script:UP.error = ''
     try {
         $r = Get-VMRemoteInfo
         $script:UP.latest = [string]$r.version; $script:UP.notes = [string]$r.notes
-        if ($Install -and (Test-VMNewerSafe $script:UP.latest $script:AppVersion)) {
+        # -Force: naprawa plików (Nora → «Wszystkie pliki na miejscu»), nawet gdy wersja jest ta sama
+        if ($Install -and ($Force -or (Test-VMNewerSafe $script:UP.latest $script:AppVersion))) {
             Log "Aktualizacja: pobieram wersję $($script:UP.latest)…" 'Cyan'
             $n = Install-VMFiles $AppDir
             Log "Aktualizacja: podmienione pliki: $n" 'Green'
@@ -1991,7 +1992,7 @@ function Invoke-Request($ctx) {
             }
             '/update/run' {
                 if (Test-Live) { $script:UP.error = 'trwa transmisja albo nagrywanie – aktualizacja zaczeka do końca'; Send-Json $ctx ([pscustomobject]@{ ok = $false; restarting = $false; status = (Get-UpdateStatus) }); return }
-                Invoke-UpdateCheck -Install
+                if ([string]$q['force'] -eq '1') { Invoke-UpdateCheck -Install -Force } else { Invoke-UpdateCheck -Install }
                 $st = Get-UpdateStatus
                 Send-Json $ctx ([pscustomobject]@{ ok = -not $st.error; restarting = $script:RestartPending; status = $st })
             }
@@ -2004,14 +2005,15 @@ function Invoke-Request($ctx) {
             '/launch' {
                 if ($q.ContainsKey('obs') -and (($q['obs'] -eq '1') -ne $script:LaunchObs)) { $script:LaunchObs = $q['obs'] -eq '1'; [IO.File]::WriteAllText($LaunchFile, (@{ obs = $script:LaunchObs } | ConvertTo-Json), $Utf8NoBom); Log ("OBS razem z GameRadarem: " + $(if ($script:LaunchObs) { 'tak' } else { 'nie' })) }
                 $msg = ''; if ($q['start'] -eq '1') { $msg = Start-Obs; Log "Panel: $msg" }
-                $lnk = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Vincent-Media.lnk'
+                $lnk = Join-Path ([Environment]::GetFolderPath('Desktop')) $(if (Test-Path (Join-Path $AppDir 'nora\Nora.exe')) { 'Nora.lnk' } else { 'Vincent-Media.lnk' })
                 Send-Json $ctx ([pscustomobject]@{ ok = $true; obs = $script:LaunchObs; obsPath = (Find-Obs); shortcut = (Test-Path $lnk); msg = $msg; version = $script:AppVersion })
             }
             '/shortcut' {
                 # skrót «Vincent-Media» na pulpicie (tylko po kliknięciu): kreator startu – sprawdza wszystko, uruchamia GameRadar, OBS i kokpit
                 try {
-                    New-VMShortcut $AppDir (Join-Path ([Environment]::GetFolderPath('Desktop')) 'Vincent-Media.lnk')
-                    Log 'Utworzono skrót «Vincent-Media» na pulpicie' 'Green'
+                    $nm = $(if (Test-Path (Join-Path $AppDir 'nora\Nora.exe')) { 'Nora' } else { 'Vincent-Media' })
+                    New-VMShortcut $AppDir (Join-Path ([Environment]::GetFolderPath('Desktop')) "$nm.lnk")
+                    Log "Utworzono skrót «$nm» na pulpicie" 'Green'
                     Send-Json $ctx @{ ok = $true }
                 } catch { Send-Json $ctx @{ ok = $false; error = $_.Exception.Message } }
             }

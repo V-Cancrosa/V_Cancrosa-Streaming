@@ -18,6 +18,8 @@ input[type=checkbox] { accent-color: var(--acc); width: 16px; height: 16px; }
 .nav a i { font-style: normal; width: 20px; text-align: center; }
 .nav .sep { margin: 10px 10px 4px; font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--dim); }
 .nav .kill { margin-top: 8px; padding: 10px; border-radius: 10px; background: color-mix(in srgb, var(--bad) 16%, var(--panel2)); border: 1px solid color-mix(in srgb, var(--bad) 55%, transparent); color: #ffd9dd; font-weight: 700; }
+.nav .nora { margin-top: 8px; padding: 9px 10px; border-radius: 10px; text-align: center; text-decoration: none; font-weight: 700; color: #fff; background: linear-gradient(100deg, var(--acc), #3e2a99); }
+.nav .nora:hover { filter: brightness(1.15); }
 .nav .kill:hover { background: color-mix(in srgb, var(--bad) 30%, var(--panel2)); }
 .nav .stat { margin-top: auto; display: flex; flex-direction: column; gap: 4px; padding: 10px; border-radius: 10px; background: var(--panel2); font-size: 12px; }
 .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--dim); margin-right: 6px; }

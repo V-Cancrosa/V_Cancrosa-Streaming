@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Nora</title>
+<link rel="stylesheet" href="../../themes/fonts.css">
+<style>
+  /* Nora – okno aplikacji (WebView2). Komunikacja z programem: chrome.webview.postMessage / message. */
+  :root { --bg: #0e0f13; --panel: #171920; --panel2: #1d2027; --line: #2a2d38; --ink: #f2f3f7; --dim: #8f93a3; --acc: #7c5cff; --acc2: #00e1ff; --ok: #3ddc84; --warn: #ffb347; --bad: #ff4d5e; --live: #e91916; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font: 14px/1.45 Inter, 'Segoe UI Variable Text', 'Segoe UI', sans-serif; user-select: none; overflow: hidden; }
+  body { display: flex; flex-direction: column; background: radial-gradient(120% 60% at 0% 0%, rgba(124,92,255,.12), transparent 60%), radial-gradient(90% 50% at 100% 100%, rgba(0,225,255,.08), transparent 60%), var(--bg); }
+  .bar { display: flex; align-items: center; height: 40px; padding: 0 6px 0 16px; }
+  .bar .t { flex: 1; font-size: 12px; color: var(--dim); letter-spacing: .14em; text-transform: uppercase; }
+  .bar button { width: 40px; height: 30px; border: 0; background: transparent; color: var(--dim); font-size: 14px; border-radius: 8px; cursor: pointer; }
+  .bar button:hover { background: var(--panel2); color: var(--ink); } .bar button.x:hover { background: #c42b1c; color: #fff; }
+  main { flex: 1; overflow: auto; padding: 4px 28px 22px; display: flex; flex-direction: column; }
+  header { display: flex; gap: 16px; align-items: center; margin: 4px 0 18px; }
+  header img { width: 64px; height: 64px; border-radius: 16px; transition: transform .3s cubic-bezier(.3,1.6,.5,1); }
+  header img.pop { transform: scale(1.08); }
+  header h1 { margin: 0; font-size: 26px; letter-spacing: .01em; }
+  header p { margin: 2px 0 0; color: var(--dim); font-size: 13px; }
+  .prog { height: 4px; border-radius: 2px; background: #22252f; overflow: hidden; margin-bottom: 14px; }
+  .prog i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--acc), var(--acc2)); transition: width .5s cubic-bezier(.22,1,.36,1); }
+  .steps { display: flex; flex-direction: column; gap: 4px; }
+  .st { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 8px 6px; border-radius: 10px; opacity: 0; transform: translateY(8px); animation: in .45s cubic-bezier(.22,1,.36,1) forwards; }
+  @keyframes in { to { opacity: 1; transform: none; } }
+  .st b { font-size: 15px; color: #6b6f7e; transition: color .3s; } .st p { margin: 1px 0 0; font-size: 12.5px; color: var(--dim); }
+  .st.run b, .st.ok b, .st.warn b { color: var(--ink); } .st.err b { color: #ffd9dd; }
+  .ic { width: 26px; height: 26px; position: relative; }
+  .ic svg { position: absolute; inset: 0; width: 26px; height: 26px; }
+  .ring { fill: #14151b; stroke: #2a2d38; stroke-width: 2; transition: stroke .3s; transform-origin: 13px 13px; }
+  .spin { fill: none; stroke: var(--acc2); stroke-width: 2.6; stroke-linecap: round; transform-origin: 13px 13px; animation: spin .9s linear infinite; display: none; }
+  .mark { fill: none; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 24; stroke-dashoffset: 24; }
+  .run .spin { display: block; }
+  .ok .ring { stroke: var(--ok); animation: pop .38s cubic-bezier(.3,1.6,.5,1); } .ok .mark { stroke: var(--ok); animation: draw .42s .05s ease-out forwards; }
+  .warn .ring { stroke: var(--warn); animation: pop .38s cubic-bezier(.3,1.6,.5,1); } .warn .mark { stroke: var(--warn); animation: draw .42s .05s ease-out forwards; }
+  .err .ring { stroke: var(--bad); animation: pop .38s cubic-bezier(.3,1.6,.5,1); } .err .mark { stroke: var(--bad); animation: draw .42s .05s ease-out forwards; }
+  @keyframes spin { to { transform: rotate(360deg); } } @keyframes draw { to { stroke-dashoffset: 0; } } @keyframes pop { 0% { transform: scale(.6); } 100% { transform: scale(1); } }
+  button.fix { font: 600 12.5px Inter, sans-serif; color: #ffd9dd; background: #3a1d24; border: 0; border-radius: 9px; padding: 6px 11px; cursor: pointer; }
+  button.fix:hover { filter: brightness(1.2); }
+  .go { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; opacity: .35; pointer-events: none; transition: opacity .4s; }
+  .go.on { opacity: 1; pointer-events: auto; }
+  .big { font: 800 18px Inter, sans-serif; color: #fff; border: 0; border-radius: 14px; padding: 16px; cursor: pointer; background: linear-gradient(100deg, var(--acc), #5b3fd9 60%, #3e2a99); box-shadow: 0 10px 30px -10px rgba(124,92,255,.7); transition: transform .15s cubic-bezier(.22,1,.36,1), filter .2s; }
+  .big:hover { filter: brightness(1.12); } .big:active { transform: scale(.98); }
+  .big.done { background: linear-gradient(100deg, #1f8f55, #23a663); box-shadow: 0 10px 30px -12px rgba(61,220,132,.6); }
+  .row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .row button, .foot button { font: 600 13px Inter, sans-serif; color: var(--ink); background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 10px; cursor: pointer; transition: border-color .2s, filter .2s; }
+  .row button:hover, .foot button:hover { border-color: var(--acc); }
+  .foot { margin-top: auto; padding-top: 16px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .foot .kill { color: #ffd9dd; border-color: color-mix(in srgb, var(--bad) 50%, transparent); background: color-mix(in srgb, var(--bad) 12%, var(--panel2)); }
+  .foot .sp { flex: 1; }
+  .toggle { font-size: 12px; color: var(--dim); display: flex; gap: 6px; align-items: center; cursor: pointer; }
+  .toggle i { width: 30px; height: 16px; border-radius: 99px; background: #2a2d38; position: relative; transition: background .2s; }
+  .toggle i::after { content: ''; position: absolute; left: 2px; top: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; transition: left .2s; }
+  .toggle.on i { background: var(--acc); } .toggle.on i::after { left: 16px; }
+  .toast { position: fixed; left: 50%; bottom: 18px; transform: translate(-50%, 14px); background: var(--acc); color: #fff; padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 13px; opacity: 0; transition: opacity .25s, transform .25s; pointer-events: none; max-width: 90%; text-align: center; }
+  .toast.on { opacity: 1; transform: translate(-50%, 0); }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="bar" id="bar"><span class="t">Nora · Vincent-Media</span><button id="min" title="Zminimalizuj">—</button><button id="x" class="x" title="Zamknij">✕</button></div>
+<main>
+  <header><img id="logo" src="../../launcher/logo.png" alt=""><div><h1>Nora</h1><p id="sub">Sprawdzam i przygotowuję stream…</p></div></header>
+  <div class="prog"><i id="prog"></i></div>
+  <div class="steps" id="steps"></div>
+  <div class="go" id="go">
+    <button class="big" id="start">▶ Start streamu</button>
+    <div class="row"><button data-a="obs">🎬 OBS w tle</button><button data-a="cockpit">● Kokpit</button><button data-a="site">🌐 Serwis</button></div>
+  </div>
+  <div class="foot">
+    <span class="toggle" id="proto" title="Przycisk «Otwórz Norę» w serwisie uruchomi tę aplikację (adres nora://, tylko Twoje konto Windows)"><i></i>Uruchamianie ze strony</span>
+    <span class="sp"></span>
+    <button data-a="log">📜 Dziennik</button>
+    <button data-a="shutdown" class="kill" title="Zamyka OBS i GameRadar (najpierw zakończ transmisję w kokpicie)">⏻ Zamknij wszystko</button>
+  </div>
+</main>
+<div class="toast" id="toast"></div>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const host = window.chrome && chrome.webview;
+  const post = m => host && host.postMessage(m);
+  const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  const ACT = { retry: 'Spróbuj ponownie', defender: 'Historia ochrony', obsdl: 'Pobierz OBS', log: 'Dziennik' };
+  const MARK = { ok: 'M8 13.5 L11.5 17 L18.5 9.5', warn: 'M13 7.5 L13 14.5 M13 18.3 L13 18.4', err: 'M9 9 L17 17 M17 9 L9 17', wait: '' };
+  let steps = [];
+  function icon() { return `<span class="ic"><svg viewBox="0 0 26 26"><circle class="ring" cx="13" cy="13" r="11"/><path class="spin" d="M13 2 A11 11 0 0 1 24 13"/><path class="mark" d=""/></svg></span>`; }
+  function build(list) {
+    steps = list.map(s => ({ id: s.Id, title: s.Title, state: 'wait' }));
+    $('steps').innerHTML = steps.map((s, i) => `<div class="st" id="st${i}" style="animation-delay:${i * 80}ms">${icon()}<div><b>${esc(s.title)}</b><p></p></div><span></span></div>`).join('');
+  }
+  function setStep(m) {
+    const el = $('st' + m.i); if (!el) return;
+    const was = steps[m.i].state; steps[m.i].state = m.state;
+    el.className = 'st ' + m.state; el.style.opacity = 1; el.style.transform = 'none';
+    el.querySelector('p').textContent = m.detail || '';
+    if (was !== m.state) { const mk = el.querySelector('.mark'); mk.setAttribute('d', MARK[m.state] || ''); mk.style.animation = 'none'; void mk.offsetWidth; mk.style.animation = ''; }
+    el.lastElementChild.innerHTML = m.action && ACT[m.action] ? `<button class="fix" data-a="${m.action}">${ACT[m.action]}</button>` : '';
+    const done = steps.filter(s => ['ok', 'warn', 'err'].includes(s.state)).length;
+    $('prog').style.width = (100 * done / steps.length) + '%';
+  }
+  let tt = 0;
+  function toast(t) { const e = $('toast'); e.textContent = t; e.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => e.classList.remove('on'), 3200); }
+  function onMsg(m) {
+    if (m.type === 'init') { build(m.steps); $('sub').textContent = 'Vincent-Media ' + m.version + ' · sprawdzam i przygotowuję stream…'; $('proto').classList.toggle('on', !!m.protocol); }
+    else if (m.type === 'step') setStep(m);
+    else if (m.type === 'phase') { $('go').classList.toggle('on', !!m.ready); if (m.ready) $('sub').textContent = $('sub').textContent.replace(' · sprawdzam i przygotowuję stream…', '') + ' · gotowe do streamu'; }
+    else if (m.type === 'done') { const bad = steps.some(s => s.state === 'err'); if (!bad) { $('logo').classList.add('pop'); setTimeout(() => $('logo').classList.remove('pop'), 300); } }
+    else if (m.type === 'toast') toast(m.text);
+    else if (m.type === 'started') { $('start').classList.add('done'); $('start').textContent = '✓ Stream gotowy – prowadzisz z kokpitu'; }
+    else if (m.type === 'protocol') $('proto').classList.toggle('on', !!m.on);
+    else if (m.type === 'relaunch') { toast('Nora zaktualizowana – uruchamiam ponownie…'); setTimeout(() => post({ cmd: 'restart' }), 1200); }
+  }
+  if (host) host.addEventListener('message', e => onMsg(e.data));
+  // przeciąganie okna za pasek tytułu
+  $('bar').addEventListener('mousedown', e => { if (e.button === 0 && !e.target.closest('button')) post({ cmd: 'drag' }); });
+  $('min').onclick = () => post({ cmd: 'min' });
+  $('x').onclick = () => post({ cmd: 'close' });
+  $('start').onclick = () => post({ cmd: 'start' });
+  $('proto').onclick = () => post({ cmd: 'protocol', arg: $('proto').classList.contains('on') ? 'off' : 'on' });
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-a]'); if (!b) return;
+    if (b.dataset.a === 'shutdown' && !confirm('Zamknąć OBS i GameRadar?')) return;
+    post({ cmd: b.dataset.a });
+  });
+  // podgląd w zwykłej przeglądarce (bez programu): przykładowe kroki
+  if (!host) { onMsg({ type: 'init', version: '(podgląd)', steps: [['blocks', 'Nic nie blokuje'], ['radar', 'GameRadar'], ['update', 'Najnowsza wersja'], ['files', 'Wszystkie pliki na miejscu'], ['voices', 'Głosy postaci (Piper)']].map(([Id, Title]) => ({ Id, Title })), protocol: false });
+    [['ok', 'Czysto'], ['ok', 'Działa – wersja 1.61.0'], ['ok', 'Wersja 1.61.0 – najnowsza'], ['ok', '94 plików – wszystkie na miejscu'], ['run', 'Pobieram głos Gosia… 42% · możesz już streamować']].forEach(([state, detail], i) => setTimeout(() => setStep({ i, state, detail }), 400 + i * 350));
+    setTimeout(() => onMsg({ type: 'phase', ready: true }), 2000); }
+  post({ cmd: 'ready' });
+})();
+</script>
+</body>
+</html>

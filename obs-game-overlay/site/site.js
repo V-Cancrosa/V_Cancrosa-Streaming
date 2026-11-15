@@ -39,6 +39,7 @@
     nav.innerHTML = `<div class="brand">Vincent-Media<small>stream · ${esc(window.VM_VERSION || '')}</small></div>` +
       NAV.map(([href, ic, name]) => href === '-' ? `<div class="sep">${ic}</div>` : `<a href="${href}"${href === here ? ' aria-current="page"' : ''}><i>${ic}</i>${name}</a>`).join('') +
       `<div class="stat"><span><i class="dot" id="stDet"></i>GameRadar <b id="stDetT">…</b></span><span><i class="dot" id="stSync"></i>Połączenie z OBS <b id="stSyncT">…</b></span></div>
+      <a class="nora" href="nora://start" title="Uruchamia aplikację Nora na tym komputerze (włącz w Norze: «Uruchamianie ze strony»)">▶ Nora</a>
       <button class="kill" id="killBtn" title="Kończy transmisję i nagrywanie (jeśli trwają), zamyka OBS i GameRadar">⏻ Zamknij OBS i GameRadar</button>`;
     document.getElementById('killBtn').onclick = annihilate;
   }

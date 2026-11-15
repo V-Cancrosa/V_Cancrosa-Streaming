@@ -61,9 +61,10 @@ function Test-VMFiles([string]$dir) {
 }
 # skrót do programu (kreator startu) z ikoną Vincent-Media
 function New-VMShortcut([string]$dir, [string]$path, [string]$extra = '') {
-    $vbs = Join-Path $dir 'launcher\launcher.vbs'; $ico = Join-Path $dir 'launcher\vincent-media.ico'
+    $vbs = Join-Path $dir 'launcher\launcher.vbs'; $ico = Join-Path $dir 'launcher\vincent-media.ico'; $nora = Join-Path $dir 'nora\Nora.exe'
     $sh = New-Object -ComObject WScript.Shell; $l = $sh.CreateShortcut($path)
-    $l.TargetPath = "$env:WINDIR\System32\wscript.exe"; $l.Arguments = ('"' + $vbs + '"' + $extra); $l.WorkingDirectory = (Split-Path $vbs)
+    if ((Test-Path $nora) -and -not $extra) { $l.TargetPath = $nora; $l.Arguments = ''; $l.WorkingDirectory = (Split-Path $nora) }    # aplikacja Nora
+    else { $l.TargetPath = "$env:WINDIR\System32\wscript.exe"; $l.Arguments = ('"' + $vbs + '"' + $extra); $l.WorkingDirectory = (Split-Path $vbs) }
     if (Test-Path $ico) { $l.IconLocation = "$ico,0" }
     $l.Description = $(if ($extra) { 'Vincent-Media: GameRadar w tle' } else { 'Vincent-Media: sprawdza wszystko i uruchamia stream' })
     $l.Save()
@@ -103,8 +104,10 @@ function Install-VMObsTheme([string]$dir) {
 # porządek: w folderze Vincent-Media widać tylko program, menu Start i pulpit – jeden skrót zamiast kilku
 function Update-VMLayout([string]$dir) {
     if (-not (Test-Path (Join-Path $dir 'launcher\launcher.vbs'))) { return }
+    # nazwa programu: «Nora» (aplikacja nora\Nora.exe), a bez niej dawny kreator «Vincent-Media»
+    $name = $(if (Test-Path (Join-Path $dir 'nora\Nora.exe')) { 'Nora' } else { 'Vincent-Media' }); $other = $(if ($name -eq 'Nora') { 'Vincent-Media' } else { 'Nora' })
     $root = Split-Path $dir -Parent
-    try { New-VMShortcut $dir (Join-Path $root 'Vincent-Media.lnk') } catch {}
+    try { New-VMShortcut $dir (Join-Path $root "$name.lnk"); Remove-Item (Join-Path $root "$other.lnk") -Force -ErrorAction SilentlyContinue } catch {}
     try { $di = Get-Item -LiteralPath $dir -Force; if (-not ($di.Attributes -band [IO.FileAttributes]::Hidden)) { $di.Attributes = $di.Attributes -bor [IO.FileAttributes]::Hidden } } catch {}
     $programs = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs'
     $oldMenu = Join-Path $programs 'Vincent-Media'
@@ -112,13 +115,17 @@ function Update-VMLayout([string]$dir) {
         foreach ($n in @('Start streamu.lnk', 'GameRadar.lnk', 'Aktualizuj Vincent-Media.lnk', 'Folder Vincent-Media.lnk', 'Wykrywacz gier.lnk', ('W' + [char]0x0142 + 'cz pilota z telefonu.lnk'))) { Remove-Item (Join-Path $oldMenu $n) -Force -ErrorAction SilentlyContinue }
         if (-not (Get-ChildItem $oldMenu -Force -ErrorAction SilentlyContinue)) { Remove-Item $oldMenu -Force -ErrorAction SilentlyContinue }
     }
-    try { New-VMShortcut $dir (Join-Path $programs 'Vincent-Media.lnk') } catch {}
-    $desk = [Environment]::GetFolderPath('Desktop'); $oldDesk = Join-Path $desk 'Start streamu.lnk'
-    if (Test-Path $oldDesk) { Remove-Item $oldDesk -Force -ErrorAction SilentlyContinue; try { New-VMShortcut $dir (Join-Path $desk 'Vincent-Media.lnk') } catch {} }
-    # autostart (gdy był włączony): GameRadar w tle przez ten sam program
+    try { New-VMShortcut $dir (Join-Path $programs "$name.lnk"); Remove-Item (Join-Path $programs "$other.lnk") -Force -ErrorAction SilentlyContinue } catch {}
+    $desk = [Environment]::GetFolderPath('Desktop')
+    foreach ($old in 'Start streamu.lnk', "$other.lnk") {
+        $o = Join-Path $desk $old
+        if (Test-Path $o) { Remove-Item $o -Force -ErrorAction SilentlyContinue; try { New-VMShortcut $dir (Join-Path $desk "$name.lnk") } catch {} }
+    }
+    if (Test-Path (Join-Path $desk "$name.lnk")) { try { New-VMShortcut $dir (Join-Path $desk "$name.lnk") } catch {} }
+    # autostart (gdy był włączony): GameRadar w tle
     $st = Join-Path ([Environment]::GetFolderPath('Startup')) 'Vincent-Media wykrywacz.lnk'
     if (Test-Path $st) { try { New-VMShortcut $dir $st ' /tlo' } catch {} }
-    # stare pliki startowe (zastąpione programem Vincent-Media) – dopiero gdy skróty już wskazują nowe miejsce
+    # stare pliki startowe (zastąpione programem) – dopiero gdy skróty już wskazują nowe miejsce
     foreach ($old in 'detector\start-stream.vbs', 'detector\start-detector.bat', 'detector\start-detector-hidden.bat', 'update.bat') { Remove-Item (Join-Path $dir $old) -Force -ErrorAction SilentlyContinue }
 }
 
@@ -162,7 +169,10 @@ function Install-VMFiles([string]$target) {
             $dst = Join-Path $target $rel
             if ((Test-Path $dst) -and ((Get-FileHash -Path $dst).Hash -eq (Get-FileHash -Path $f.FullName).Hash)) { continue }
             New-Item -ItemType Directory -Force -Path (Split-Path $dst) | Out-Null
-            Copy-Item -Path $f.FullName -Destination $dst -Force
+            # plik w użyciu (np. działająca Nora.exe i jej biblioteki): Windows pozwala przemianować, ale nie nadpisać –
+            # stary odkładamy jako *.old (zniknie przy następnej aktualizacji), nowy kładziemy na jego miejsce
+            try { Copy-Item -Path $f.FullName -Destination $dst -Force -ErrorAction Stop }
+            catch { Remove-Item -LiteralPath "$dst.old" -Force -ErrorAction SilentlyContinue; Move-Item -LiteralPath $dst -Destination "$dst.old" -Force; Copy-Item -Path $f.FullName -Destination $dst -Force }
             $changed++
         }
         Repair-VMEncoding $target

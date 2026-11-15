@@ -381,8 +381,9 @@ $det = Join-Path $InstallDir 'detector'
 foreach ($old in 'detector\start-stream.vbs', 'detector\start-detector.bat', 'detector\start-detector-hidden.bat', 'update.bat') { Remove-Item (Join-Path $InstallDir $old) -Force -ErrorAction SilentlyContinue }
 Update-VMLayout $InstallDir
 try { Say ('Wygląd OBS: ' + (Install-VMObsTheme $InstallDir)) 'DarkGray' } catch {}
-try { New-VMShortcut $InstallDir (Join-Path ([Environment]::GetFolderPath('Desktop')) 'Vincent-Media.lnk') } catch {}
-Say 'Program «Vincent-Media» (z ikoną): w folderze Vincent-Media, w menu Start i na pulpicie.' 'Green'
+$progName = $(if (Test-Path (Join-Path $InstallDir 'nora\Nora.exe')) { 'Nora' } else { 'Vincent-Media' })
+try { New-VMShortcut $InstallDir (Join-Path ([Environment]::GetFolderPath('Desktop')) "$progName.lnk") } catch {}
+Say "Program «$progName» (z ikoną): w folderze Vincent-Media, w menu Start i na pulpicie." 'Green'
 
 # pilot z telefonu działa przez przekaźnik (panel → Więcej → Pilot z telefonu) – bez Wi-Fi, zapory i uprawnień administratora
 
@@ -432,7 +433,9 @@ if ($obsConfigured) {
     foreach ($k in $Urls.Keys) { Say "  $k : $($Urls[$k])" 'Gray' }
 }
 Say 'Aktualizacje instalują się same, gdy działa wykrywacz (sprawdza co 6 godzin).' 'Gray'
-if (Ask 'Uruchomić teraz Vincent-Media (sprawdzi wszystko i uruchomi GameRadar, OBS i kokpit)?' $true) {
-    Start-Process -FilePath "$env:WINDIR\System32\wscript.exe" -ArgumentList ('"' + (Join-Path $InstallDir 'launcher\launcher.vbs') + '"')
+if (Ask 'Uruchomić teraz Norę (sprawdzi wszystko, uruchomi GameRadar, a na klik OBS i kokpit)?' $true) {
+    $nora = Join-Path $InstallDir 'nora\Nora.exe'
+    if (Test-Path $nora) { Start-Process -FilePath $nora -WorkingDirectory (Split-Path $nora) }
+    else { Start-Process -FilePath "$env:WINDIR\System32\wscript.exe" -ArgumentList ('"' + (Join-Path $InstallDir 'launcher\launcher.vbs') + '"') }
 }
 Write-Host ''

@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Nora – aplikacja startowa Vincent-Media (Windows, .NET Framework 4.8 + WebView2 – oba są w Windows 10/11).
+    Budowanie: python3 tools/build-nora.py  (albo: dotnet build nora/Nora.csproj -c Release) – wynik trafia do obs-game-overlay/nora/.
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <AssemblyName>Nora</AssemblyName>
+    <RootNamespace>Nora</RootNamespace>
+    <ApplicationIcon>..\obs-game-overlay\launcher\vincent-media.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <DebugType>none</DebugType>
+    <Product>Nora (Vincent-Media)</Product>
+    <Company>Vincent-Media</Company>
+    <Description>Nora – start streamu Vincent-Media</Description>
+    <Copyright>Vincent-Media</Copyright>
+    <Version>1.0.0</Version>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
+  </ItemGroup>
+</Project>
