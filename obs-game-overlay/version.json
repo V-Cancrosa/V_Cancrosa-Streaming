@@ -1,5 +1,5 @@
 {
-  "version": "1.52.3",
+  "version": "1.53.0",
   "date": "2026-11-15",
-  "notes": "GameRadar: poprawka błędu składni z 1.52.2 (port 7777)"
+  "notes": "Program Vincent-Media z ikoną i kreatorem startu (wersja, pliki, blokady, GameRadar, OBS, kokpit); porządek w folderze i jeden skrót zamiast kilku"
 }

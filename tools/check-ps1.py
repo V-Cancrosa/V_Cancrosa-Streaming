@@ -36,5 +36,9 @@ for p in sorted(root.rglob('*.ps1')):
             bad.append(f'{rel}:{n}: {m.group(0)} – napisz ${{{m.group(0)[1:-1]}}}:')
     if t.count('{') != t.count('}') or t.count('(') != t.count(')'):
         bad.append(f'{rel}: niezbilansowane nawiasy')
-print('\n'.join(bad) or 'ps1: OK')
+import subprocess
+r = subprocess.run([sys.executable, str(root / 'tools' / 'make-manifest.py'), '--check'], capture_output=True, text=True)
+if r.returncode:
+    bad.append(r.stdout.strip())
+print('\n'.join(bad) or 'ps1: OK, manifest: OK')
 sys.exit(1 if bad else 0)

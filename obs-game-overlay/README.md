@@ -21,15 +21,18 @@ Wszystko jest w HTML i PowerShellu (wbudowanym w Windows) – nic nie trzeba ins
 2. Instalator (bez uprawnień administratora):
    - pobiera pliki do `%LOCALAPPDATA%\Vincent-Media`,
    - za Twoją zgodą konfiguruje OBS (OBS musi być zamknięty; najpierw robi kopię zapasową): scena **`VM · Stream`** na cały stream, scena **`VM · Nakładki`** do Twoich własnych scen, dok **Vincent-Media** z panelem,
-   - tworzy skróty w *Menu Start → Vincent-Media*: **Start streamu**, GameRadar, Aktualizuj, Folder,
+   - tworzy program **Vincent-Media** (z ikoną) w folderze instalacji, w menu Start i na pulpicie – pliki aplikacji leżą w ukrytym podfolderze,
    - opcjonalnie: GameRadar razem z Windows, uruchamianie go z panelu i strażnik w Harmonogramie zadań.
-3. Uruchom **Start streamu** – włącza GameRadar w tle, a po nim OBS.
+3. Uruchom **Vincent-Media**. Kreator krok po kroku (z animacją) sprawdza:
+   **najnowszą wersję** (pobiera, jeśli jest nowsza) → **wszystkie pliki** (porównuje ze spisem `manifest.json` i naprawia brakujące lub uszkodzone) → **blokady** (pliki oznaczone „z internetu”, błędy w skryptach, zajęty port) → uruchamia **GameRadar** (gdy antywirus go zablokuje, powie to wprost i pokaże Historię ochrony) → **OBS** → otwiera **kokpit** w przeglądarce. Gdy wszystko gra, okno samo znika; coś nie gra → przy kroku jest przycisk.
 
 Instalator można uruchomić ponownie – nie tworzy duplikatów.
 
 **Panel z GitHub Pages zamiast z dysku** (zmiany są na streamie kilka minut po wypchnięciu do repo): w OBS *Docki → Własne docki przeglądarki* zmień adres panelu na `https://v-cancrosa.github.io/Vincent-Media/obs-game-overlay/panel.html`. Panel sam przepnie źródła VM w OBS na ten sam adres.
 
-**Odinstalowanie:** usuń sceny `VM · …` i dok w OBS, folder `%LOCALAPPDATA%\Vincent-Media` i folder *Vincent-Media* w Menu Start.
+**Odinstalowanie:** usuń sceny `VM · …` i dok w OBS, folder `%LOCALAPPDATA%\Vincent-Media` i skrót *Vincent-Media* w Menu Start i na pulpicie.
+
+**Folder `%LOCALAPPDATA%\Vincent-Media`:** widać w nim tylko program *Vincent-Media*. Ukryty podfolder `obs-game-overlay` to aplikacja; Twoje dane są w `detector\data` (logowanie Twitcha, ustawienia, biblioteka gier, dziennik) i `detector\my-games.txt` – aktualizacje ich nie ruszają, a pliki, których nie ma już w nowej wersji, same znikają.
 
 ---
 
@@ -47,7 +50,7 @@ Instalator można uruchomić ponownie – nie tworzy duplikatów.
 
 Na razie panel w OBS dalej działa w tle (sam łapie okno gry i pilnuje nagrywania) – zniknie, gdy kokpit przejmie te rzeczy.
 
-1. **Start streamu** (skrót) → GameRadar w tle, potem OBS. Z opcją *uruchamiaj OBS razem z GameRadarem* i autostartem GameRadara wszystko wstaje samo po włączeniu komputera.
+1. **Vincent-Media** (program z ikoną) → kreator sprawdza wszystko, uruchamia GameRadar, OBS i kokpit. Z autostartem GameRadar wstaje sam po włączeniu komputera (w tle, bez okna).
 2. **Panel → Start** pokazuje uruchamianie krok po kroku: GameRadar, OBS, Twitch, przechwytywanie gry – kółko kręci się, dopóki trwa łączenie, i rysuje ✓, gdy zadziała. Gdy wszystko działa, zostaje jedna zielona belka. Coś nie gra → lista zostaje otwarta, przy kroku jest **Napraw**.
 3. **Sceny** to jeden pulpit stanów w jednej scenie OBS:
    - start: *Przygotowania → Stream za… → Zaraz zaczynamy (→ spóźnienie) → Głosowanie → Gra* – przycisk **Dalej**, kliknięcie etapu przeskakuje do niego,
@@ -215,12 +218,17 @@ obs-game-overlay/
   builder.html      Kreator stron      editor.html   edytor ułożenia
   themes/           motywy, postacie, czat, głosy, słowa, Kreator (pagekit.js), synchronizacja (sync.js)…
   detector/         GameRadar (PowerShell 5.1 – pliki .ps1 z polskimi znakami muszą mieć BOM UTF-8)
-tools/check-ps1.py  sprawdzenie .ps1 przed commitem (BOM, cudzysłowy, nawiasy)
+    mods/           moduły: cenzura (OCR), głos (TTS), lista okien – zablokowany moduł nie zatrzymuje reszty
+  launcher/         program «Vincent-Media»: kreator startu (WPF), launcher.vbs, ikona
+  update.ps1        aktualizacja, spis plików, porządek w folderze i skrótach (używają go kreator, GameRadar, instalator)
+  manifest.json     spis plików z sumami SHA-256 (tools/make-manifest.py)
+tools/check-ps1.py  sprawdzenie .ps1 przed commitem (BOM, cudzysłowy, nawiasy, „$zmienna:”) i aktualności manifestu
+tools/make-icon.py  rysuje ikonę Vincent-Media
 ```
 
 - **Wspólny stan:** `localStorage` `obsGameOverlay.v1` (ustawienia), `…pages` / `…pageState` / `…pageVis` (Kreator), `…detected`, `…activeTheme`, `…ready`; `BroadcastChannel('obsGameOverlay')`.
-- **GameRadar (`http://localhost:7777`):** `/game`, `/library`, `/icon`, `/art`, `/events`, `/settings`, `/kv`, `/session`, `/vote…`, `/censor…`, `/relay`, `/launch`, `/shortcut`, `/restart`, `/shutdown`, `/log…`, `/update/…`.
-- Przed commitem: `python3 tools/check-ps1.py`. Typograficzne cudzysłowy („ ”) w `.ps1` psują PowerShella – używaj « ».
+- **GameRadar (`http://localhost:7777`):** `/game`, `/library`, `/icon`, `/art`, `/events`, `/settings`, `/kv`, `/session`, `/vote…`, `/censor…`, `/relay`, `/launch`, `/shortcut`, `/restart`, `/processes`, `/tts…`, `/mod`, `/replay`, `/shutdown`, `/log…`, `/update/…`.
+- Przed commitem: `python3 tools/make-manifest.py && python3 tools/check-ps1.py`. Typograficzne cudzysłowy („ ”) w `.ps1` psują PowerShella – używaj « ».
 - Wersja: `version.json` i `version.js`.
 
 ---

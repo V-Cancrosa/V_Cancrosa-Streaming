@@ -21,10 +21,73 @@ function Get-VMLocalVersion([string]$dir) {
     catch { return '0.0.0' }
 }
 
-function Get-VMRemoteInfo {
+function Get-VMRemoteInfo([int]$Timeout = 20) {
     Enable-VMTls
     $u = "https://raw.githubusercontent.com/$VMRepo/$VMBranch/obs-game-overlay/version.json?nocache=$(Get-Random)"
-    return Invoke-RestMethod -UseBasicParsing -TimeoutSec 20 -Uri $u -Headers @{ 'Cache-Control' = 'no-cache' }
+    return Invoke-RestMethod -UseBasicParsing -TimeoutSec $Timeout -Uri $u -Headers @{ 'Cache-Control' = 'no-cache' }
+}
+
+# ---------------------------------------------------------------- spis plików (manifest.json) i porządek w folderze
+# Skrót pliku do porównań: pliki tekstowe bez znaków CR i BOM (paczka z GitHuba ma w .ps1 końce linii Windows,
+# repozytorium – Linuksa), binarne bez zmian. Ten sam sposób liczy tools/make-manifest.py.
+$VMTextExt = @('.ps1', '.bat', '.vbs', '.html', '.js', '.css', '.json', '.md', '.txt', '.svg', '.tsv', '.xml')
+function Get-VMHash([string]$path) {
+    $b = [IO.File]::ReadAllBytes($path)
+    if ($VMTextExt -contains [IO.Path]::GetExtension($path).ToLowerInvariant()) {
+        $t = (New-Object Text.UTF8Encoding($false)).GetString($b).TrimStart([char]0xFEFF).Replace("`r", '')
+        $b = (New-Object Text.UTF8Encoding($false)).GetBytes($t)
+    }
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try { return ([BitConverter]::ToString($sha.ComputeHash($b)) -replace '-', '').ToLowerInvariant() } finally { $sha.Dispose() }
+}
+# pliki tworzone na Twoim komputerze – nigdy nie kasowane ani nie sprawdzane
+function Test-VMOwnFile([string]$rel) {
+    $r = $rel.Replace('/', '\').ToLowerInvariant()
+    return $r.StartsWith('detector\data\') -or $r -eq 'detector\my-games.txt' -or $r -eq 'vm-key.js' -or $r -eq 'detector\start-detector-silent.vbs'
+}
+# porównanie z manifest.json: czego brakuje, co się różni
+function Test-VMFiles([string]$dir) {
+    $mf = Join-Path $dir 'manifest.json'
+    if (-not (Test-Path $mf)) { return [pscustomobject]@{ ok = $false; nomanifest = $true; missing = @(); changed = @(); total = 0 } }
+    $m = (Get-Content $mf -Raw -Encoding UTF8) | ConvertFrom-Json
+    $missing = New-Object Collections.ArrayList; $changed = New-Object Collections.ArrayList; $n = 0
+    foreach ($p in $m.files.PSObject.Properties) {
+        $n++
+        $f = Join-Path $dir ($p.Name.Replace('/', '\'))
+        if (-not (Test-Path -LiteralPath $f -PathType Leaf)) { [void]$missing.Add($p.Name); continue }
+        if ((Get-VMHash $f) -ne [string]$p.Value) { [void]$changed.Add($p.Name) }
+    }
+    return [pscustomobject]@{ ok = (-not $missing.Count -and -not $changed.Count); nomanifest = $false; missing = @($missing); changed = @($changed); total = $n }
+}
+# skrót do programu (kreator startu) z ikoną Vincent-Media
+function New-VMShortcut([string]$dir, [string]$path, [string]$extra = '') {
+    $vbs = Join-Path $dir 'launcher\launcher.vbs'; $ico = Join-Path $dir 'launcher\vincent-media.ico'
+    $sh = New-Object -ComObject WScript.Shell; $l = $sh.CreateShortcut($path)
+    $l.TargetPath = "$env:WINDIR\System32\wscript.exe"; $l.Arguments = ('"' + $vbs + '"' + $extra); $l.WorkingDirectory = (Split-Path $vbs)
+    if (Test-Path $ico) { $l.IconLocation = "$ico,0" }
+    $l.Description = $(if ($extra) { 'Vincent-Media: GameRadar w tle' } else { 'Vincent-Media: sprawdza wszystko i uruchamia stream' })
+    $l.Save()
+}
+# porządek: w folderze Vincent-Media widać tylko program, menu Start i pulpit – jeden skrót zamiast kilku
+function Update-VMLayout([string]$dir) {
+    if (-not (Test-Path (Join-Path $dir 'launcher\launcher.vbs'))) { return }
+    $root = Split-Path $dir -Parent
+    try { New-VMShortcut $dir (Join-Path $root 'Vincent-Media.lnk') } catch {}
+    try { $di = Get-Item -LiteralPath $dir -Force; if (-not ($di.Attributes -band [IO.FileAttributes]::Hidden)) { $di.Attributes = $di.Attributes -bor [IO.FileAttributes]::Hidden } } catch {}
+    $programs = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs'
+    $oldMenu = Join-Path $programs 'Vincent-Media'
+    if (Test-Path $oldMenu) {
+        foreach ($n in @('Start streamu.lnk', 'GameRadar.lnk', 'Aktualizuj Vincent-Media.lnk', 'Folder Vincent-Media.lnk', 'Wykrywacz gier.lnk', ('W' + [char]0x0142 + 'cz pilota z telefonu.lnk'))) { Remove-Item (Join-Path $oldMenu $n) -Force -ErrorAction SilentlyContinue }
+        if (-not (Get-ChildItem $oldMenu -Force -ErrorAction SilentlyContinue)) { Remove-Item $oldMenu -Force -ErrorAction SilentlyContinue }
+    }
+    try { New-VMShortcut $dir (Join-Path $programs 'Vincent-Media.lnk') } catch {}
+    $desk = [Environment]::GetFolderPath('Desktop'); $oldDesk = Join-Path $desk 'Start streamu.lnk'
+    if (Test-Path $oldDesk) { Remove-Item $oldDesk -Force -ErrorAction SilentlyContinue; try { New-VMShortcut $dir (Join-Path $desk 'Vincent-Media.lnk') } catch {} }
+    # autostart (gdy był włączony): GameRadar w tle przez ten sam program
+    $st = Join-Path ([Environment]::GetFolderPath('Startup')) 'Vincent-Media wykrywacz.lnk'
+    if (Test-Path $st) { try { New-VMShortcut $dir $st ' /tlo' } catch {} }
+    # stare pliki startowe (zastąpione programem Vincent-Media) – dopiero gdy skróty już wskazują nowe miejsce
+    foreach ($old in 'detector\start-stream.vbs', 'detector\start-detector.bat', 'detector\start-detector-hidden.bat', 'update.bat') { Remove-Item (Join-Path $dir $old) -Force -ErrorAction SilentlyContinue }
 }
 
 function Test-VMNewer([string]$remote, [string]$local) {
@@ -71,6 +134,19 @@ function Install-VMFiles([string]$target) {
             $changed++
         }
         Repair-VMEncoding $target
+        # najpierw skróty na nowe miejsca, potem sprzątanie plików, których nie ma już w paczce (dane zostają)
+        try { Update-VMLayout $target } catch {}
+        $keep = @{}
+        foreach ($f in Get-ChildItem -Path $src -Recurse -File) { $keep[$f.FullName.Substring($src.Length).TrimStart('\').ToLowerInvariant()] = $true }
+        foreach ($f in @(Get-ChildItem -Path $target -Recurse -File -Force -ErrorAction SilentlyContinue)) {
+            $rel = $f.FullName.Substring($target.TrimEnd('\').Length).TrimStart('\')
+            if ((Test-VMOwnFile $rel) -or $keep.ContainsKey($rel.ToLowerInvariant())) { continue }
+            try { Remove-Item -LiteralPath $f.FullName -Force; $changed++ } catch {}
+        }
+        foreach ($d in @(Get-ChildItem -Path $target -Recurse -Directory -Force -ErrorAction SilentlyContinue | Sort-Object { $_.FullName.Length } -Descending)) {
+            if ($d.FullName -like '*\detector\data*') { continue }
+            if (-not (Get-ChildItem -LiteralPath $d.FullName -Force -ErrorAction SilentlyContinue)) { Remove-Item -LiteralPath $d.FullName -Force -ErrorAction SilentlyContinue }
+        }
         return $changed
     } finally {
         Remove-Item -Path $tmp -Recurse -Force -ErrorAction SilentlyContinue

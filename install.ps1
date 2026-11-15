@@ -6,7 +6,7 @@
 # Co robi:
 #   1. pobiera najnowszą wersję do %LOCALAPPDATA%\Vincent-Media\obs-game-overlay
 #   2. (za Twoją zgodą) dodaje do OBS sceny, źródła przeglądarki i dok z panelem – z kopią zapasową
-#   3. tworzy skróty w menu Start i (opcjonalnie) autostart wykrywacza
+#   3. tworzy program «Vincent-Media» z ikoną (folder, menu Start, pulpit) i (opcjonalnie) autostart GameRadara
 # Ponowne uruchomienie jest bezpieczne: aktualizuje pliki i adresy, nie dubluje scen ani źródeł.
 
 $ErrorActionPreference = 'Stop'
@@ -374,28 +374,20 @@ if (-not (Test-Path $ObsDir)) {
 
 # ------------------------------------------------------------------ 3. skróty
 Step 'Skróty'
-$sh = New-Object -ComObject WScript.Shell
-$menu = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Vincent-Media'
-New-Item -ItemType Directory -Force -Path $menu | Out-Null
-function New-Link([string]$path, [string]$target, [string]$dir, [string]$desc, [int]$style = 1) {
-    $l = $sh.CreateShortcut($path); $l.TargetPath = $target; $l.WorkingDirectory = $dir; $l.Description = $desc; $l.WindowStyle = $style; $l.Save()
-}
 $det = Join-Path $InstallDir 'detector'
-# stare skróty (sprzed nazwy GameRadar i sprzed pilota przez przekaźnik)
-foreach ($old in 'Wykrywacz gier.lnk', 'Włącz pilota z telefonu.lnk') { Remove-Item (Join-Path $menu $old) -Force -ErrorAction SilentlyContinue }
-New-Link (Join-Path $menu 'GameRadar.lnk') (Join-Path $det 'start-detector.bat') $det 'GameRadar: wykrywa grę, łączy z Twitchem i pilnuje aktualizacji'
-# start streamu jednym kliknięciem: GameRadar w tle, a po nim OBS
-$sh2 = New-Object -ComObject WScript.Shell; $l2 = $sh2.CreateShortcut((Join-Path $menu 'Start streamu.lnk'))
-$l2.TargetPath = "$env:WINDIR\System32\wscript.exe"; $l2.Arguments = '"' + (Join-Path $det 'start-stream.vbs') + '"'; $l2.WorkingDirectory = $det; $l2.Description = 'GameRadar w tle, a potem OBS'; $l2.Save()
-New-Link (Join-Path $menu 'Aktualizuj Vincent-Media.lnk') (Join-Path $InstallDir 'update.bat') $InstallDir 'Sprawdź i zainstaluj aktualizacje nakładek'
-New-Link (Join-Path $menu 'Folder Vincent-Media.lnk') $InstallDir $InstallDir 'Pliki nakładek'
-Say 'Menu Start → Vincent-Media: Start streamu, GameRadar, Aktualizuj, Folder.' 'Green'
+# jeden program zamiast kilku skrótów: «Vincent-Media» (kreator startu z ikoną) w folderze, w menu Start i na pulpicie;
+# pliki aplikacji są w ukrytym podfolderze, a stare skróty i pliki startowe znikają
+. (Join-Path $InstallDir 'update.ps1') -Library
+foreach ($old in 'detector\start-stream.vbs', 'detector\start-detector.bat', 'detector\start-detector-hidden.bat', 'update.bat') { Remove-Item (Join-Path $InstallDir $old) -Force -ErrorAction SilentlyContinue }
+Update-VMLayout $InstallDir
+try { New-VMShortcut $InstallDir (Join-Path ([Environment]::GetFolderPath('Desktop')) 'Vincent-Media.lnk') } catch {}
+Say 'Program «Vincent-Media» (z ikoną): w folderze Vincent-Media, w menu Start i na pulpicie.' 'Green'
 
 # pilot z telefonu działa przez przekaźnik (panel → Więcej → Pilot z telefonu) – bez Wi-Fi, zapory i uprawnień administratora
 
 $startup = Join-Path ([Environment]::GetFolderPath('Startup')) 'Vincent-Media wykrywacz.lnk'
 if (Ask 'Uruchamiać wykrywacz razem z Windows (w tle, bez okna)? Pilnuje też aktualizacji.' $true) {
-    New-Link $startup (Join-Path $det 'start-detector-hidden.bat') $det 'Vincent-Media: wykrywacz w tle' 7
+    New-VMShortcut $InstallDir $startup ' /tlo'
     Say 'Autostart włączony.' 'Green'
 } elseif (Test-Path $startup) { Remove-Item $startup -Force; Say 'Autostart wyłączony.' }
 
@@ -439,7 +431,7 @@ if ($obsConfigured) {
     foreach ($k in $Urls.Keys) { Say "  $k : $($Urls[$k])" 'Gray' }
 }
 Say 'Aktualizacje instalują się same, gdy działa wykrywacz (sprawdza co 6 godzin).' 'Gray'
-if (Ask 'Uruchomić teraz wykrywacz?' $true) {
-    Start-Process -FilePath (Join-Path $det 'start-detector.bat') -WorkingDirectory $det
+if (Ask 'Uruchomić teraz Vincent-Media (sprawdzi wszystko i uruchomi GameRadar, OBS i kokpit)?' $true) {
+    Start-Process -FilePath "$env:WINDIR\System32\wscript.exe" -ArgumentList ('"' + (Join-Path $InstallDir 'launcher\launcher.vbs') + '"')
 }
 Write-Host ''

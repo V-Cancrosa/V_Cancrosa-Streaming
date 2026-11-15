@@ -741,7 +741,7 @@
     <div class="launch">
       <div class="lbl2">Start streamu</div>
       <label class="check"><input id="launchObs" type="checkbox"> uruchamiaj OBS razem z GameRadarem</label>
-      <div class="row" style="gap:6px;flex-wrap:wrap"><button id="lnkMake">🖥 Skrót „Start streamu” na pulpicie</button><button id="grRestart">↻ Uruchom GameRadar ponownie</button></div>
+      <div class="row" style="gap:6px;flex-wrap:wrap"><button id="lnkMake">🖥 Skrót „Vincent-Media” na pulpicie</button><button id="grRestart">↻ Uruchom GameRadar ponownie</button></div>
       <p class="hint" id="launchInfo" style="margin:0"></p>
     </div>
     <details hidden>
@@ -1066,11 +1066,11 @@
       if (j.obs === undefined) { $('launchInfo').textContent = 'GameRadar działa w starszej wersji – uruchom go ponownie (przycisk wyżej albo restart komputera).'; return; }
       $('launchObs').checked = !!j.obs;
       $('launchInfo').textContent = [j.msg, j.obsPath ? 'OBS: ' + j.obsPath.split('\\').slice(-4).join('\\') : 'nie widzę OBS Studio na tym komputerze', j.shortcut ? 'skrót na pulpicie: jest' : '', j.version ? 'GameRadar ' + j.version : ''].filter(Boolean).join(' · ');
-      $('lnkMake').textContent = j.shortcut ? '🖥 Skrót „Start streamu” ✓ (utwórz ponownie)' : '🖥 Skrót „Start streamu” na pulpicie';
+      $('lnkMake').textContent = j.shortcut ? '🖥 Skrót „Vincent-Media” ✓ (utwórz ponownie)' : '🖥 Skrót „Vincent-Media” na pulpicie';
     } catch { $('launchInfo').textContent = 'GameRadar nie odpowiada.'; }
   }
   $('launchObs').onchange = () => launch('obs=' + ($('launchObs').checked ? 1 : 0));
-  $('lnkMake').onclick = async () => { try { const j = await (await fetch(hubUrl() + '/shortcut', { cache: 'no-store' })).json(); $('launchInfo').textContent = j.ok ? 'Skrót „Start streamu” jest na pulpicie: uruchamia GameRadar w tle, a potem OBS.' : (j.error || 'GameRadar w starszej wersji – uruchom go ponownie.'); if (j.ok) vmPulse($('lnkMake')); } catch { $('launchInfo').textContent = 'GameRadar nie odpowiada.'; } setTimeout(() => launch(''), 1500); };
+  $('lnkMake').onclick = async () => { try { const j = await (await fetch(hubUrl() + '/shortcut', { cache: 'no-store' })).json(); $('launchInfo').textContent = j.ok ? 'Skrót „Vincent-Media” jest na pulpicie: uruchamia GameRadar w tle, a potem OBS.' : (j.error || 'GameRadar w starszej wersji – uruchom go ponownie.'); if (j.ok) vmPulse($('lnkMake')); } catch { $('launchInfo').textContent = 'GameRadar nie odpowiada.'; } setTimeout(() => launch(''), 1500); };
   $('grRestart').onclick = async () => {
     try { const r = await fetch(hubUrl() + '/restart', { cache: 'no-store' }); const j = await r.json().catch(() => ({})); $('launchInfo').textContent = j.ok ? 'Uruchamiam GameRadar ponownie… za kilka sekund wróci.' : r.status === 404 || j.ok === undefined ? 'Ta wersja GameRadara nie umie się sama zrestartować – zrób to raz: Menedżer zadań → Windows PowerShell → Zakończ, potem Menu Start → Vincent-Media → GameRadar.' : j.error; }
     catch { $('launchInfo').textContent = 'GameRadar nie odpowiada.'; }

@@ -8,15 +8,15 @@
     3. dodatkowo pyta Steama, jaka gra jest uruchomiona (pewna nazwa + okładka),
     4. wystawia wynik pod http://localhost:7777/game dla nakładki.
 
-  Uruchamianie: dwuklik na start-detector.bat (albo: powershell -ExecutionPolicy Bypass -File detector.ps1)
+  Uruchamianie: program «Vincent-Media» (launcher\launcher.vbs) albo: powershell -ExecutionPolicy Bypass -File detector.ps1
 #>
 param(
     [int]$Port = 7777,
     [double]$Interval = 3,
     [int]$DbMaxAgeDays = 7,
-    [switch]$Hidden,          # uruchomiony bez okna (start-detector-hidden.bat)
+    [switch]$Hidden,          # uruchomiony bez okna (kreator startu, autostart: launcher.vbs /tlo)
     [int]$WaitStart = 0,      # po aktualizacji: poczekaj, aż poprzednia wersja zwolni port
-    [switch]$StartObs         # start streamu jednym kliknięciem: GameRadar, a zaraz po nim OBS (start-stream.vbs)
+    [switch]$StartObs         # GameRadar, a zaraz po nim OBS
 )
 # OBS z rejestru albo z typowych folderów; uruchamiany z własnego folderu (inaczej OBS nie znajdzie swoich plików)
 function Find-Obs {
@@ -1570,6 +1570,8 @@ $UpdateScript = Join-Path $AppDir 'update.ps1'
 $UpdateCfg = Join-Path $DataDir 'update.json'
 $script:CanUpdate = Test-Path $UpdateScript
 if ($script:CanUpdate) { . $UpdateScript -Library }
+# porządek w folderze i skrótach (program «Vincent-Media» z ikoną zamiast kilku skrótów) – za każdym startem, nic nie psuje
+if ($script:CanUpdate) { try { Update-VMLayout $AppDir } catch {} }
 function Get-AppVersion {
     try { return [string]((Get-Content (Join-Path $AppDir 'version.json') -Raw -Encoding UTF8) | ConvertFrom-Json).version } catch { return '0.0.0' }
 }
@@ -1997,18 +1999,14 @@ function Invoke-Request($ctx) {
             '/launch' {
                 if ($q.ContainsKey('obs') -and (($q['obs'] -eq '1') -ne $script:LaunchObs)) { $script:LaunchObs = $q['obs'] -eq '1'; [IO.File]::WriteAllText($LaunchFile, (@{ obs = $script:LaunchObs } | ConvertTo-Json), $Utf8NoBom); Log ("OBS razem z GameRadarem: " + $(if ($script:LaunchObs) { 'tak' } else { 'nie' })) }
                 $msg = ''; if ($q['start'] -eq '1') { $msg = Start-Obs; Log "Panel: $msg" }
-                $lnk = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Start streamu.lnk'
+                $lnk = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Vincent-Media.lnk'
                 Send-Json $ctx ([pscustomobject]@{ ok = $true; obs = $script:LaunchObs; obsPath = (Find-Obs); shortcut = (Test-Path $lnk); msg = $msg; version = $script:AppVersion })
             }
             '/shortcut' {
-                # skrót «Start streamu» na pulpicie (tylko po kliknięciu w panelu): GameRadar w tle, a po nim OBS
+                # skrót «Vincent-Media» na pulpicie (tylko po kliknięciu): kreator startu – sprawdza wszystko, uruchamia GameRadar, OBS i kokpit
                 try {
-                    $vbs = Join-Path $Root 'start-stream.vbs'; $lnk = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Start streamu.lnk'
-                    $sh = New-Object -ComObject WScript.Shell; $l = $sh.CreateShortcut($lnk)
-                    $l.TargetPath = "$env:WINDIR\System32\wscript.exe"; $l.Arguments = '"' + $vbs + '"'; $l.WorkingDirectory = $Root
-                    $o = Find-Obs; if ($o) { $l.IconLocation = "$o,0" }
-                    $l.Description = 'Vincent-Media: GameRadar w tle, a potem OBS'; $l.Save()
-                    Log 'Utworzono skrót «Start streamu» na pulpicie' 'Green'
+                    New-VMShortcut $AppDir (Join-Path ([Environment]::GetFolderPath('Desktop')) 'Vincent-Media.lnk')
+                    Log 'Utworzono skrót «Vincent-Media» na pulpicie' 'Green'
                     Send-Json $ctx @{ ok = $true }
                 } catch { Send-Json $ctx @{ ok = $false; error = $_.Exception.Message } }
             }
