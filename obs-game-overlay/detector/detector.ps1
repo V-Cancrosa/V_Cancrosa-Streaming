@@ -2107,18 +2107,39 @@ function Invoke-Request($ctx) {
                 Send-Raw $ctx ([string]$script:Censor.json) 'application/json'
             }
             '/tts/voices' {
-                if (-not (Get-Command Initialize-Tts -ErrorAction SilentlyContinue)) { Send-Json $ctx ([pscustomobject]@{ ok = $false; error = 'moduł głosu nie działa (antywirus?) – zobacz log'; voices = @() }); return }
-                Initialize-Tts
-                Send-Json $ctx ([pscustomobject]@{ ok = $script:Tts.ready; mode = $script:Tts.mode; error = $script:Tts.err; voices = @($script:Tts.voices) })
+                # głosy Piper (domyślne, neuronowe) + głosy Windows (zapasowe)
+                $hasWin = [bool](Get-Command Initialize-Tts -ErrorAction SilentlyContinue); $hasPiper = [bool](Get-Command Get-PiperVoiceList -ErrorAction SilentlyContinue)
+                if ($hasWin) { Initialize-Tts }
+                $list = @(); if ($hasPiper) { $list += @(Get-PiperVoiceList) }; if ($hasWin -and $script:Tts.ready) { $list += @($script:Tts.voices) }
+                Send-Json $ctx ([pscustomobject]@{ ok = ($list.Count -gt 0); mode = $(if ($hasWin) { $script:Tts.mode } else { '' }); error = $(if ($hasWin) { $script:Tts.err } else { 'moduł głosu Windows nie działa' }); voices = $list
+                    piper = $(if ($hasPiper) { Get-PiperStatus } else { $null }) })
+            }
+            '/tts/piper' {
+                if (-not (Get-Command Get-PiperStatus -ErrorAction SilentlyContinue)) { Send-Json $ctx @{ ok = $false; error = 'moduł Piper nie działa (antywirus?) – zobacz dziennik' } 503; return }
+                if ($q['install'] -eq '1') { Start-PiperInstall @(([string]$q['voices']).Split(',') | Where-Object { $_ }) }
+                Send-Json $ctx (Get-PiperStatus)
             }
             '/tts' {
-                if (-not (Get-Command Initialize-Tts -ErrorAction SilentlyContinue)) { Send-Json $ctx @{ ok = $false; error = 'moduł głosu nie działa' } 503; return }
-                Initialize-Tts
-                if (-not $script:Tts.ready) { Send-Json $ctx @{ ok = $false; error = "głos niedostępny: $($script:Tts.err)" } 503; return }
                 $rate = 1.0; [void][double]::TryParse([string]$q['rate'], [Globalization.NumberStyles]::Float, [Globalization.CultureInfo]::InvariantCulture, [ref]$rate)
                 $pitch = 0; [void][int]::TryParse([string]$q['pitch'], [ref]$pitch)
+                $voice = [string]$q['voice']; $text = ([string]$q['text'] -replace '\s+', ' ').Trim(); if ($text.Length -gt 400) { $text = $text.Substring(0, 400) }
                 $wav = $null
-                try { $wav = Get-TtsWav ([string]$q['text']) ([string]$q['voice']) $rate $pitch } catch { Log "Głos (TTS): $($_.Exception.Message)" 'Yellow' }
+                if ($voice.StartsWith('piper:')) {
+                    # Piper: tempo tutaj, wysokość w przeglądarce (szybsze odtwarzanie podnosi głos, więc mowę wydłużamy o tyle samo)
+                    if (-not (Get-Command Get-PiperWav -ErrorAction SilentlyContinue)) { Send-Json $ctx @{ ok = $false; error = 'moduł Piper nie działa' } 503; return }
+                    $f = [Math]::Max(0.6, [Math]::Min(1.6, 1 + $pitch / 100.0)); $ls = [Math]::Max(0.5, [Math]::Min(2.0, $f / [Math]::Max(0.5, $rate)))
+                    $key = "$voice|$ls|$text"
+                    if (-not $script:PiperCache) { $script:PiperCache = [ordered]@{} }
+                    if ($script:PiperCache.Contains($key)) { $wav = $script:PiperCache[$key] }
+                    else {
+                        try { $wav = Get-PiperWav $voice.Substring(6) $text $ls; $script:PiperCache[$key] = $wav; while ($script:PiperCache.Count -gt 30) { $script:PiperCache.RemoveAt(0) } } catch { Log "Głos (Piper): $($_.Exception.Message)" 'Yellow' }
+                    }
+                } else {
+                    if (-not (Get-Command Initialize-Tts -ErrorAction SilentlyContinue)) { Send-Json $ctx @{ ok = $false; error = 'moduł głosu nie działa' } 503; return }
+                    Initialize-Tts
+                    if (-not $script:Tts.ready) { Send-Json $ctx @{ ok = $false; error = "głos niedostępny: $($script:Tts.err)" } 503; return }
+                    try { $wav = Get-TtsWav $text $voice $rate $pitch } catch { Log "Głos (TTS): $($_.Exception.Message)" 'Yellow' }
+                }
                 if (-not $wav) { Send-Json $ctx @{ ok = $false; error = 'nie udało się' } 500; return }
                 Send-Bytes $ctx $wav 'audio/wav'
             }
@@ -2228,8 +2249,12 @@ function Invoke-Request($ctx) {
             default { Send-Json $ctx @{ ok = $false; error = 'not found' } 404 }
         }
     } catch {
-        Log "Błąd zapytania: $($_.Exception.Message)" 'Red'
-        try { Send-Json $ctx @{ ok = $false; error = $_.Exception.Message } 500 } catch {}
+        # przeglądarka zamknęła połączenie, zanim przyszła odpowiedź (odświeżenie, zamknięta karta) – nic złego, nie śmiecimy w dzienniku
+        $m = $_.Exception.Message
+        if ($m -notmatch 'ContentLength64|po przesłaniu odpowiedzi|after the response|nazwa sieciowa|network name|zamknięte przez zdalnego|forcibly closed|aborted|przerwan') {
+            Log "Błąd zapytania: $m" 'Red'
+            try { Send-Json $ctx @{ ok = $false; error = $m } 500 } catch {}
+        }
     }
 }
 
@@ -2249,7 +2274,7 @@ Initialize-Twitch
 
 # moduły: każdy w osobnym pliku – zablokowany (antywirus, błąd) wyłącza tylko swoją funkcję
 $script:Mods = [ordered]@{}
-foreach ($m in @('censor', 'tts', 'windows')) {
+foreach ($m in @('censor', 'tts', 'windows', 'piper')) {
     $mf = Join-Path $PSScriptRoot "mods\$m.ps1"
     try { . $mf; $script:Mods[$m] = 'ok' }
     catch {

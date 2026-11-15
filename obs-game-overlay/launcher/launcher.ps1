@@ -23,7 +23,8 @@ $STEPS = @(
     @{ id = 'blocks'; title = 'Nic nie blokuje' },
     @{ id = 'radar'; title = 'GameRadar' },
     @{ id = 'obs'; title = 'OBS Studio' },
-    @{ id = 'cockpit'; title = 'Kokpit' }
+    @{ id = 'cockpit'; title = 'Kokpit' },
+    @{ id = 'voices'; title = 'Głosy postaci (Piper)' }
 )
 $sync = [hashtable]::Synchronized(@{ steps = @(); finished = $false; relaunch = $false; cockpit = (-not $NoCockpit); url = $Cockpit; version = '' })
 function Reset-Steps { $sync.steps = @($STEPS | ForEach-Object { [hashtable]::Synchronized(@{ id = $_.id; title = $_.title; state = 'wait'; detail = ''; action = ''; rev = 0 }) }); $sync.finished = $false }
@@ -46,6 +47,14 @@ $Work = {
             } catch { $script:RadarErr = $_.Exception.Message -replace '^Exception calling "\w+" with "\d+" argument\(s\): ', '' }
         }
         return $null
+    }
+    # zapytanie z kluczem tego komputera (adresy GameRadara dla zaufanych)
+    function Get-RadarJson([string]$path) {
+        $key = ''; try { $key = ([IO.File]::ReadAllText((Join-Path $Data 'local-key.txt'))).Trim() } catch {}
+        try {
+            $rq = [Net.HttpWebRequest]::Create("http://localhost:$Port$path"); $rq.Proxy = $null; $rq.Timeout = 6000; $rq.Headers.Add('X-VM-Key', $key)
+            $rs = $rq.GetResponse(); try { return ((New-Object IO.StreamReader($rs.GetResponseStream(), [Text.Encoding]::UTF8)).ReadToEnd() | ConvertFrom-Json) } finally { $rs.Close() }
+        } catch { return $null }
     }
     # GameRadar działa? – po jego blokadzie «jedna kopia naraz» (niezależnie od sieci)
     function Test-RadarRunning {
@@ -191,6 +200,29 @@ $Work = {
         $i = 5
         if ($sync.cockpit) { Set-Step 5 'run' 'Otwieram w przeglądarce…'; Start-Process $sync.url; Start-Sleep -Milliseconds 600; Set-Step 5 'ok' 'Otwarty – stream prowadzisz stamtąd' }
         else { Set-Step 5 'skip' 'Pominięty' }
+
+        # 7. głosy Piper (domyślne głosy postaci) – pobierane raz, w GameRadarze w tle
+        $i = 6
+        if ($st -is [string]) { Set-Step 6 'warn' 'Pominięte – kreator nie łączy się z GameRadarem' }
+        else {
+            Set-Step 6 'run' 'Sprawdzam…'
+            $pp = Get-RadarJson '/tts/piper'
+            $need = { param($x) @($x.voices | Where-Object { $_.def -and -not $_.installed }).Count -gt 0 -or -not $x.exe }
+            if (-not $pp -or -not $pp.voices) { Set-Step 6 'warn' 'Moduł Piper nie odpowiada – postacie mówią głosami Windows' 'log' }
+            elseif (-not (& $need $pp) -and -not $pp.busy) { Set-Step 6 'ok' ('Gotowe: ' + ((@($pp.voices | Where-Object { $_.installed }) | ForEach-Object { $_.name }) -join ', ')) }
+            else {
+                if (-not $pp.busy) { $pp = Get-RadarJson '/tts/piper?install=1' }
+                $t0 = Get-Date
+                while ($pp -and $pp.busy -and ((Get-Date) - $t0).TotalMinutes -lt 20) {
+                    Set-Step 6 'run' ("Pobieram $($pp.step)… $($pp.pct)% · możesz zamknąć okno, pobieranie trwa dalej")
+                    Start-Sleep -Seconds 1; $pp = Get-RadarJson '/tts/piper'
+                }
+                if (-not $pp) { Set-Step 6 'warn' 'GameRadar przestał odpowiadać w trakcie pobierania' 'retry' }
+                elseif ($pp.error) { Set-Step 6 'warn' "Nie udało się pobrać: $($pp.error)" 'retry' }
+                elseif ($pp.busy) { Set-Step 6 'warn' 'Pobieranie jeszcze trwa w tle' }
+                else { Set-Step 6 'ok' ('Pobrane: ' + ((@($pp.voices | Where-Object { $_.installed }) | ForEach-Object { $_.name }) -join ', ')) }
+            }
+        }
     } catch {
         Set-Step $i 'err' $_.Exception.Message 'retry'
     }

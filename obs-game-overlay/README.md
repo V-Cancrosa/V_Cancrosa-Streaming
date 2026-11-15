@@ -191,7 +191,7 @@ Polecenia idą przez darmowy przekaźnik **ntfy.sh** pod długim losowym kluczem
 
 - **Mikrofon:** panel → Start, wybór urządzenia (np. DGM20 USB Microphone). Przy „domyślnym w Windows” i jednym mikrofonie USB panel sam na niego przełącza. Wskaźnik i avatar słuchają mikrofonu, który naprawdę gra.
 - **✨ Popraw głos:** jedno kliknięcie dokłada na mikrofon w OBS filtry w kolejności: redukcja szumów **RNNoise** → **bramka** (−36/−44 dB) → **kompresor** (4:1 od −20 dB, +4 dB) → **limiter** (−3 dB). Drugie kliknięcie zdejmuje. Dostrajasz w OBS: prawy klik na mikrofon → Filtry.
-- **Głos postaci (TTS):** postacie czytają alerty na głos – swoje zdanie, a potem wiadomość widza (bitsy od progu, suby; do wyboru na stronie *Głos postaci*). Głosy z Windows: darmowe, bez internetu (GameRadar → `/tts`). Język wybiera się sam z każdego zdania, więc polski i angielski można mieszać. Barwy: Vince niżej z pogłosem pokoju, Chip wyżej i szybciej, Ragnar przez radio, Toro nisko w sali, Myr-35 robot, Zarin metal. Brakuje głosu? Ustawienia Windows → Czas i język → Mowa → Dodaj głosy. Linki, spam znaków i słowa nienawiści nie są czytane.
+- **Głos postaci (TTS):** postacie czytają alerty na głos – swoje zdanie, a potem wiadomość widza (bitsy od progu, suby; do wyboru na stronie *Głos postaci*). Domyślnie **głosy neuronowe Piper** (PL: Gosia, Darkman, do dobrania MC Speech; EN: Lessac, Ryan) – darmowe, działają bez internetu na Twoim komputerze; kreator startu pobiera je raz (~25 MB program + ~63 MB na głos, do `detector\data\piper`), w tle. Zapasowo głosy Windows. Język wybiera się sam z każdego zdania, więc polski i angielski można mieszać. Barwy: Vince niżej z pogłosem pokoju, Chip wyżej i szybciej, Ragnar przez radio, Toro nisko w sali, Myr-35 robot, Zarin metal (wysokość głosów Piper robi przeglądarka). Linki, spam znaków i słowa nienawiści nie są czytane.
 
 ---
 
@@ -218,7 +218,7 @@ obs-game-overlay/
   builder.html      Kreator stron      editor.html   edytor ułożenia
   themes/           motywy, postacie, czat, głosy, słowa, Kreator (pagekit.js), synchronizacja (sync.js)…
   detector/         GameRadar (PowerShell 5.1 – pliki .ps1 z polskimi znakami muszą mieć BOM UTF-8)
-    mods/           moduły: cenzura (OCR), głos (TTS), lista okien – zablokowany moduł nie zatrzymuje reszty
+    mods/           moduły: cenzura (OCR), głos (TTS Windows), Piper (głosy neuronowe), lista okien – zablokowany moduł nie zatrzymuje reszty
   launcher/         program «Vincent-Media»: kreator startu (WPF), launcher.vbs, ikona
   update.ps1        aktualizacja, spis plików, porządek w folderze i skrótach (używają go kreator, GameRadar, instalator)
   manifest.json     spis plików z sumami SHA-256 (tools/make-manifest.py)
@@ -244,4 +244,5 @@ tools/make-icon.py  rysuje ikonę Vincent-Media
   - HUD cyberpunk – baner „Yuffie // Cyberpunk Edgerunners”, [velkaa](https://codepen.io/velkaa) (bez GIF-ów i muzyki z oryginału),
   - progi szerokości panelu – „Responsive Grid with @custom-media”, [Chris Coyier](https://codepen.io/chriscoyier).
 - Tło Vince'a na ekranach (`themes/aether.js`) – „Aetheric Blueprint – Interactive Shader”, [Techartist / VoXelo](https://codepen.io/VoXelo/pen/azOeJVo) (MIT); shader przeniesiony z Three.js na czysty WebGL, fala od alertów zamiast kliknięcia, kolory z motywu, bez błysku, najwyżej 30 klatek.
+- Głosy postaci: [Piper](https://github.com/rhasspy/piper) (MIT) i głosy z [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) – licencje zbiorów danych są w kartach modeli (MODEL_CARD); polskie i angielskie głosy powstały na bazie głosu Lessac, którego zbiór ma ograniczenia do użytku niekomercyjnego – przy zarabianiu na streamie sprawdź karty modeli.
 - Przekaźnik pilota: [ntfy.sh](https://ntfy.sh).

@@ -1,5 +1,6 @@
 /*
-  Głos (TTS) postaci: GameRadar syntezuje mowę głosami Windows (za darmo, bez internetu, /tts),
+  Głos (TTS) postaci: GameRadar syntezuje mowę (za darmo, bez internetu, /tts) – domyślnie głosami neuronowymi Piper,
+  zapasowo głosami Windows,
   a tutaj każda postać dostaje swoją barwę (wysokość, tempo) i efekt (robot, radio, pogłos, metal).
   Język wybiera się sam z tekstu: polski albo angielski – można mieszać w kratkę.
 
@@ -7,7 +8,8 @@
   VMTTS.voices() → [{ id, name, lang, gender }]    VMTTS.detect(tekst) → 'pl' | 'en'
   VMTTS.clean(tekst) → tekst do przeczytania albo '' (słowa nienawiści, same linki/emotki)
   VMTTS.PROFILES – barwy postaci   VMTTS.stop()
-  Ustawienia (obsGameOverlay.v1): tts (true/false), ttsVolume (0–1), ttsVoice: { 'pl': id, 'en': id, 'vince-pl': id, … }
+  Ustawienia (obsGameOverlay.v1): tts (true/false), ttsVolume (0–1), ttsEngine ('piper' domyślnie | 'windows'),
+  ttsVoice: { 'pl': id, 'en': id, 'vince-pl': id, … }
 */
 (function () {
   const KEY = 'obsGameOverlay.v1';
@@ -51,10 +53,10 @@
   }
 
   // ---------------------------------------------------------------- głosy
-  let voiceList = null;
+  let voiceList = null, voiceAt = 0, piper = null;
   async function voices(force) {
-    if (voiceList && !force) return voiceList;
-    try { const j = await (await fetch(hub() + '/tts/voices', { cache: 'no-store' })).json(); voiceList = j.ok ? j.voices || [] : []; }
+    if (voiceList && !force && Date.now() - voiceAt < 60000) return voiceList;   // co minutę od nowa (np. po pobraniu głosów Piper)
+    try { const j = await (await fetch(hub() + '/tts/voices', { cache: 'no-store' })).json(); voiceList = j.voices || []; piper = j.piper || null; voiceAt = Date.now(); }
     catch (e) { voiceList = null; return []; }
     return voiceList;
   }
@@ -62,8 +64,11 @@
     const s = settings().ttsVoice || {};
     const want = s[persona + '-' + lang] || s[lang];
     if (want && list.some(v => v.id === want)) return want;
-    const inLang = list.filter(v => (v.lang || '').toLowerCase().startsWith(lang));
-    const pool = inLang.length ? inLang : list;
+    const eng = settings().ttsEngine === 'windows' ? 'windows' : 'piper';
+    const byEng = list.filter(v => (v.engine || 'windows') === eng);
+    const src = byEng.length ? byEng : list;                    // brak głosów Piper → głosy Windows
+    const inLang = src.filter(v => (v.lang || '').toLowerCase().startsWith(lang));
+    const pool = inLang.length ? inLang : src;
     const g = (PROFILES[persona] || PROFILES._).g;
     const v = (g && pool.find(x => x.gender === g)) || pool[0];
     return v ? v.id : '';
@@ -138,6 +143,8 @@
     const r = await fetch(u, { cache: 'no-store' }); if (!r.ok) return;
     const a = ctx(), buf = await a.decodeAudioData(await r.arrayBuffer());
     const src = a.createBufferSource(); src.buffer = buf;
+    // Piper nie zmienia wysokości – robi to szybsze/wolniejsze odtwarzanie (GameRadar wydłużył mowę o tyle samo)
+    if (voice.startsWith('piper:')) src.playbackRate.value = Math.max(0.6, Math.min(1.6, 1 + P.pitch / 100));
     const [inp, out] = chain(a, o.fx != null ? o.fx : P.fx);
     const g = a.createGain(); g.gain.value = vol;
     src.connect(inp); out.connect(g).connect(a.destination);
@@ -149,5 +156,5 @@
   }
   function stop() { gen++; q = Promise.resolve(); if (current) { try { current.src.stop(); } catch (e) {} current.done(); current = null; } }
 
-  window.VMTTS = { say, stop, voices, detect, clean, PROFILES, FX_NAMES };
+  window.VMTTS = { say, stop, voices, detect, clean, PROFILES, FX_NAMES, piper: () => piper };
 })();

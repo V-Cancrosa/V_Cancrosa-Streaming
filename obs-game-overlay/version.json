@@ -1,5 +1,5 @@
 {
-  "version": "1.54.0",
+  "version": "1.55.0",
   "date": "2026-11-15",
-  "notes": "Czytelny dziennik na stronie (uruchomienia, ikony, Najważniejsze/Problemy/Wszystko); kreator czeka na GameRadar w trakcie jego restartu"
+  "notes": "Głosy neuronowe Piper jako domyślne (PL i EN, bez internetu); kreator pobiera je w tle; mniej śmieci w dzienniku"
 }

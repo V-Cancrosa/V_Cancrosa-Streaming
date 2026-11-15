@@ -27,7 +27,8 @@
 <body>
 <div class="app"><nav class="nav"></nav><main>
 <h1>Głos postaci</h1>
-<p class="lead">Postacie czytają alerty na głos – po polsku albo po angielsku, zależnie od tekstu. Głosy są z Windows: darmowe i bez internetu. Każda postać ma swoją barwę i efekt.</p>
+<p class="lead">Postacie czytają alerty na głos – po polsku albo po angielsku, zależnie od tekstu. Domyślnie głosy neuronowe <b>Piper</b> (darmowe, działają bez internetu na Twoim komputerze), zapasowo głosy Windows. Każda postać ma swoją barwę i efekt.</p>
+<div class="card stack" id="piperCard" style="margin-bottom:16px"><div class="row"><h2 style="margin:0;flex:1">Głosy Piper</h2><span class="seg" id="eng"></span></div><div id="piperBox" class="hint">…</div></div>
 <div class="card warn" id="noVoice" hidden></div>
 <div class="split">
   <div class="stack">
@@ -54,17 +55,39 @@
   function render() {
     const s = S.get();
     seg('on', [[true, 'Tak'], [false, 'Nie']], s.tts !== false, 'on');
+    seg('eng', [['piper', 'Piper (lepsze)'], ['windows', 'Windows']], s.ttsEngine === 'windows' ? 'windows' : 'piper', 'eng');
+    renderPiper();
     seg('msgs', [['off', 'Nie czytaj'], ['bits', 'Z bitsów i subów'], ['all', 'Wszystkie z alertów']], s.ttsMsgs || 'bits', 'msgs');
     seg('bits', [[1, '1'], [100, '100'], [500, '500'], [1000, '1000']], s.ttsMinBits || 100, 'bits');
     $('bitsRow').hidden = (s.ttsMsgs || 'bits') !== 'bits';
     seg('vol', [[0.5, '50%'], [0.7, '70%'], [0.9, '90%'], [1, '100%']], s.ttsVolume != null ? s.ttsVolume : 0.9, 'vol');
     seg('sayWho', Object.entries(T.PROFILES).filter(([k]) => k !== '_').map(([k, p]) => [k, p.name]), who, 'who');
     const tv = s.ttsVoice || {};
-    const opts = (lang, sel) => { const l = list.filter(v => (v.lang || '').toLowerCase().startsWith(lang)); return `<option value="">auto</option>` + (l.length ? l : list).map(v => `<option value="${esc(v.id)}"${v.id === sel ? ' selected' : ''}>${esc(v.name)} · ${esc(v.lang)}</option>`).join(''); };
+    const eng = s.ttsEngine === 'windows' ? 'windows' : 'piper';
+    const opts = (lang, sel) => { const all = list.filter(v => (v.lang || '').toLowerCase().startsWith(lang)), l = all.filter(v => (v.engine || 'windows') === eng);
+      return `<option value="">auto</option>` + (l.length ? l : all.length ? all : list).map(v => `<option value="${esc(v.id)}"${v.id === sel ? ' selected' : ''}>${esc(v.name)} · ${esc(v.lang)}</option>`).join(''); };
     $('who').innerHTML = Object.entries(T.PROFILES).filter(([k]) => k !== '_').map(([k, p]) => `<div class="card">
       <h3>${esc(p.name)} <small>${p.pitch > 0 ? 'wyżej' : p.pitch < 0 ? 'niżej' : 'naturalnie'} · ${p.rate > 1 ? 'szybciej' : p.rate < 1 ? 'wolniej' : 'zwykłe tempo'} · ${esc(T.FX_NAMES[p.fx] || p.fx)}</small></h3>
       ${['pl', 'en'].map(l => `<div class="vrow"><b>${l.toUpperCase()}</b><select data-p="${k}" data-l="${l}">${opts(l, tv[k + '-' + l])}</select><button data-try="${k}|${l}" title="Posłuchaj">▶</button></div>`).join('')}
     </div>`).join('');
+  }
+  // stan Piper: pobrane głosy, pobieranie z paskiem postępu, dobieranie kolejnych
+  let pip = null, pipTimer = 0;
+  function renderPiper() {
+    const box = $('piperBox'); if (!box) return;
+    if (!pip) { box.innerHTML = 'GameRadar nie odpowiada albo moduł Piper nie działa – <a href="log.html">zobacz dziennik</a>.'; return; }
+    if (pip.busy) { box.innerHTML = `<div class="row"><span style="flex:1">Pobieram ${esc(pip.step)}… ${pip.pct}%</span></div><div class="meter" style="height:8px;border-radius:4px;background:#22252f;overflow:hidden;margin-top:6px"><i style="display:block;height:100%;width:${pip.pct}%;background:linear-gradient(90deg,var(--acc),#00e1ff)"></i></div>`; return; }
+    const missing = pip.voices.filter(v => !v.installed);
+    box.innerHTML = (pip.error ? `<p style="color:var(--bad);margin:0 0 6px">Nie udało się: ${esc(pip.error)}</p>` : '') +
+      `<div class="row" style="gap:6px">${pip.voices.map(v => `<span class="pill" style="padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:${v.installed ? 'color-mix(in srgb,var(--ok) 18%,var(--panel2))' : 'var(--panel2)'};font-size:12.5px">${v.installed ? '✓' : '+'} ${esc(v.name)} · ${esc(v.lang.slice(0, 2).toUpperCase())} ${v.gender === 'female' ? '♀' : '♂'}</span>`).join('')}</div>` +
+      (missing.length ? `<div class="row" style="margin-top:8px"><button class="primary" id="pipGet">Pobierz ${pip.exe && pip.voices.some(v => v.installed) ? 'pozostałe głosy' : 'głosy Piper'} (${pip.exe ? '' : 'program + '}${missing.length} × ~63 MB)</button></div>` : '<p class="hint" style="margin:8px 0 0">Wszystkie głosy pobrane.</p>');
+    if ($('pipGet')) $('pipGet').onclick = async () => { try { pip = await (await fetch(S.hub() + '/tts/piper?install=1&voices=' + missing.map(v => v.id).join(','), { cache: 'no-store' })).json(); } catch {} renderPiper(); pollPiper(); };
+  }
+  async function pollPiper() {
+    clearTimeout(pipTimer);
+    try { pip = await (await fetch(S.hub() + '/tts/piper', { cache: 'no-store' })).json(); if (pip.ok === false && !pip.voices) pip = null; } catch { pip = null; }
+    renderPiper();
+    if (pip && pip.busy) pipTimer = setTimeout(pollPiper, 1000); else if (pip && pip.pct === 100) load();
   }
   async function load() {
     list = await T.voices(true);
@@ -80,7 +103,8 @@
   }
   document.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
-    if (b.dataset.on) S.set({ tts: b.dataset.on === 'true' });
+    if (b.dataset.eng) S.set({ ttsEngine: b.dataset.eng });
+    else if (b.dataset.on) S.set({ tts: b.dataset.on === 'true' });
     else if (b.dataset.msgs) S.set({ ttsMsgs: b.dataset.msgs });
     else if (b.dataset.bits) S.set({ ttsMinBits: +b.dataset.bits });
     else if (b.dataset.vol) S.set({ ttsVolume: +b.dataset.vol });
@@ -97,7 +121,7 @@
     S.set({ ttsVoice: tv });
   });
   S.onChange(render);
-  render(); load();
+  render(); load(); pollPiper();
 })();
 </script>
 </body>
