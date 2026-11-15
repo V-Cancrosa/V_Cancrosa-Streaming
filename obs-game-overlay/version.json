@@ -1,5 +1,5 @@
 {
-  "version": "1.59.0",
+  "version": "1.60.0",
   "date": "2026-11-15",
-  "notes": "Herby Myr-35 i Zarin zamiast brakujących portretów (karta, alerty, ekrany, układy, Kreator); sociale obok czatu"
+  "notes": "Koniec przeskoków (ustawienia łączone pole po polu), Ekrany jako siatka plansz z ustawieniami i uwagami, herby jako znaczki, ramy wielkości alertów, menu w grupach"
 }

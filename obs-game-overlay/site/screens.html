@@ -9,57 +9,194 @@
 <script src="../version.js"></script>
 <script src="../themes/sync.js"></script>
 <script src="site.js"></script>
+<style>
+  /* siatka plansz (jak Repeating Group w Bubble): każda komórka = podgląd + ustawienia + uwagi */
+  .rg { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .cell { display: flex; flex-direction: column; gap: 10px; padding: 12px; }
+  .cell.live { border-color: #e91916; box-shadow: 0 0 0 1px #e91916 inset; }
+  .ch { display: flex; align-items: center; gap: 8px; }
+  .ch b { font-size: 15px; flex: 1; min-width: 0; }
+  .onair { font-size: 11px; font-weight: 800; letter-spacing: .08em; color: #fff; background: #e91916; padding: 3px 8px; border-radius: 999px; }
+  .cell .pv { cursor: zoom-in; }
+  .cell .pv .lazy { position: absolute; inset: 0; display: grid; place-items: center; color: var(--dim); font-size: 13px; }
+  .cell details > summary { cursor: pointer; color: var(--dim); font-size: 12.5px; padding: 4px 0; list-style: none; }
+  .cell details > summary::before { content: '▸ '; } .cell details[open] > summary::before { content: '▾ '; }
+  .cell details .stack { gap: 8px; padding-top: 6px; }
+  .cell input:not([type=checkbox]), .cell textarea { width: 100%; }
+  .cell textarea { min-height: 54px; resize: vertical; font: 13px/1.4 Inter, sans-serif; }
+  .ncount { margin-left: 6px; font-size: 11px; color: #111; background: var(--warn); border-radius: 999px; padding: 1px 7px; font-weight: 700; }
+  .common { margin-bottom: 16px; }
+  .common > summary { cursor: pointer; font-weight: 700; padding: 4px 0; }
+  .common .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-top: 10px; }
+  dialog { background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 14px; width: min(760px, 94vw); max-height: 86vh; padding: 18px; }
+  dialog::backdrop { background: rgba(0,0,0,.6); }
+  .note { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: start; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .note.done span { text-decoration: line-through; color: var(--dim); }
+  .note small { color: var(--dim); display: block; }
+  @media (max-width: 1100px) { .rg { grid-template-columns: 1fr; } }
+</style>
 </head>
 <body>
 <div class="app"><nav class="nav"></nav><main>
-
-<h1>Ekrany</h1>
-<p class="lead">Ekrany przed streamem, w przerwie i na koniec. Wybierz ekran, żeby go zobaczyć – „Pokaż na streamie” przełącza go naprawdę.</p>
-<div class="split">
-  <div class="stack">
-    <div class="card stack"><h2>Który ekran</h2><div class="seg" id="which"></div><div class="row"><button class="primary" id="live">▶ Pokaż na streamie</button><span class="hint" id="liveNow"></span></div></div>
-    <div class="card stack"><h2>Odliczanie</h2>
+<div class="row" style="align-items:flex-end"><div style="flex:1"><h1>Ekrany</h1><p class="lead" style="margin:0">Każda plansza streamu z podglądem. „Na wizję” przełącza ją naprawdę, „Ustaw” zmienia jej napisy, a uwagi zbierają się w jednym miejscu do poprawy.</p></div>
+  <button id="notesBtn">📝 Uwagi <span class="ncount" id="nc" hidden></span></button></div>
+<details class="card common" id="common"><summary>Ustawienia wspólne – odliczanie, termin, sociale</summary>
+  <div class="grid2">
+    <div class="stack">
       <div class="row"><label>Minut<input id="min" type="number" min="1" value="5" style="width:90px"></label><button class="primary" id="go">Start</button><button id="stop">Stop</button><span class="hint" id="left"></span></div>
       <label>Termin streama (ekran „Stream za…”)<input id="at" type="datetime-local"></label>
       <label class="chk"><input id="autoLate" type="checkbox"> po końcu odliczania sam przełącz na „spóźnienie” / „przerwa się przedłuża”</label>
     </div>
-    <div class="card stack"><h2>Napisy</h2>
-      <label>Podpis pod odliczaniem (pusty = „Dziś: [gra]”)<input id="sub" placeholder="np. Dziś: boss Malenia"></label>
-      <label>Temat rozmowy (układ „Rozmowa”)<input id="topic" placeholder="np. Q&amp;A, plany na weekend"></label>
+    <div class="stack">
+      <label>Podpis pod odliczaniem dla wszystkich ekranów (pusty = „Dziś: [gra]”)<input id="sub" placeholder="np. Dziś: boss Malenia"></label>
       <label>Sociale (puste = Twoje konta, „-” = bez)<input id="soc" placeholder="telegram: @…, x: @…"></label>
-      <label class="chk"><input id="hero" type="checkbox"> duża postać obok odliczania</label>
+      <label class="chk"><input id="hero" type="checkbox"> postać / herb na ekranach (każdy ekran można wyłączyć osobno)</label>
     </div>
   </div>
-  <div id="pv"></div>
-</div>
+</details>
+<div class="rg" id="rg"></div>
+<dialog id="notes"><div class="row"><h2 style="margin:0;flex:1">Uwagi</h2><span class="seg" id="nf"></span><button id="copy" class="primary">⧉ Kopiuj dla Claude</button><button id="close">✕</button></div>
+  <p class="hint" style="margin:6px 0 10px">Wklej skopiowane uwagi do rozmowy – są w nich ekran, postać, gra i wersja, więc da się je od razu poprawić. Zrobione odhacz.</p>
+  <div id="nlist"></div></dialog>
+</main></div>
 <script>
 (() => {
-  const S = window.VMSite, $ = S.$;
-  const SCR = [['prep', 'Przygotowania'], ['soon', 'Stream za…'], ['start', 'Zaraz zaczynamy'], ['late', 'Spóźnienie'], ['vote', 'Głosowanie'], ['brb', 'Przerwa'], ['brb-late', 'Przerwa się przedłuża'], ['end', 'Koniec + napisy']];
-  let pick = S.get().scene || 'prep';
-  const pv = S.preview($('pv'), SCR.map(([id, n]) => ({ id, name: n, urls: ['../scenes.html?scene=' + id], obs: '../stage.html' })), pick);
-  // pasek wyboru w podglądzie robi to samo co lista po lewej
-  function render() {
-    const s = S.get();
-    $('which').innerHTML = SCR.map(([v, n]) => `<button data-s="${v}" aria-pressed="${pick === v}">${n}</button>`).join('');
-    $('liveNow').textContent = s.stage === 'screen' ? 'na wizji: ' + ((SCR.find(x => x[0] === s.scene) || [, s.scene])[1]) : 'na wizji jest teraz gra / inny widok';
-    const set = (id, v) => { if (document.activeElement !== $(id)) $(id)[typeof v === 'boolean' ? 'checked' : 'value'] = v; };
-    set('sub', s.sceneSub || ''); set('topic', s.talkTopic || ''); set('soc', s.socials || ''); set('hero', s.sceneHero !== false); set('autoLate', s.autoLate !== false);
+  const S = window.VMSite, $ = S.$, esc = S.esc;
+  const NOTES = 'obsGameOverlay.notes';
+  // plansze w kolejności streamu: kind = klucz ustawień tego ekranu w scenes.html
+  const BOARDS = [
+    { id: 'prep', kind: 'prep', name: 'Przygotowania', urls: ['../scenes.html?scene=prep'], live: { stage: 'screen', scene: 'prep' }, text: true },
+    { id: 'soon', kind: 'soon', name: 'Stream za…', urls: ['../scenes.html?scene=soon'], live: { stage: 'screen', scene: 'soon' }, text: true },
+    { id: 'start', kind: 'start', name: 'Zaraz zaczynamy', urls: ['../scenes.html?scene=start'], live: { stage: 'screen', scene: 'start' }, text: true },
+    { id: 'late', kind: 'late', name: 'Spóźnienie', urls: ['../scenes.html?scene=late'], live: { stage: 'screen', scene: 'late', sceneLateAt: 1 }, text: true },
+    { id: 'vote', kind: 'vote', name: 'Głosowanie', urls: ['../scenes.html?scene=vote&vote=1'], live: { stage: 'screen', scene: 'vote' }, text: false, hint: 'Samo głosowanie uruchamiasz w kokpicie.' },
+    { id: 'game', kind: 'game', name: 'Gra', urls: ['../layouts.html?layout=game-full', '../overlay.html'], game: true, live: { stage: 'game' } },
+    { id: 'frame', kind: 'frame', name: 'Gra w ramce', urls: ['../layouts.html?layout=game-frame'], game: true, live: { stage: 'frame' } },
+    { id: 'talk', kind: 'talk', name: 'Rozmowa', urls: ['../layouts.html?layout=talk'], live: { stage: 'talk' }, topic: true },
+    { id: 'brb', kind: 'brb', name: 'Przerwa', urls: ['../scenes.html?scene=brb'], live: { stage: 'screen', scene: 'brb' }, text: true },
+    { id: 'brb-late', kind: 'brbLate', name: 'Przerwa się przedłuża', urls: ['../scenes.html?scene=brb-late'], live: { stage: 'screen', scene: 'brb-late', sceneLateAt: 1 }, text: true },
+    { id: 'end', kind: 'end', name: 'Koniec + napisy', urls: ['../scenes.html?scene=end'], live: { stage: 'screen', scene: 'end' }, text: true, noHero: true },
+  ];
+  const onAir = s => { const st = s.stage || 'game'; if (st !== 'screen') return st; return s.scene || 'prep'; };
+  const readNotes = () => { try { return JSON.parse(localStorage.getItem(NOTES)) || []; } catch { return []; } };
+  const writeNotes = n => { try { localStorage.setItem(NOTES, JSON.stringify(n)); } catch {} renderCounts(); };
+
+  // ---------------------------------------------------------------- komórki
+  function build() {
+    const s = S.get(), tx = s.screenText || {}, off = s.heroOff || {};
+    $('rg').innerHTML = BOARDS.map(b => {
+      const t = tx[b.kind] || {};
+      const opts = b.text ? `
+          <label>Nagłówek nad napisem<input data-t="label" data-k="${b.kind}" value="${esc(t.label || '')}" placeholder="z głosu postaci"></label>
+          <label>Duży napis (gdy nie ma odliczania)<input data-t="big" data-k="${b.kind}" value="${esc(t.big || '')}" placeholder="domyślny"></label>
+          <label>Zdanie pod spodem<input data-t="line" data-k="${b.kind}" value="${esc(t.line || '')}" placeholder="z głosu postaci"></label>
+          <label>Podpis<input data-t="sub" data-k="${b.kind}" value="${esc(t.sub || '')}" placeholder="wspólny / „Dziś: [gra]”"></label>
+          ${b.noHero ? '' : `<label class="chk"><input type="checkbox" data-hero="${b.kind}" ${off[b.kind] ? '' : 'checked'}> postać / herb na tym ekranie</label>`}`
+        : b.topic ? `<label>Temat rozmowy<input data-topic value="${esc(s.talkTopic || '')}" placeholder="np. Q&amp;A, plany na weekend"></label>`
+        : b.game ? `<label class="chk"><input type="checkbox" data-card ${s.visible === false ? '' : 'checked'}> karta „Teraz gram” widoczna</label>` : '';
+      return `<div class="card cell" data-id="${b.id}">
+        <div class="ch"><b>${esc(b.name)}</b><span class="onair" hidden>● NA WIZJI</span><button class="primary" data-live="${b.id}">▶ Na wizję</button><button data-open="${b.id}" title="Pełny rozmiar 1920×1080">⤢</button></div>
+        <div class="pv ${b.game ? 'game' : ''}" data-pv="${b.id}"><span class="lazy">podgląd…</span></div>
+        ${b.hint ? `<p class="hint">${esc(b.hint)}</p>` : ''}
+        ${opts ? `<details><summary>Ustaw</summary><div class="stack">${opts}</div></details>` : ''}
+        <details><summary>Uwagi <span class="ncount" data-nc="${b.id}" hidden></span></summary><div class="stack">
+          <textarea data-note="${b.id}" placeholder="Co tu nie gra? np. „herb zasłania czat”, „za mały napis”"></textarea>
+          <div class="row"><button data-save="${b.id}">Zapisz uwagę</button><span class="hint" data-nlist="${b.id}"></span></div></div></details>
+      </div>`;
+    }).join('');
+    observe(); renderLive(); renderCounts();
+  }
+  // podglądy ładują się, gdy komórka jest na ekranie, i wyłączają, gdy zniknie (mniej pracy dla komputera)
+  let io = null; const timers = {};
+  function load(box, on) {
+    const b = BOARDS.find(x => x.id === box.dataset.pv);
+    if (on) {
+      clearTimeout(timers[b.id]);
+      if (box.querySelector('iframe')) return;
+      box.innerHTML = b.urls.map(u => `<iframe src="${esc(S.withV(u))}" title="${esc(b.name)}" tabindex="-1"></iframe>`).join('');
+      fit(box);
+    } else {
+      timers[b.id] = setTimeout(() => { box.innerHTML = '<span class="lazy">podgląd…</span>'; }, 15000);
+    }
+  }
+  const fit = box => { const w = box.clientWidth; for (const f of box.querySelectorAll('iframe')) f.style.transform = `scale(${w / 1920})`; };
+  function observe() {
+    if (io) io.disconnect();
+    io = new IntersectionObserver(es => es.forEach(e => load(e.target, e.isIntersecting)), { rootMargin: '200px' });
+    document.querySelectorAll('[data-pv]').forEach(b => io.observe(b));
+  }
+  addEventListener('resize', () => document.querySelectorAll('[data-pv]').forEach(fit));
+  function renderLive() {
+    const now = onAir(S.get());
+    document.querySelectorAll('.cell').forEach(c => { const on = c.dataset.id === now; c.classList.toggle('live', on); c.querySelector('.onair').hidden = !on; });
+  }
+  function renderCounts() {
+    const n = readNotes().filter(x => !x.done);
+    $('nc').hidden = !n.length; $('nc').textContent = n.length;
+    document.querySelectorAll('[data-nc]').forEach(el => { const k = n.filter(x => x.screen === el.dataset.nc).length; el.hidden = !k; el.textContent = k; });
+    document.querySelectorAll('[data-nlist]').forEach(el => { const k = n.filter(x => x.screen === el.dataset.nlist); el.textContent = k.length ? 'zapisane: ' + k.map(x => '„' + x.text.slice(0, 40) + (x.text.length > 40 ? '…' : '') + '”').join(', ') : ''; });
+  }
+
+  // ---------------------------------------------------------------- akcje
+  document.addEventListener('click', e => {
+    const b = e.target.closest('button,[data-pv]'); if (!b) return;
+    if (b.dataset.live) { const bd = BOARDS.find(x => x.id === b.dataset.live); const patch = { ...bd.live }; if (patch.sceneLateAt) patch.sceneLateAt = Date.now(); S.set(patch); renderLive(); S.toast('Na wizji: ' + bd.name); }
+    else if (b.dataset.open || b.dataset.pv) { const bd = BOARDS.find(x => x.id === (b.dataset.open || b.dataset.pv)); window.open(new URL(S.withV(bd.urls[0]), location.href).href, '_blank', 'width=1280,height=760'); }
+    else if (b.dataset.save) {
+      const ta = document.querySelector(`[data-note="${b.dataset.save}"]`), text = ta.value.trim(); if (!text) return;
+      const s = S.get(); let det = {}; try { det = JSON.parse(localStorage.getItem('obsGameOverlay.detected') || '{}') || {}; } catch {}
+      const game = (s.mode === 'manual' && s.game) || (det.local && det.local.game && det.local.game.name) || s.game || '';
+      writeNotes([...readNotes(), { id: Date.now().toString(36), screen: b.dataset.save, text, at: Date.now(), done: false, ctx: { v: window.VM_VERSION || '', persona: String(s.theme || '').replace(/^g-/, ''), game, mode: s.gameMode || '' } }]);
+      ta.value = ''; S.toast('Uwaga zapisana');
+    }
+  });
+  document.addEventListener('change', e => {
+    const el = e.target, s = S.get();
+    if (el.dataset.t) { const tx = { ...(s.screenText || {}) }, k = el.dataset.k; tx[k] = { ...(tx[k] || {}), [el.dataset.t]: el.value.trim() }; if (!el.value.trim()) delete tx[k][el.dataset.t]; S.set({ screenText: tx }); }
+    else if (el.dataset.hero) { const off = { ...(s.heroOff || {}) }; if (el.checked) delete off[el.dataset.hero]; else off[el.dataset.hero] = true; S.set({ heroOff: off }); }
+    else if (el.hasAttribute('data-topic')) S.set({ talkTopic: el.value.trim() });
+    else if (el.hasAttribute('data-card')) S.set({ visible: el.checked });
+  });
+
+  // ---------------------------------------------------------------- uwagi zbiorczo
+  let nf = 'open';
+  function renderNotes() {
+    const all = readNotes(), list = all.filter(n => nf === 'all' || !n.done);
+    $('nf').innerHTML = [['open', 'Do zrobienia'], ['all', 'Wszystkie']].map(([k, n]) => `<button data-nf="${k}" aria-pressed="${nf === k}">${n}</button>`).join('');
+    $('nlist').innerHTML = list.map(n => { const b = BOARDS.find(x => x.id === n.screen) || { name: n.screen };
+      return `<div class="note ${n.done ? 'done' : ''}"><input type="checkbox" data-done="${n.id}" ${n.done ? 'checked' : ''} title="Zrobione"><span><b>${esc(b.name)}</b>: ${esc(n.text)}<small>${new Date(n.at).toLocaleString('pl-PL')} · ${esc(n.ctx.persona || '—')} · ${esc(n.ctx.game || 'bez gry')} · v${esc(n.ctx.v)}</small></span><button data-del="${n.id}" title="Usuń">🗑</button></div>`; }).join('') || '<p class="hint">Brak uwag.</p>';
+  }
+  $('notesBtn').onclick = () => { renderNotes(); $('notes').showModal(); };
+  $('close').onclick = () => $('notes').close();
+  $('notes').addEventListener('click', e => {
+    const f = e.target.closest('[data-nf]'), d = e.target.closest('[data-del]');
+    if (f) { nf = f.dataset.nf; renderNotes(); }
+    if (d && confirm('Usunąć tę uwagę?')) { writeNotes(readNotes().filter(n => n.id !== d.dataset.del)); renderNotes(); }
+  });
+  $('notes').addEventListener('change', e => { const c = e.target.closest('[data-done]'); if (c) { writeNotes(readNotes().map(n => n.id === c.dataset.done ? { ...n, done: c.checked } : n)); renderNotes(); } });
+  $('copy').onclick = async () => {
+    const open = readNotes().filter(n => !n.done);
+    const md = `Uwagi do Vincent-Media (v${window.VM_VERSION || ''}):\n\n` + BOARDS.map(b => { const ns = open.filter(n => n.screen === b.id); return ns.length ? `## ${b.name}\n` + ns.map(n => `- ${n.text} _(postać: ${n.ctx.persona || '—'}, gra: ${n.ctx.game || '—'}, tryb: ${n.ctx.mode || '—'}, ${new Date(n.at).toLocaleString('pl-PL')})_`).join('\n') : ''; }).filter(Boolean).join('\n\n');
+    try { await navigator.clipboard.writeText(md); S.toast('Skopiowano ' + open.length + ' uwag'); } catch { prompt('Skopiuj:', md); }
+  };
+
+  // ---------------------------------------------------------------- wspólne
+  function renderCommon() {
+    const s = S.get(), set = (id, v) => { if (document.activeElement !== $(id)) $(id)[typeof v === 'boolean' ? 'checked' : 'value'] = v; };
+    set('sub', s.sceneSub || ''); set('soc', s.socials || ''); set('hero', s.sceneHero !== false); set('autoLate', s.autoLate !== false);
     set('at', s.sceneAt ? new Date(s.sceneAt - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '');
     const left = Math.max(0, (s.sceneUntil || 0) - Date.now()); $('left').textContent = s.sceneUntil ? (left ? `zostało ${Math.floor(left / 60000)}:${String(Math.floor(left / 1000) % 60).padStart(2, '0')}` : 'czas minął') : '';
   }
-  $('which').onclick = e => { const b = e.target.closest('[data-s]'); if (!b) return; pick = b.dataset.s; pv.show(pick); render(); };
-  $('live').onclick = () => { S.set({ stage: 'screen', scene: pick, ...(pick === 'late' || pick === 'brb-late' ? { sceneLateAt: Date.now() } : {}) }); render(); S.toast('Na streamie: ' + SCR.find(x => x[0] === pick)[1]); };
-  $('go').onclick = () => { const m = parseFloat($('min').value); if (m > 0) S.set({ sceneUntil: Date.now() + Math.round(m * 60000) }); render(); };
-  $('stop').onclick = () => { S.set({ sceneUntil: 0 }); render(); };
+  $('go').onclick = () => { const m = parseFloat($('min').value); if (m > 0) S.set({ sceneUntil: Date.now() + Math.round(m * 60000) }); };
+  $('stop').onclick = () => S.set({ sceneUntil: 0 });
   $('at').onchange = () => { const t = new Date($('at').value).getTime(); S.set({ sceneAt: isNaN(t) ? 0 : t }); };
   $('autoLate').onchange = () => S.set({ autoLate: $('autoLate').checked });
   $('hero').onchange = () => S.set({ sceneHero: $('hero').checked });
-  for (const [id, k] of [['sub', 'sceneSub'], ['topic', 'talkTopic'], ['soc', 'socials']]) $(id).onchange = () => S.set({ [k]: $(id).value.trim() });
-  S.onChange(render); render(); setInterval(render, 1000);
-  document.addEventListener('click', e => { const b = e.target.closest('#pvSeg [data-v]'); if (b) { pick = b.dataset.v; render(); } });
+  for (const [id, k] of [['sub', 'sceneSub'], ['soc', 'socials']]) $(id).onchange = () => S.set({ [k]: $(id).value.trim() });
+  S.onChange(() => { renderLive(); renderCommon(); renderCounts(); });
+  addEventListener('storage', e => { if (e.key === NOTES) renderCounts(); });
+  build(); renderCommon(); setInterval(() => { renderCommon(); renderLive(); }, 1000);
 })();
 </script>
-</main></div>
 </body>
 </html>

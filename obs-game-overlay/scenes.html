@@ -284,7 +284,7 @@
     let k = String(settings.scene || 'start');
     if (k === 'brb-late') k = 'brbLate';
     // jedna scena „VM · Start streamu” (źródło bez ?scene=): także etap głosowania
-    if (k === 'vote' && !p.has('scene')) return 'vote';
+    if (k === 'vote' && (!p.has('scene') || p.has('vote'))) return 'vote';   // ?scene=vote&vote=1 – podgląd na stronie Ekrany
     if (!['prep', 'soon', 'start', 'late', 'brb', 'brbLate', 'end'].includes(k)) k = 'start';
     const over = settings.sceneUntil && Date.now() > settings.sceneUntil + 30000;   // 30 s zapasu po końcu odliczania
     if (settings.autoLate !== false && over) { if (k === 'start') k = 'late'; if (k === 'brb') k = 'brbLate'; }
@@ -309,7 +309,8 @@
     themeId = heroDef ? heroDef.id : cls;
     voiceVI = GT.voiceInfo ? GT.voiceInfo(fusion) : null;
     const reduced = settings.motion === 'reduced';
-    const hero = settings.sceneHero && heroDef && kind !== 'end' ? ((HERO_KIND[heroDef.id] || {})[kind] || HERO[heroDef.id] || { cls: 'emblem' }) : null;
+    // postać/herb: włączone ogólnie i nie wyłączone dla tego ekranu (strona Ekrany → karta ekranu → Ustaw)
+    const hero = settings.sceneHero && !(settings.heroOff || {})[kind] && heroDef && kind !== 'end' ? ((HERO_KIND[heroDef.id] || {})[kind] || HERO[heroDef.id] || { cls: 'emblem' }) : null;
     document.body.className = `theme-${cls} pos-mc k-${kind}` + (GT.bodyClasses ? GT.bodyClasses(fusion) : '') +
       (reduced ? ' reduced-motion' : '') + (hero ? ' has-hero' : '') + (window.__vmTalking ? ' talking' : '') + (window.__vmHype ? ' hype' : '');
     const key = cls + '|' + (game ? game.id : '') + '|' + (fusion.persona ? fusion.persona.id : '') + fusion.mode + (fusion.variant || '') + '|' + (hero ? hero.img || hero.cls : 0);
@@ -411,8 +412,10 @@
       renderExtra(kind);
     }
     const v = voiceFor(kind);
-    $('labelText').textContent = v.label || '';
-    $('quote').textContent = v.line || '';
+    // własne napisy tego ekranu (strona Ekrany → Ustaw): nagłówek, duży napis, zdanie, podpis
+    const ov = (settings.screenText || {})[kind] || {};
+    $('labelText').textContent = ov.label || v.label || '';
+    $('quote').textContent = ov.line || v.line || '';
     $('icon').className = 'glyph';
     $('icon').innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${ICONS[kind] || ICONS.start}</svg>`;
     const now = Date.now();
@@ -423,11 +426,12 @@
       const since = settings.sceneUntil && settings.sceneUntil < now ? settings.sceneUntil : (settings.sceneLateAt || loadedAt);
       big = '+' + clock(now - since); animate = false;
     }
+    if (ov.big && animate) big = ov.big;
     setBig(big, animate);
     // podpis: własny, termin (stream za…) albo gra
     const det = read(DETECTED_KEY, {}) || {};
     const game = (det.local && det.local.game && det.local.game.name) || settings.game;
-    let sub = settings.sceneSub;
+    let sub = ov.sub || settings.sceneSub;
     const T = (k, fb) => (window.VMi18n ? VMi18n.t(k) : fb);
     if (!sub && kind === 'soon' && settings.sceneAt) sub = T('start', 'Start ') + whenText(settings.sceneAt) + (game ? ' · ' + game : '');
     if (!sub && game && kind !== 'end') sub = (kind === 'brb' || kind === 'brbLate' ? T('playingOn', 'Gramy dalej w ') : T('today', 'Dziś: ')) + game;

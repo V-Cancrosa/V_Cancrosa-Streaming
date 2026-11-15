@@ -1725,7 +1725,7 @@ function Update-Relay {
 
 # wspólny magazyn stron z Kreatora i stanów (strona na GitHub Pages w zwykłej przeglądarce ↔ OBS); wartości trzymamy jako tekst JSON
 $KvFile = Join-Path $DataDir 'kv.json'
-$KvKeys = @('obsGameOverlay.pages', 'obsGameOverlay.pageState', 'obsGameOverlay.pageVis')
+$KvKeys = @('obsGameOverlay.pages', 'obsGameOverlay.pageState', 'obsGameOverlay.pageVis', 'obsGameOverlay.notes')
 $script:KV = @{}; $script:KvRev = 0
 if (Test-Path $KvFile) {
     try { $kj = (Get-Content $KvFile -Raw -Encoding UTF8) | ConvertFrom-Json; $script:KvRev = [int]$kj.rev

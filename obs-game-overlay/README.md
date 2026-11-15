@@ -52,6 +52,12 @@ Instalator można uruchomić ponownie – nie tworzy duplikatów.
 
 **Wygląd OBS:** motyw *Vincent-Media* (wariant wbudowanego motywu Yami, OBS 30.2+) – grafit, fiolet i cyjan jak w serwisie, czerwone przyciski, gdy trwa transmisja lub nagrywanie. Kreator startu kopiuje go do `%APPDATA%\obs-studio\themes` i raz wybiera w OBS (przy wyłączonym OBS); inny motyw wybierzesz w OBS: *Ustawienia → Wygląd* – kreator już go nie zmieni.
 
+**Ekrany** (serwis → *Show → Ekrany*): wszystkie plansze streamu w siatce – Przygotowania, Stream za…, Zaraz zaczynamy, Spóźnienie, Głosowanie, Gra, Gra w ramce, Rozmowa, Przerwa, Przerwa się przedłuża, Koniec. Każda ma podgląd na żywo (ładuje się, gdy jest na ekranie), **▶ Na wizję**, **Ustaw** (własny nagłówek, duży napis, zdanie, podpis, postać/herb tylko na tym ekranie) i **Uwagi** – zbierają się pod przyciskiem *📝 Uwagi* z kontekstem (postać, gra, wersja); *Kopiuj dla Claude* daje gotową listę do poprawy.
+
+**Synchronizacja ustawień** (strona ↔ OBS ↔ telefon): pole po polu – wysyłane jest tylko to, co się zmieniło, doklejone do najnowszego stanu, a cudze zmiany nie cofają Twoich. W jednej przeglądarce synchronizuje jedna strona naraz.
+
+**Alerty** mają ramy wielkości: poziom 1 najwyżej 42% szerokości i 26% wysokości ekranu, poziom 5 – 58% i 40%.
+
 **Kokpit w OBS:** dok *Vincent-Media* w OBS to teraz kompaktowy kokpit (`site/live.html?dock=1`) – ten sam co w przeglądarce, zawsze zsynchronizowany; stary adres `panel.html` przekierowuje sam (bez zmian w OBS). Robota dawnego panelu (łapanie okna gry, automatyczne nagrywanie, polecenia z pilota, cenzura, podpowiedzi scen dla alertów) działa w doku niewidocznie (`panel.html?engine=1`). Stary wygląd panelu: serwis → *Wszystkie ustawienia*.
 
 1. **Vincent-Media** (program z ikoną) → kreator sprawdza wszystko, uruchamia GameRadar, OBS i kokpit. Z autostartem GameRadar wstaje sam po włączeniu komputera (w tle, bez okna).

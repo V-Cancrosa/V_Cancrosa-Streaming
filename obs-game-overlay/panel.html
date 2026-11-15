@@ -892,8 +892,18 @@
   window.addEventListener('resize', tabArrows); window.addEventListener('vm-bp', () => setTimeout(tabArrows, 60)); setTimeout(tabArrows, 100);
   window.addEventListener('resize', () => markTab()); window.addEventListener('vm-bp', () => setTimeout(markTab, 50));
   if (new URLSearchParams(location.search).get('slow') === '1') document.documentElement.style.setProperty('--k', 4);
+  // zapis pole po polu: do pamięci trafiają tylko pola zmienione TUTAJ od ostatniego odczytu – świeże zmiany z kokpitu
+  // czy strony (wczytane w międzyczasie przez inną kartę lub synchronizację) nie są cofane starszą kopią
+  let sBase = JSON.parse(JSON.stringify(s));
   function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {}
+    try {
+      const cur = { ...DEFAULTS, ...(load(KEY, {}) || {}) }, out = { ...cur };
+      for (const k of new Set([...Object.keys(s), ...Object.keys(sBase)])) {
+        if (JSON.stringify(s[k]) !== JSON.stringify(sBase[k])) { if (s[k] === undefined) delete out[k]; else out[k] = s[k]; }
+      }
+      s = out; sBase = JSON.parse(JSON.stringify(out));
+      localStorage.setItem(KEY, JSON.stringify(s));
+    } catch {}
     if (bc) bc.postMessage('update');
     syncUi();
     pushHub();
@@ -902,7 +912,10 @@
   // --- wspólne ustawienia przez wykrywacz (dok w OBS + pilot z telefonu) ---
   const CLIENT = Math.random().toString(36).slice(2);
   let hubRev = null, pushTimer = null;
+  // w ramce (silnik w doku, «Wszystkie ustawienia» w serwisie) synchronizuje strona nad nami (themes/sync.js)
+  const OWN_SYNC = window.top === window;
   function pushHub() {
+    if (!OWN_SYNC) return;
     clearTimeout(pushTimer);
     pushTimer = setTimeout(async () => {
       try {
@@ -921,6 +934,7 @@
       else if (j.settings && j.rev !== hubRev && j.from !== CLIENT) {
         hubRev = j.rev;
         s = { ...DEFAULTS, ...migrate(j.settings) };
+        sBase = JSON.parse(JSON.stringify(s));
         try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {}
         if (bc) bc.postMessage('update');
         syncUi();
@@ -1264,7 +1278,7 @@
 
   window.addEventListener('storage', e => {
     if (e.key === DETECTED_KEY) renderDetected();
-    if (e.key === KEY) { s = { ...DEFAULTS, ...load(KEY, {}) }; syncUi(); }
+    if (e.key === KEY) { s = { ...DEFAULTS, ...load(KEY, {}) }; sBase = JSON.parse(JSON.stringify(s)); syncUi(); }
   });
 
 
@@ -2769,7 +2783,7 @@
   syncAlerts();
   syncScenes();
   applyFeatures();
-  pullHub();
+  if (OWN_SYNC) pullHub();
   obsStart();
   twPoll();
   upPoll();

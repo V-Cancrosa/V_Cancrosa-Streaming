@@ -4,16 +4,20 @@
 */
 (function () {
   const KEY = 'obsGameOverlay.v1';
+  // menu w grupach (['-', nazwa] = nagłówek grupy)
   const NAV = [
     ['live.html', '●', 'Na żywo'],
     ['index.html', '⌂', 'Start'],
+    ['-', 'Show'],
     ['games.html', '🎮', 'Gry i programy'],
     ['look.html', '🦊', 'Postać i wygląd'],
     ['voice.html', '🔊', 'Głos postaci'],
-    ['obs.html', '🎬', 'OBS'],
     ['screens.html', '⏱', 'Ekrany'],
+    ['-', 'Studio'],
+    ['obs.html', '🎬', 'OBS'],
     ['layouts.html', '✥', 'Ułożenie scen'],
     ['creator.html', '✦', 'Kreator stron'],
+    ['-', 'Więcej'],
     ['settings.html', '⚙', 'Wszystkie ustawienia'],
     ['pilot.html', '🎛', 'Pilot (telefon)'],
     ['log.html', '📜', 'Dziennik'],
@@ -33,7 +37,7 @@
   function shell() {
     const nav = document.querySelector('.nav'); if (!nav) return;
     nav.innerHTML = `<div class="brand">Vincent-Media<small>stream · ${esc(window.VM_VERSION || '')}</small></div>` +
-      NAV.map(([href, ic, name]) => `<a href="${href}"${href === here ? ' aria-current="page"' : ''}><i>${ic}</i>${name}</a>`).join('') +
+      NAV.map(([href, ic, name]) => href === '-' ? `<div class="sep">${ic}</div>` : `<a href="${href}"${href === here ? ' aria-current="page"' : ''}><i>${ic}</i>${name}</a>`).join('') +
       `<div class="stat"><span><i class="dot" id="stDet"></i>GameRadar <b id="stDetT">…</b></span><span><i class="dot" id="stSync"></i>Połączenie z OBS <b id="stSyncT">…</b></span></div>
       <button class="kill" id="killBtn" title="Kończy transmisję i nagrywanie (jeśli trwają), zamyka OBS i GameRadar">⏻ Zamknij OBS i GameRadar</button>`;
     document.getElementById('killBtn').onclick = annihilate;
@@ -75,6 +79,8 @@
   }
 
   // --- podgląd widoku 1920×1080 ---
+  // numer wersji w adresie podglądu: po aktualizacji przeglądarka nie pokaże starej kopii z pamięci
+  const withV = u => u + (u.includes('?') ? '&' : '?') + 'v=' + encodeURIComponent(window.VM_VERSION || '');
   // views: [{ id, name, urls: ['../stage.html', …], obs: '../stage.html', hint }]
   function preview(box, views, pick) {
     let cur = views.find(v => v.id === pick) || views[0];
@@ -90,7 +96,7 @@
       // bez wybranej/wykrytej gry karta „Teraz gram” dostaje przykładową nazwę (tylko w podglądzie)
       const g = get(), noGame = !(g.mode === 'manual' && g.game) && !((JSON.parse(localStorage.getItem('obsGameOverlay.detected') || 'null') || {}).local || {}).game;
       $('pvBox').classList.toggle('game', !!v.game);
-      $('pvBox').innerHTML = v.urls.map(u => `<iframe src="${esc(noGame && /overlay\.html$/.test(u) ? u + '?game=' + encodeURIComponent('Twoja gra') : u)}" title="${esc(v.name)}" tabindex="-1"></iframe>`).join('');
+      $('pvBox').innerHTML = v.urls.map(u => `<iframe src="${esc(withV(noGame && /overlay\.html$/.test(u) ? u + '?game=' + encodeURIComponent('Twoja gra') : u))}" title="${esc(v.name)}" tabindex="-1"></iframe>`).join('');
       if ($('pvSeg')) for (const b of $('pvSeg').children) b.setAttribute('aria-pressed', b.dataset.v === v.id);
       $('pvHint').innerHTML = v.hint || '';
       fit();
@@ -107,6 +113,6 @@
     t.textContent = msg; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 1800);
   }
 
-  window.VMSite = { get, set, hub, onChange, preview, toast, esc, $ };
+  window.VMSite = { get, set, hub, onChange, preview, toast, esc, $, withV };
   document.addEventListener('DOMContentLoaded', () => { shell(); ping(); syncStatus(); });
 })();

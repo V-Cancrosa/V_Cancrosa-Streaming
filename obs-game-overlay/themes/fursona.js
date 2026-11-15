@@ -154,27 +154,16 @@
       accent: ['#d9823f', '#ede6d6'],
       label: 'MYR-35 // ZADANIE',
       // głowa protogena w ujęciu 3/4: kremowa skorupa, dwie pary okrągłych uszu, wizjer-pysk z gęstą matrycą LED (mimika)
-      emblem: myrHead(),
+      // herb zamiast portretu (tools/make-crests.py) – ten sam znak w karcie, alertach i na ekranach
+      emblem: `<img class="fr-crest" src="${IMG('myr-crest').replace('.webp', '.svg')}" alt="Myr-35">`,
+      head: myrHead(),
       fx: null
     },
     {
       id: 'zarin', name: 'Zarin', group: 'fursona', match: [],
       accent: ['#2fd46b', '#1fc7b5'],
       label: 'teraz rozbieram:',
-      // płyta z kadłuba Patch: szablonowe PATCH, wydrapane „curio”, śruby + wentylator uprzęży
-      emblem: `
-        <div class="fz-plate">${svg(170, 74, `
-          <rect x="2" y="2" width="166" height="70" rx="4" fill="#7d8186" stroke="#3a3f45" stroke-width="3"/>
-          <rect x="2" y="42" width="166" height="12" fill="#5e7a5a" opacity=".9"/>
-          <text x="16" y="36" font-family="'Saira Stencil One', Impact, sans-serif" font-size="30" fill="#e6e1d3" letter-spacing="3">PATCH</text>
-          <text x="104" y="68" font-family="'Caveat', cursive" font-size="20" fill="#1b1f24" transform="rotate(-6 104 68)">curio</text>
-          <circle cx="10" cy="10" r="3" fill="#3a3f45"/><circle cx="160" cy="10" r="3" fill="#3a3f45"/>
-          <circle cx="10" cy="64" r="3" fill="#3a3f45"/><circle cx="160" cy="64" r="3" fill="#3a3f45"/>
-          <path d="M120 14 l8 6 M126 12 l6 8 M60 60 l10 -2" stroke="#4a4f55" stroke-width="1.2"/>`)}</div>
-        <div class="fz-fan">${svg(50, 50, `
-          <circle cx="25" cy="25" r="23" fill="#1b1f24" stroke="#5a6068" stroke-width="3"/>
-          <g class="fz-blades"><path d="M25 25 C22 14 26 6 32 6 C30 14 28 20 25 25 Z M25 25 C36 22 44 26 44 32 C36 30 30 28 25 25 Z M25 25 C28 36 24 44 18 44 C20 36 22 30 25 25 Z M25 25 C14 28 6 24 6 18 C14 20 20 22 25 25 Z" fill="#9aa4ad"/></g>
-          <circle cx="25" cy="25" r="4" fill="#2fd46b"/>`)}</div>`,
+      emblem: `<img class="fr-crest" src="${IMG('zarin-crest').replace('.webp', '.svg')}" alt="Zarin">`,
       fx: { shape: 'dot', dir: 'left', count: 34, colors: ['#ffffff', '#cfe8f2', '#dfe5e8'], size: [0.8, 2.2], speed: [40, 90] }
     }
   ];

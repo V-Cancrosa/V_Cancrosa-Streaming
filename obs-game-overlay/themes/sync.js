@@ -1,70 +1,117 @@
 /*
-  Synchronizacja przez wykrywacz: strona na GitHub Pages w zwykłej przeglądarce ↔ OBS (inna przeglądarka, inna pamięć).
-    • ustawienia ('obsGameOverlay.v1')   – kanał /settings (ten sam co panel w OBS i pilot z telefonu),
+  Synchronizacja przez GameRadar: strona na GitHub Pages w zwykłej przeglądarce ↔ OBS (inna przeglądarka, inna pamięć).
+    • ustawienia ('obsGameOverlay.v1')   – kanał /settings (ten sam co pilot z telefonu),
     • strony z Kreatora, stany, widoczność – kanał /kv.
-  Zmiana lokalna → wysyłka; zmiana z innego miejsca → zapis do localStorage + powiadomienie stron w tej przeglądarce.
-  Wczytują go: strony serwisu (site/*.html) i główne widoki w OBS (stage.html, page.html), więc OBS dostaje zmiany
-  nawet wtedy, gdy dok z panelem jest zamknięty.
+  Ustawienia łączą się POLE PO POLU: wysyłamy tylko to, co zmieniło się tutaj, doklejone do najnowszego stanu z GameRadara,
+  a cudzą zmianę przyjmujemy, nie gubiąc własnych, jeszcze niewysłanych. (Dawniej wygrywał cały obiekt wysłany jako ostatni –
+  starsza kopia z innego miejsca potrafiła cofnąć świeżą zmianę i ekran „przeskakiwał”.)
+  W jednej przeglądarce synchronizuje tylko jedna strona naraz (Web Locks) – reszta czyta tę samą pamięć.
+  Wczytują go: strony serwisu (site/*.html) i główne widoki w OBS (stage.html, page.html).
 */
 (function () {
   // tylko strona główna karty – ramki w środku (podglądy, stage.html w OBS) korzystają z tej samej pamięci przeglądarki
   if (window.VMSync || window.top !== window) return;
-  const SET = 'obsGameOverlay.v1', KV = ['obsGameOverlay.pages', 'obsGameOverlay.pageState', 'obsGameOverlay.pageVis'];
+  const SET = 'obsGameOverlay.v1', KV = ['obsGameOverlay.pages', 'obsGameOverlay.pageState', 'obsGameOverlay.pageVis', 'obsGameOverlay.notes'], STATE = 'obsGameOverlay.syncState';
   const CLIENT = Math.random().toString(36).slice(2);
   const raw = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
-  const hub = () => { let s = {}; try { s = JSON.parse(raw(SET)) || {}; } catch (e) {} return window.vmHub ? window.vmHub(s.localUrl) : 'http://localhost:7777'; };
+  const parse = t => { try { return JSON.parse(t) || {}; } catch (e) { return {}; } };
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const hub = () => { const s = parse(raw(SET)); return window.vmHub ? window.vmHub(s.localUrl) : 'http://localhost:7777'; };
   let bc = null; try { bc = new BroadcastChannel('obsGameOverlay'); } catch (e) {}
-  const known = {};               // ostatnia wartość uzgodniona z wykrywaczem (tekst)
-  let setRev = null, kvRev = 0, ok = null, lastErr = 0;
+  const known = {};               // ostatni tekst, który ta strona widziała / zapisała
+  let base = null;                // ustawienia ostatnio uzgodnione z GameRadarem (obiekt)
+  let setRev = null, kvRev = 0, ok = null, busy = false, leader = false;
   const listeners = [];
-  const status = v => { if (ok !== v) { ok = v; listeners.forEach(f => { try { f(v); } catch (e) {} }); } };
-
-  function apply(key, val) {
+  const status = v => {
+    if (ok !== v) { ok = v; listeners.forEach(f => { try { f(v); } catch (e) {} }); }
+    if (leader) try { localStorage.setItem(STATE, JSON.stringify({ ok: v, at: Date.now() })); } catch (e) {}
+  };
+  // zmiany lokalne względem stanu uzgodnionego: { pole: wartość | undefined (usunięte) }
+  function diff(local) {
+    const ch = {}, b = base || {};
+    for (const k of new Set([...Object.keys(local), ...Object.keys(b)])) if (!same(local[k], b[k])) ch[k] = local[k];
+    return ch;
+  }
+  function overlay(obj, ch) { const o = { ...obj }; for (const [k, v] of Object.entries(ch)) { if (v === undefined) delete o[k]; else o[k] = v; } return o; }
+  function write(key, val) {
     known[key] = val;
     try { if (raw(key) !== val) localStorage.setItem(key, val); } catch (e) { return; }
     if (bc) bc.postMessage(key === SET ? 'update' : { type: 'pages', what: 'sync' });
     try { window.dispatchEvent(new CustomEvent('vm-sync', { detail: key })); } catch (e) {}
   }
-  async function push(key, val) {
-    try {
-      if (key === SET) {
-        let settings = null; try { settings = JSON.parse(val); } catch (e) { return; }
-        const j = await (await fetch(hub() + '/settings', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ client: CLIENT, settings }) })).json();
-        if (j.ok) { setRev = j.rev; known[key] = val; }
-      } else {
-        const j = await (await fetch(hub() + '/kv', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ client: CLIENT, key, val }) })).json();
-        if (j.ok) known[key] = val;
-      }
-      status(true);
-    } catch (e) { status(false); }
+  const getSet = async () => (await fetch(hub() + '/settings', { cache: 'no-store' })).json();
+  const postSet = async settings => (await fetch(hub() + '/settings', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ client: CLIENT, settings }) })).json();
+
+  // wysyłka: tylko zmienione pola, doklejone do najnowszego stanu z GameRadara
+  async function pushSet() {
+    const before = raw(SET), local = parse(before), ch = diff(local);
+    if (!Object.keys(ch).length) { known[SET] = before; return; }
+    const cur = await getSet();
+    const merged = overlay(cur && cur.settings ? cur.settings : (base || {}), ch);
+    const j = await postSet(merged);
+    if (!j.ok) return;
+    setRev = j.rev; base = merged;
+    // w trakcie wysyłki mogło się tu coś jeszcze zmienić – dokładamy i wyślemy przy następnym przebiegu
+    const now = raw(SET), late = now !== before ? (() => { const a = parse(before), b2 = parse(now), c = {}; for (const k of new Set([...Object.keys(a), ...Object.keys(b2)])) if (!same(a[k], b2[k])) c[k] = b2[k]; return c; })() : {};
+    write(SET, JSON.stringify(overlay(merged, late)));
+    if (Object.keys(late).length) known[SET] = JSON.stringify(merged);
+  }
+  async function pushKv(key, val) {
+    const j = await (await fetch(hub() + '/kv', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ client: CLIENT, key, val }) })).json();
+    if (j.ok) known[key] = val;
   }
   async function pull() {
     try {
-      const j = await (await fetch(hub() + '/settings', { cache: 'no-store' })).json();
-      if (j && j.settings && j.rev !== setRev && j.from !== CLIENT) { setRev = j.rev; apply(SET, JSON.stringify(j.settings)); }
-      else if (j) setRev = j.rev;
-      if (j && !j.settings && raw(SET)) push(SET, raw(SET));            // wykrywacz jeszcze nic nie ma – daj mu nasze
-      const k = await (await fetch(hub() + '/kv?since=' + kvRev, { cache: 'no-store' })).json();
-      if (k && k.items) {
-        for (const [key, e] of Object.entries(k.items)) if (e.from !== CLIENT && typeof e.val === 'string') apply(key, e.val);
-        // pierwsze połączenie: czego wykrywacz nie ma, wysyłamy
-        if (!kvRev) for (const key of KV) if (!k.items[key] && raw(key)) push(key, raw(key));
-        kvRev = k.rev;
+      if (!busy) {
+        busy = true;
+        try {
+          const j = await getSet();
+          if (j && j.settings && j.rev !== setRev && j.from !== CLIENT) {
+            // cudza zmiana: bierzemy ją, ale własne niewysłane pola zostają (i pójdą przy następnym przebiegu)
+            const ch = base ? diff(parse(raw(SET))) : {};
+            setRev = j.rev; base = j.settings;
+            write(SET, JSON.stringify(overlay(j.settings, ch)));
+            if (Object.keys(ch).length) known[SET] = JSON.stringify(j.settings);
+          } else if (j) {
+            setRev = j.rev;
+            if (j.settings && base === null) base = j.settings;
+            if (!j.settings && raw(SET)) { base = {}; await pushSet(); }      // GameRadar jeszcze nic nie ma – daj mu nasze
+          }
+          const k = await (await fetch(hub() + '/kv?since=' + kvRev, { cache: 'no-store' })).json();
+          if (k && k.items) {
+            for (const [key, e] of Object.entries(k.items)) if (e.from !== CLIENT && typeof e.val === 'string') write(key, e.val);
+            if (!kvRev) for (const key of KV) if (!k.items[key] && raw(key)) await pushKv(key, raw(key));
+            kvRev = k.rev;
+          }
+        } finally { busy = false; }
       }
       status(true);
     } catch (e) { status(false); }
     setTimeout(pull, ok === false ? 6000 : 2000);
   }
   // lokalne zmiany (z tej strony albo z innych kart tej przeglądarki)
-  function scan() {
-    for (const key of [SET, ...KV]) {
-      const v = raw(key);
-      if (v == null) continue;
-      if (known[key] === undefined) { known[key] = v; continue; }
-      if (v !== known[key]) { known[key] = v; push(key, v); }
-    }
+  async function scan() {
+    if (busy) return;
+    busy = true;
+    try {
+      for (const key of [SET, ...KV]) {
+        const v = raw(key);
+        if (v == null) continue;
+        if (known[key] === undefined) { known[key] = v; continue; }
+        if (v !== known[key]) { if (key === SET) await pushSet(); else await pushKv(key, v); }
+      }
+      status(true);
+    } catch (e) { status(false); } finally { busy = false; }
   }
-  setInterval(scan, 700);
-  setTimeout(() => { scan(); pull(); }, 300);
+  function lead() { setInterval(scan, 700); setTimeout(() => { scan(); pull(); }, 300); }
+  // jedna synchronizująca strona na przeglądarkę; pozostałe tylko pokazują stan
+  function follow() {
+    const tick = () => { if (leader) return; const s = parse(raw(STATE)); status(!!s.ok && Date.now() - (s.at || 0) < 15000); };
+    setInterval(tick, 2000); setTimeout(tick, 400);
+  }
+  if (navigator.locks && navigator.locks.request) {
+    navigator.locks.request('vincent-media-sync', () => { leader = true; lead(); return new Promise(() => {}); });
+    setTimeout(() => { if (!leader) follow(); }, 600);
+  } else { leader = true; lead(); }
   window.VMSync = { onStatus(f) { listeners.push(f); if (ok !== null) f(ok); }, get ok() { return ok; }, client: CLIENT };
 })();

@@ -215,12 +215,16 @@
     }
     return { t, b, l, r };
   }
-  function fitScale(want, zone) {
+  // ramy wielkości: alert nigdy nie zajmie więcej niż ustalona część ekranu – mały jest mały, legendarny większy, ale przewidywalny
+  //   poziom 1: do 42% szerokości i 26% wysokości ekranu … poziom 5: do 58% i 40%
+  const BOX = t => ({ w: 0.42 + 0.04 * (Math.max(1, Math.min(5, t || 1)) - 1), h: 0.26 + 0.035 * (Math.max(1, Math.min(5, t || 1)) - 1) });
+  function fitScale(want, zone, tier) {
     const wrap = $('wrap');
     const ow = wrap.offsetWidth, oh = wrap.offsetHeight;
     if (!ow || !oh) return { scale: want, pad: null };
     const e = extents();
-    const W = zone && zone.rect ? zone.rect[2] : innerWidth - 120, H = zone && zone.rect ? zone.rect[3] : innerHeight * 0.45;
+    const box = BOX(tier);
+    const W = Math.min(zone && zone.rect ? zone.rect[2] : innerWidth - 120, innerWidth * box.w), H = Math.min(zone && zone.rect ? zone.rect[3] : innerHeight * 0.45, innerHeight * box.h);
     const s = Math.max(0.4, Math.min(want, (W * 0.96) / (ow + e.l + e.r), (H * 0.98) / (oh + e.t + e.b)));
     return { scale: s, pad: [e.t * s, e.r * s, e.b * s, e.l * s] };
   }
@@ -354,7 +358,7 @@
     // (powtórzone po chwili – czcionka motywu mogła się jeszcze nie wczytać)
     const layoutAlert = () => {
       if (window.VMFit) { VMFit.text($('name'), { min: 0.5, lines: 2, container: $('wrap') }); VMFit.text($('sub'), { min: 0.8, lines: 3, container: $('wrap') }); }
-      const fit = fitScale(want, zoned ? zone : null);
+      const fit = fitScale(want, zoned ? zone : null, tier);
       document.documentElement.style.setProperty('--scale', fit.scale);
       // w strefie: to, co wystaje (portret nad kartą, gwiazdki), też mieści się w wolnym miejscu
       $('stage').style.padding = zoned && fit.pad ? fit.pad.map(v => Math.round(v) + 'px').join(' ') : '';
