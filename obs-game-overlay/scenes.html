@@ -75,6 +75,11 @@
   .hype #hero.full img { animation: hero-hype calc(.25s + var(--hype, 1) * .05s) cubic-bezier(.3,1.6,.5,1) calc(2 + var(--hype, 1)) alternate !important; filter: drop-shadow(0 0 calc(30px + var(--hype, 1) * 14px) var(--accent)) brightness(1.15); }
   .hype #hero.photo, .hype #hero.sheet, .hype #hero.emblem { filter: drop-shadow(0 0 calc(var(--hype, 1) * 16px) var(--accent)); }
   @keyframes hero-hype { to { transform: translateY(calc(var(--hype, 1) * -12px)) scale(calc(1 + var(--hype, 1) * .02)); } }
+  /* herb postaci bez artu: duży, z poświatą w kolorze postaci i spokojnym oddechem */
+  #hero.crest { right: 6vw; top: 50%; width: min(30vw, 560px); transform: translateY(-55%); }
+  #hero.crest img { width: 100%; height: auto; display: block; filter: drop-shadow(0 0 36px color-mix(in srgb, var(--accent) 50%, transparent)); animation: hero-breathe 6s ease-in-out infinite; }
+  .talking #hero.crest img { animation: photo-talk .28s ease-in-out infinite alternate; filter: drop-shadow(0 0 56px var(--accent)); }
+  .hype #hero.crest img { filter: drop-shadow(0 0 calc(30px + var(--hype, 1) * 14px) var(--accent)) brightness(1.12); }
   #hero.photo { right: 7vw; top: 50%; width: 22vw; transform: translateY(-55%) rotate(5deg); animation: hero-sway 7s ease-in-out infinite; }
   #hero.photo img { width: 100%; box-shadow: 0 30px 60px rgba(0,0,0,.45); }
   @keyframes hero-sway { 50% { transform: translateY(-53%) rotate(2deg); } }
@@ -120,15 +125,18 @@
   .has-schat #hero.photo.wide { right: calc(470px + 3vw); width: 26vw; }
   .has-schat #hero.sheet { right: calc(470px + 4vw); width: 24vw; }
   .has-schat #hero.emblem { right: calc(470px + 5vw); width: 17vw; height: 17vw; }
+  .has-schat #hero.crest { right: calc(470px + 4vw); width: min(22vw, 420px); }
   .has-schat.k-end #extra { right: calc(470px + 80px); width: 24vw; }
+  /* czat po prawej: sociale obok kolumny czatu, nie na jej nagłówku */
+  body.has-schat:not(.schat-left):not(.schat-h):not(.k-end) #foot { right: calc(470px + 64px); }
   /* czat z lewej: kolumna po lewej, karta i reszta zostają po prawej */
   .schat-left #schat { right: auto; left: 40px; }
-  .schat-left #hero.full, .schat-left #hero.photo, .schat-left #hero.photo.wide, .schat-left #hero.sheet, .schat-left #hero.emblem { right: 5vw; }
+  .schat-left #hero.full, .schat-left #hero.photo, .schat-left #hero.photo.wide, .schat-left #hero.sheet, .schat-left #hero.emblem, .schat-left #hero.crest { right: 5vw; }
   .schat-left.k-end #extra { right: 4vw; }
   /* czat poziomo: pasek na całą szerokość u góry albo nad stopką */
   .schat-h #schat { left: 0; right: 0; width: auto; top: auto; bottom: 74px; height: 58px; }
   .schat-h.schat-top #schat { top: 0; bottom: auto; }
-  .schat-h #hero.full, .schat-h #hero.photo, .schat-h #hero.photo.wide, .schat-h #hero.sheet, .schat-h #hero.emblem { right: 5vw; }
+  .schat-h #hero.full, .schat-h #hero.photo, .schat-h #hero.photo.wide, .schat-h #hero.sheet, .schat-h #hero.emblem, .schat-h #hero.crest { right: 5vw; }
   .schat-h.k-end #extra { right: 4vw; }
   #recent { display: flex; gap: 26px; color: var(--scene-muted); font-size: 18px; }
   #recent b { color: var(--scene-ink); font-weight: 700; }
@@ -252,7 +260,10 @@
     vince: { cls: 'sheet', img: 'themes/fursona/vince-sheet.webp' },
     chip: { cls: 'photo', img: 'themes/fursona/chip-polaroid.webp' },
     ragnar: { cls: 'full', img: 'themes/fursona/ragnar-full.webp' },
-    toro: { cls: 'full', img: 'themes/fursona/toro-full.webp' }
+    toro: { cls: 'full', img: 'themes/fursona/toro-full.webp' },
+    // bez artów: herby (themes/fursona/*-crest.svg, tools/make-crests.py)
+    myr: { cls: 'crest', img: 'themes/fursona/myr-crest.svg' },
+    zarin: { cls: 'crest', img: 'themes/fursona/zarin-crest.svg' }
   };
   // arty do konkretnych ekranów (ze strony postaci, z podpisem autora)
   const HERO_KIND = {
@@ -310,7 +321,7 @@
       h.className = hero ? 'on ' + hero.cls : '';
       h.innerHTML = !hero ? '' : hero.img ? `<img src="${hero.img}" alt="">` : (heroDef.emblem || '');
       if (hero && hero.credit) h.dataset.credit = hero.credit; else delete h.dataset.credit;
-      if (hero && hero.cls === 'full') $('backdrop').innerHTML = '';
+      if (hero && (hero.cls === 'full' || hero.cls === 'crest')) $('backdrop').innerHTML = '';
       if (hero && hero.cls !== 'full') $('emblem').innerHTML = '';
       document.body.classList.toggle('no-emblem', !$('emblem').innerHTML.trim());
     }

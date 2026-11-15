@@ -10,7 +10,7 @@
   const GT = window.OverlayGameThemes;
   if (!GT) return;
   const MIX = { 'fuse-half': 0.5, 'fuse-game': 0.66, game: 1 };
-  const PORTRAIT = { vince: 'themes/fursona/vince.webp', chip: 'themes/fursona/chip.webp', ragnar: 'themes/fursona/ragnar.webp', toro: 'themes/fursona/toro.webp' };
+  const PORTRAIT = { vince: 'themes/fursona/vince.webp', chip: 'themes/fursona/chip.webp', ragnar: 'themes/fursona/ragnar.webp', toro: 'themes/fursona/toro.webp', myr: 'themes/fursona/myr-crest.svg', zarin: 'themes/fursona/zarin-crest.svg' };
 
   function modeOf(settings) {
     if (settings.gameThemes === false) return 'off';

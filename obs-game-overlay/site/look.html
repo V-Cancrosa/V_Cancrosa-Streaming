@@ -33,7 +33,7 @@
 <script>
 (() => {
   const S = window.VMSite, $ = S.$, esc = S.esc, GT = window.OverlayGameThemes;
-  const IMG = { vince: '../themes/fursona/vince.webp', chip: '../themes/fursona/chip.webp', ragnar: '../themes/fursona/ragnar.webp', toro: '../themes/fursona/toro.webp' };
+  const IMG = { vince: '../themes/fursona/vince.webp', chip: '../themes/fursona/chip.webp', ragnar: '../themes/fursona/ragnar.webp', toro: '../themes/fursona/toro.webp', myr: '../themes/fursona/myr-crest.svg', zarin: '../themes/fursona/zarin-crest.svg' };
   const POS = [['tl', '↖ lewy górny'], ['tr', '↗ prawy górny'], ['bl', '↙ lewy dolny'], ['bc', '↓ dół'], ['br', '↘ prawy dolny']];
   const MODE = [['fuse-half', 'Fuzja 50:50', 'postać i gra po równo – kolory, czcionki i teksty z obu'], ['fuse-game', 'Gra + postać', 'karta gry, a postać portretem, imieniem i swoim kolorem'], ['game', 'Sam motyw gry', 'karta w całości w motywie gry'], ['off', 'Sama postać', 'tylko motyw postaci, gra z nazwy']];
   const modeOf = s => s.gameThemes === false ? 'off' : (['game', 'off', 'fuse-game'].includes(s.gameMode) ? s.gameMode : 'fuse-half');

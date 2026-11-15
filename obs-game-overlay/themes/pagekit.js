@@ -227,7 +227,7 @@
 
   // ---------------------------------------------------------------- dane do znaczników
   const FONT = { vince: "'Space Mono', monospace", chip: "'Nunito', sans-serif", ragnar: "'Anton', 'Inter', sans-serif", toro: "'Fraunces', serif", myr: "'IBM Plex Mono', monospace", zarin: "'Space Grotesk', sans-serif" };
-  const ART = { vince: 'themes/fursona/vince.webp', chip: 'themes/fursona/chip.webp', ragnar: 'themes/fursona/ragnar-full.webp', toro: 'themes/fursona/toro-full.webp' };
+  const ART = { vince: 'themes/fursona/vince.webp', chip: 'themes/fursona/chip.webp', ragnar: 'themes/fursona/ragnar-full.webp', toro: 'themes/fursona/toro-full.webp', myr: 'themes/fursona/myr-crest.svg', zarin: 'themes/fursona/zarin-crest.svg' };
   let session = {}, chatLog = [];
   const TOKENS = [['gra', 'gra'], ['postac', 'postać'], ['godzina', 'godzina'], ['data', 'data'], ['odliczanie', 'odliczanie'], ['follow', 'ostatni follow'], ['sub', 'ostatni sub'], ['raid', 'ostatni raid'], ['user', 'nick z alertu/komendy (stan)']];
   function ctxLite() { const now = new Date(); return { godzina: now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }), data: now.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long' }) }; }

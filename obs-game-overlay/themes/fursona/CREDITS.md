@@ -17,6 +17,8 @@ Pliki `*.webp` w tym folderze to kadry z ilustracji postaci ze strony [V-Cancros
 Głowa Myr-35 (SVG, narysowana od zera) jest wzorowana na kształcie protogena z arkusza głów autorstwa **Pentarch** (2021, podziękowania dla Janaslab) – wizjer, opaska, port z płetwą, obroża; kolory i okrągłe uszy są Myr.
 
 Myr-35 i Zarin nie mają jeszcze ilustracji – ich motywy używają symboli narysowanych od zera (wizjer, płyta z kadłuba „PATCH”), CC0.
+
+**Herby zamiast portretów** (`myr-crest.svg`, `zarin-crest.svg`, rysuje je `tools/make-crests.py`, CC0): Myr-35 – kanciasta tarcza sci-fi z wizjerem protogena (oczy i uśmiech z diod), obwody, trzy pasy rangi i „MYR-35” z diod; Zarin – pierścień z przerwami, trzy pióra złączone u nasady (motyw piór Avali, rysunek własny – nie emblemat Avali Illuminate ze Starbound) i płyta kadłuba z nazwą. Gdy pojawią się ilustracje, zastąpią herby.
 Protogeny to gatunek Zenith's Outer Reach, Avali to gatunek stworzony przez RyuujinZERO.
 
 ## Grafiki gier

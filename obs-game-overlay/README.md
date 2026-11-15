@@ -91,7 +91,7 @@ Przeglądarka i OBS mają osobne pamięci – łączy je GameRadar (`themes/sync
 
 ### Postacie i motywy
 
-**Postacie:** Vince · Chip · Ragnar · Toro · Myr-35 · Zarin. Przy każdym uruchomieniu OBS jedna jest losowana jako prowadząca (można od razu zmienić). Każda ma swoje kolory, czcionki, napis nad nazwą gry, głos w alertach i wygląd czatu. Myr-35 to głowa protogena z matrycą LED i czterema rejestrami (protokół / człowiek / terminal / Nanite Syndrome).
+**Postacie:** Vince · Chip · Ragnar · Toro · Myr-35 · Zarin. Przy każdym uruchomieniu OBS jedna jest losowana jako prowadząca (można od razu zmienić). Każda ma swoje kolory, czcionki, napis nad nazwą gry, głos w alertach i wygląd czatu. Myr-35 to głowa protogena z matrycą LED i czterema rejestrami (protokół / człowiek / terminal / Nanite Syndrome). Myr-35 i Zarin nie mają jeszcze ilustracji – zamiast portretów mają **herby** (Myr: tarcza z wizjerem protogena i diodami; Zarin: trzy pióra Avali w pierścieniu i płyta kadłuba), widoczne w karcie, alertach, na ekranach i w układach.
 
 Na ekranach Vince'a (start, przerwa) tło to żywy szkic architekta w WebGL: przy każdym alercie przechodzi przez niego fala – legendarny alert daje falę z echem. Wyłączysz na stronie *Postać i wygląd* (Kratka).
 
@@ -229,6 +229,7 @@ obs-game-overlay/
   manifest.json     spis plików z sumami SHA-256 (tools/make-manifest.py)
 tools/check-ps1.py  sprawdzenie .ps1 przed commitem (BOM, cudzysłowy, nawiasy, „$zmienna:”) i aktualności manifestu
 tools/make-icon.py  rysuje ikonę Vincent-Media
+tools/make-crests.py rysuje herby Myr-35 i Zarin (themes/fursona/*-crest.svg)
 ```
 
 - **Wspólny stan:** `localStorage` `obsGameOverlay.v1` (ustawienia), `…pages` / `…pageState` / `…pageVis` (Kreator), `…detected`, `…activeTheme`, `…ready`; `BroadcastChannel('obsGameOverlay')`.
