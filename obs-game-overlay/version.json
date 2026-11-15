@@ -1,5 +1,5 @@
 {
-  "version": "1.49.0",
+  "version": "1.50.0",
   "date": "2026-11-15",
-  "notes": "Porządki: GameRadar tylko na tym komputerze (pilot przez przekaźnik), bez Discorda, Sąsiadów i starych scen; tło Aetheric reagujące na alerty"
+  "notes": "Głos postaci (TTS): alerty i wiadomości widzów czytane głosami Windows, PL i EN, barwa i efekt każdej postaci; strona Głos postaci"
 }

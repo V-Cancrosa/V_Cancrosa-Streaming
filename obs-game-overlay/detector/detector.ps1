@@ -1914,6 +1914,75 @@ function Send-Json($ctx, $obj, [int]$code = 200) {
     $res.OutputStream.Close()
 }
 
+# ---------------------------------------------------------------- głos (TTS): głosy Windows – OneCore przez WinRT, zapasowo SAPI
+# Za darmo i bez internetu. Barwę postaci (wysokość, tempo) daje SSML, a efekty (robot, radio, pogłos) dokłada przeglądarka.
+$script:Tts = @{ ready = $false; err = ''; voices = @(); raw = @{}; cache = [ordered]@{}; mode = '' }
+function Initialize-Tts {
+    if ($script:Tts.ready -or $script:Tts.err) { return }
+    try {
+        Add-Type -AssemblyName System.Runtime.WindowsRuntime
+        $null = [Windows.Media.SpeechSynthesis.SpeechSynthesizer, Windows.Media.SpeechSynthesis, ContentType = WindowsRuntime]
+        $script:Tts.asTask = @([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' })[0]
+        $script:Tts.synth = New-Object Windows.Media.SpeechSynthesis.SpeechSynthesizer
+        $list = New-Object Collections.ArrayList
+        foreach ($v in [Windows.Media.SpeechSynthesis.SpeechSynthesizer]::AllVoices) {
+            $script:Tts.raw[[string]$v.Id] = $v
+            [void]$list.Add([pscustomobject]@{ id = [string]$v.Id; name = ([string]$v.DisplayName -replace '^Microsoft\s+', ''); lang = [string]$v.Language; gender = ([string]$v.Gender).ToLowerInvariant() })
+        }
+        if (-not $list.Count) { throw 'brak głosów OneCore' }
+        $script:Tts.voices = @($list); $script:Tts.mode = 'onecore'
+    } catch {
+        try {
+            Add-Type -AssemblyName System.Speech
+            $script:Tts.sapi = New-Object System.Speech.Synthesis.SpeechSynthesizer
+            $script:Tts.voices = @($script:Tts.sapi.GetInstalledVoices() | Where-Object { $_.Enabled } | ForEach-Object { $i = $_.VoiceInfo; [pscustomobject]@{ id = [string]$i.Name; name = ([string]$i.Name -replace '^Microsoft\s+', '' -replace '\s+Desktop$', ''); lang = [string]$i.Culture.Name; gender = ([string]$i.Gender).ToLowerInvariant() } })
+            $script:Tts.mode = 'sapi'
+        } catch { $script:Tts.err = $_.Exception.Message; Log "Głos (TTS) niedostępny: $($script:Tts.err)" 'Yellow'; return }
+    }
+    $script:Tts.ready = $true
+    Log ("Głos (TTS): {0} głosów Windows ({1})" -f $script:Tts.voices.Count, ((@($script:Tts.voices | ForEach-Object { $_.lang }) | Sort-Object -Unique) -join ', ')) 'DarkGray'
+}
+function Get-TtsWav([string]$text, [string]$voice, [double]$rate, [int]$pitch) {
+    $text = ($text -replace '\s+', ' ').Trim()
+    if ($text.Length -gt 400) { $text = $text.Substring(0, 400) }
+    if (-not $text) { return $null }
+    $inv = [Globalization.CultureInfo]::InvariantCulture
+    $rate = [Math]::Max(0.5, [Math]::Min(2.0, $rate)); $pitch = [Math]::Max(-50, [Math]::Min(50, $pitch))
+    $key = "$voice|$rate|$pitch|$text"
+    if ($script:Tts.cache.Contains($key)) { return $script:Tts.cache[$key] }
+    $v = @($script:Tts.voices | Where-Object { $_.id -eq $voice })[0]
+    if (-not $v) { $v = @($script:Tts.voices)[0] }
+    $esc = [Security.SecurityElement]::Escape($text)
+    $ps = $(if ($pitch -ge 0) { "+$pitch%" } else { "$pitch%" })
+    if ($script:Tts.mode -eq 'onecore') {
+        $sy = $script:Tts.synth
+        $sy.Voice = $script:Tts.raw[$v.id]
+        $ssml = "<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='$($v.lang)'><prosody rate='$($rate.ToString('0.00', $inv))' pitch='$ps'>$esc</prosody></speak>"
+        $task = $script:Tts.asTask.MakeGenericMethod([Windows.Media.SpeechSynthesis.SpeechSynthesisStream]).Invoke($null, @($sy.SynthesizeSsmlToStreamAsync($ssml)))
+        [void]$task.Wait(15000)
+        $st = $task.Result
+        $ns = [System.IO.WindowsRuntimeStreamExtensions]::AsStreamForRead($st.GetInputStreamAt(0))
+        $ms = New-Object IO.MemoryStream; $ns.CopyTo($ms); $bytes = $ms.ToArray(); $ns.Dispose(); $st.Dispose()
+    } else {
+        $sy = $script:Tts.sapi; $ms = New-Object IO.MemoryStream
+        try {
+            $sy.SelectVoice($v.id); $sy.Rate = [int][Math]::Round(($rate - 1) * 10)
+            $sy.SetOutputToWaveStream($ms); $sy.Speak($text)
+        } finally { $sy.SetOutputToNull() }
+        $bytes = $ms.ToArray()
+    }
+    $script:Tts.cache[$key] = $bytes
+    while ($script:Tts.cache.Count -gt 40) { $script:Tts.cache.RemoveAt(0) }
+    return $bytes
+}
+
+function Send-Bytes($ctx, [byte[]]$bytes, [string]$type) {
+    $res = $ctx.Response
+    $res.ContentType = $type
+    $res.Headers['Access-Control-Allow-Origin'] = $script:AllowOrigin; $res.Headers['Access-Control-Allow-Private-Network'] = 'true'; $res.Headers['Cache-Control'] = 'no-store'
+    $res.ContentLength64 = $bytes.Length; $res.OutputStream.Write($bytes, 0, $bytes.Length); $res.OutputStream.Close()
+}
+
 function Send-Raw($ctx, [string]$text, [string]$type) {
     $res = $ctx.Response
     $res.ContentType = "$type; charset=utf-8"
@@ -2164,6 +2233,20 @@ function Invoke-Request($ctx) {
                 if (-not $r) { Send-Json $ctx @{ at = 0; status = $script:Censor.status; error = $script:Censor.err }; return }
                 if (([string]$q['since']) -eq [string]$r.at) { Send-Json $ctx @{ at = $r.at; same = $true }; return }
                 Send-Raw $ctx ([string]$script:Censor.json) 'application/json'
+            }
+            '/tts/voices' {
+                Initialize-Tts
+                Send-Json $ctx ([pscustomobject]@{ ok = $script:Tts.ready; mode = $script:Tts.mode; error = $script:Tts.err; voices = @($script:Tts.voices) })
+            }
+            '/tts' {
+                Initialize-Tts
+                if (-not $script:Tts.ready) { Send-Json $ctx @{ ok = $false; error = "głos niedostępny: $($script:Tts.err)" } 503; return }
+                $rate = 1.0; [void][double]::TryParse([string]$q['rate'], [Globalization.NumberStyles]::Float, [Globalization.CultureInfo]::InvariantCulture, [ref]$rate)
+                $pitch = 0; [void][int]::TryParse([string]$q['pitch'], [ref]$pitch)
+                $wav = $null
+                try { $wav = Get-TtsWav ([string]$q['text']) ([string]$q['voice']) $rate $pitch } catch { Log "Głos (TTS): $($_.Exception.Message)" 'Yellow' }
+                if (-not $wav) { Send-Json $ctx @{ ok = $false; error = 'nie udało się' } 500; return }
+                Send-Bytes $ctx $wav 'audio/wav'
             }
             '/window' {
                 $ws = $null; try { $ws = Find-ItemWindow ([string]$q['id']) } catch {}

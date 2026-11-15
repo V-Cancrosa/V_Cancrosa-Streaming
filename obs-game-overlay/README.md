@@ -174,6 +174,7 @@ Polecenia idą przez darmowy przekaźnik **ntfy.sh** pod długim losowym kluczem
 
 - **Mikrofon:** panel → Start, wybór urządzenia (np. DGM20 USB Microphone). Przy „domyślnym w Windows” i jednym mikrofonie USB panel sam na niego przełącza. Wskaźnik i avatar słuchają mikrofonu, który naprawdę gra.
 - **✨ Popraw głos:** jedno kliknięcie dokłada na mikrofon w OBS filtry w kolejności: redukcja szumów **RNNoise** → **bramka** (−36/−44 dB) → **kompresor** (4:1 od −20 dB, +4 dB) → **limiter** (−3 dB). Drugie kliknięcie zdejmuje. Dostrajasz w OBS: prawy klik na mikrofon → Filtry.
+- **Głos postaci (TTS):** postacie czytają alerty na głos – swoje zdanie, a potem wiadomość widza (bitsy od progu, suby; do wyboru na stronie *Głos postaci*). Głosy z Windows: darmowe, bez internetu (GameRadar → `/tts`). Język wybiera się sam z każdego zdania, więc polski i angielski można mieszać. Barwy: Vince niżej z pogłosem pokoju, Chip wyżej i szybciej, Ragnar przez radio, Toro nisko w sali, Myr-35 robot, Zarin metal. Brakuje głosu? Ustawienia Windows → Czas i język → Mowa → Dodaj głosy. Linki, spam znaków i słowa nienawiści nie są czytane.
 
 ---
 
