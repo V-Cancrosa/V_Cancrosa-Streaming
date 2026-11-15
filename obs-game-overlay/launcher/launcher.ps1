@@ -120,21 +120,26 @@ $Work = {
             New-Item -ItemType Directory -Force -Path $Data | Out-Null
             Remove-Item $errFile -Force -ErrorAction SilentlyContinue
             $dp = (Join-Path $Det 'detector.ps1').Replace("'", "''"); $ep = $errFile.Replace("'", "''")
-            $cmd = "try { & '$dp' -Hidden } catch { [IO.File]::WriteAllText('$ep', (`$_.FullyQualifiedErrorId + ' | ' + `$_.Exception.Message)) }"
+            $cmd = "try { & '$dp' -Hidden; [IO.File]::WriteAllText('$ep', ('exit | GameRadar zakończył się sam, kod ' + `$LASTEXITCODE)) } catch { [IO.File]::WriteAllText('$ep', (`$_.FullyQualifiedErrorId + ' | ' + `$_.Exception.Message)) }"
             $p = Start-Process -FilePath 'powershell.exe' -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-Command', $cmd) -WindowStyle Hidden -PassThru
-            $deadline = (Get-Date).AddSeconds(40)
-            while ((Get-Date) -lt $deadline) {
+            # czekamy, dopóki GameRadar żyje i coś robi (pierwsze uruchomienie potrafi trwać), najwyżej 90 s
+            $lg = Join-Path $Data 'detector.log'; $t0 = Get-Date
+            while (((Get-Date) - $t0).TotalSeconds -lt 90) {
                 Start-Sleep -Milliseconds 600
                 $st = Get-Radar; if ($st) { break }
-                if ($p.HasExited) { break }
+                if ($p.HasExited) { Start-Sleep -Milliseconds 400; break }
+                $last = ''; try { $last = [string](Get-Content $lg -Tail 1 -Encoding UTF8 -ErrorAction Stop) } catch {}
+                if ($last) { Set-Step 3 'run' ('Uruchamiam… ' + ($last -replace '^\[[\d:]+\]\s*', '')) }
             }
             if (-not $st) {
                 $why = ''; if (Test-Path $errFile) { $why = [IO.File]::ReadAllText($errFile) }
-                if (-not $why) { $lg = Join-Path $Data 'detector.log'; if (Test-Path $lg) { $why = (Get-Content $lg -Tail 40 -Encoding UTF8 | Where-Object { $_ -match 'Nie mog|błąd|Błąd' } | Select-Object -Last 1) } }
+                $tail = @(); if (Test-Path $lg) { $tail = @(Get-Content $lg -Tail 40 -Encoding UTF8 | Where-Object { [string]$_ -match '^\[' }) }
+                $hit = @($tail | Where-Object { $_ -match 'Nie mog|błąd|Błąd|zablok' } | Select-Object -Last 1)
+                if (-not $why -or $why -like 'exit |*') { if ($hit) { $why = [string]$hit[0] } elseif ($why) { $why = $why.Substring(7) + $(if ($tail) { ' · ostatnio: ' + [string]$tail[-1] } else { ' · dziennik pusty' }) } }
                 if ($why -match 'Malicious') { Set-Step 3 'err' 'Antywirus zablokował GameRadar (fałszywy alarm) – zobacz Historię ochrony' 'defender' }
                 elseif ($why -match 'port') { Set-Step 3 'err' "Port $Port zajęty – zamknij drugą kopię GameRadara albo program na tym porcie" 'retry' }
                 elseif ($why) { Set-Step 3 'err' ([string]$why).Trim() 'log' }
-                else { Set-Step 3 'err' 'Nie odpowiada – zobacz dziennik' 'log' }
+                else { Set-Step 3 'err' ('Nie odpowiada' + $(if ($tail) { ' · ostatnio: ' + [string]$tail[-1] } else { ' · dziennik pusty' })) 'log' }
                 $sync.finished = $true; return
             }
         }
