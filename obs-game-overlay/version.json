@@ -1,5 +1,5 @@
 {
-  "version": "1.52.2",
+  "version": "1.52.3",
   "date": "2026-11-15",
-  "notes": "GameRadar: port 7777 działa także ze starą rezerwacją po dawnym pilocie przez Wi-Fi"
+  "notes": "GameRadar: poprawka błędu składni z 1.52.2 (port 7777)"
 }

@@ -2263,7 +2263,7 @@ function Open-Listener {
     $errs = @()
     foreach ($pre in @("http://localhost:$Port/", "http://+:$Port/")) {
         $l = New-Object Net.HttpListener; $l.Prefixes.Add($pre)
-        try { $l.Start(); if ($pre -ne "http://localhost:$Port/") { Log "Port $Port: «localhost» niedostępny, słucham przez $pre" 'DarkYellow' }; return @{ l = $l; err = '' } }
+        try { $l.Start(); if ($pre -ne "http://localhost:$Port/") { Log "Port ${Port}: «localhost» niedostępny, słucham przez $pre" 'DarkYellow' }; return @{ l = $l; err = '' } }
         catch { $errs += $_.Exception.Message; try { $l.Close() } catch {} }
     }
     return @{ l = $null; err = ($errs | Select-Object -First 1) }

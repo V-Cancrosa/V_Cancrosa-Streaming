@@ -4,10 +4,12 @@
   (Windows PowerShell 5.1 czyta je inaczej jako ANSI i np. półpauza psuje składnię),
 - install.ps1 (uruchamiany przez irm | iex) nie może mieć BOM,
 - żaden .ps1 nie może mieć typograficznych cudzysłowów (PowerShell traktuje je jak zwykły cudzysłów),
-- nawiasy klamrowe i okrągłe muszą się bilansować.
+- nawiasy klamrowe i okrągłe muszą się bilansować,
+- „$zmienna:” w tekście to błąd składni (dwukropek = dysk) – trzeba pisać ${zmienna}:.
 Użycie: python3 tools/check-ps1.py   (kod wyjścia 1 = problem)
 """
 import pathlib
+import re
 import sys
 
 root = pathlib.Path(__file__).resolve().parent.parent
@@ -27,6 +29,11 @@ for p in sorted(root.rglob('*.ps1')):
         bad.append(f'{rel}: brak BOM UTF-8 przy znakach spoza ASCII')
     if any(c in t for c in QUOTES):
         bad.append(f'{rel}: typograficzne cudzysłowy')
+    for n, line in enumerate(t.split('\n'), 1):
+        if line.lstrip().startswith('#'):
+            continue
+        for m in re.finditer(r'\$(?!(?:script|global|env|local|using|private|function|variable)\b)[A-Za-z_]\w*:(?!:)', line):
+            bad.append(f'{rel}:{n}: {m.group(0)} – napisz ${{{m.group(0)[1:-1]}}}:')
     if t.count('{') != t.count('}') or t.count('(') != t.count(')'):
         bad.append(f'{rel}: niezbilansowane nawiasy')
 print('\n'.join(bad) or 'ps1: OK')
