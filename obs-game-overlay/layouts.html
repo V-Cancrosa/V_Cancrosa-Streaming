@@ -293,7 +293,7 @@
     }
     // gra
     const det = C.read('obsGameOverlay.detected', {}) || {};
-    const game = (det.local && det.local.game && det.local.game.name) || (det.discord && det.discord.game && det.discord.game.name) || s.game || '';
+    const game = (det.local && det.local.game && det.local.game.name) || s.game || '';
     $('gameTag').textContent = game;
     // temat rozmowy
     if (layout === 'talk') {

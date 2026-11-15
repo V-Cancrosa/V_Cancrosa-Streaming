@@ -1,5 +1,5 @@
 {
-  "version": "1.48.1",
+  "version": "1.49.0",
   "date": "2026-11-15",
-  "notes": "Zakładka Start (stan, gra, sceny, biblioteka, szybki test), OBS sam łapie okno wykrytej gry, biblioteka gier i programów z uruchamianiem z panelu, prostszy panel (5 zakładek)"
+  "notes": "Porządki: GameRadar tylko na tym komputerze (pilot przez przekaźnik), bez Discorda, Sąsiadów i starych scen; tło Aetheric reagujące na alerty"
 }

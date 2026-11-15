@@ -28,6 +28,7 @@
 <link rel="stylesheet" href="themes/chat.css">
 <script src="themes/obsws.js"></script>
 <script src="themes/zones.js"></script>
+<script src="themes/aether.js"></script>
 <link rel="stylesheet" href="themes/base.css">
 <style>
   /* Ekran przerwy: pełnoekranowe tło motywu + duża karta z odliczaniem + postać + stopka z linkami i ostatnimi zdarzeniami. */
@@ -42,6 +43,9 @@
   @keyframes drift2 { to { transform: translate(-16vw, -10vw) scale(1.1); } }
   #bgfx { position: absolute; inset: 0; width: 100%; height: 100%; }
   #pattern { position: absolute; inset: 0; }
+  /* tło Aetheric Blueprint (themes/aether.js) zastępuje kratkę; poświaty motywu zostają, ale słabsze */
+  .aether #pattern { display: none; }
+  .aether #bg::before, .aether #bg::after { opacity: .12; }
 
   /* duża karta na środku */
   .pos-mc #stage { align-items: center; justify-content: center; padding-bottom: 90px; }
@@ -319,6 +323,14 @@
     root.setProperty('--scale', settings.sceneScale);
     root.setProperty('--margin', '60px');
     root.setProperty('--tex', def ? GT.texture(def) : '');
+    // Vince: tło „Aetheric Blueprint” (WebGL) – fala przy alertach; ?aether=0/1 albo ustawienie aether: false
+    const aq = p.get('aether');
+    const wantAether = window.VMAether && (aq === '1' || (aq !== '0' && settings.aether !== false && heroDef && heroDef.id === 'vince'));
+    if (wantAether) {
+      const on = window.VMAether.start($('bg'), [settings.accent || acc[0], settings.accent2 || acc[1]]);
+      if (on) { window.VMAether.colors(settings.accent || acc[0], settings.accent2 || acc[1]); window.VMAether.still(reduced); }
+      document.body.classList.toggle('aether', on);
+    } else if (window.VMAether && window.VMAether.on) window.VMAether.stop();
     const fxKey = key + reduced;
     if (fxKey !== lastFx) {
       lastFx = fxKey;
@@ -403,7 +415,7 @@
     setBig(big, animate);
     // podpis: własny, termin (stream za…) albo gra
     const det = read(DETECTED_KEY, {}) || {};
-    const game = (det.local && det.local.game && det.local.game.name) || (det.discord && det.discord.game && det.discord.game.name) || settings.game;
+    const game = (det.local && det.local.game && det.local.game.name) || settings.game;
     let sub = settings.sceneSub;
     const T = (k, fb) => (window.VMi18n ? VMi18n.t(k) : fb);
     if (!sub && kind === 'soon' && settings.sceneAt) sub = T('start', 'Start ') + whenText(settings.sceneAt) + (game ? ' · ' + game : '');
@@ -574,7 +586,7 @@
   const setTalking = on => { talking = !!on; window.__vmTalking = talking; document.body.classList.toggle('talking', talking); };
   let hypeTimer = null;
   const hype = t => { if (!t || t < 2) return; document.documentElement.style.setProperty('--hype', t); window.__vmHype = true; document.body.classList.add('hype'); clearTimeout(hypeTimer); hypeTimer = setTimeout(() => { window.__vmHype = false; document.body.classList.remove('hype'); }, 1200 + t * 500); };
-  try { const bc2 = new BroadcastChannel('obsGameOverlay'); bc2.addEventListener('message', e => { if (e.data && e.data.type === 'voice') setTalking(e.data.talking); if (e.data && e.data.type === 'react') hype(e.data.tier); }); } catch {}
+  try { const bc2 = new BroadcastChannel('obsGameOverlay'); bc2.addEventListener('message', e => { if (e.data && e.data.type === 'voice') setTalking(e.data.talking); if (e.data && e.data.type === 'react') { hype(e.data.tier); if (window.VMAether) window.VMAether.pulse(e.data.tier); } }); } catch {}
   (async () => {
     if (settings.obsVoice === false || !window.OverlayOBS) return;
     const cfg = await window.OverlayOBS.config(settings);

@@ -14,9 +14,7 @@
 <link rel="stylesheet" href="themes/library.css">
 <script src="themes/library.js"></script>
 <link rel="stylesheet" href="themes/fusion.css">
-<link rel="stylesheet" href="themes/combos.css">
 <script src="themes/fusion.js"></script>
-<script src="themes/combos.js"></script>
 <script src="themes/fit.js"></script>
 <script src="themes/voices.js"></script>
 <script src="themes/voices-games.js"></script>
@@ -57,7 +55,6 @@
       </div>
     </div>
     <div id="emblem" aria-hidden="true"></div>
-    <div id="combo" aria-hidden="true"></div>
     <div id="popbox" aria-hidden="true"></div>
     <div id="pop" aria-hidden="true"></div>
   </div>
@@ -73,7 +70,7 @@
   const DEFAULTS = {
     game: '', subtitle: '', cover: '', since: 0,
     label: 'Teraz gram', theme: 'neon', position: 'bl',
-    accent: '', accent2: '', mode: 'auto', discordId: '', ignore: '',
+    accent: '', accent2: '', mode: 'auto', ignore: '',
     timer: true, icon: true, showLabel: true, visible: true, scale: 1, margin: 40,
     local: true, localUrl: 'http://localhost:7777',
     gameThemes: true,   // motyw gry włącza się sam, gdy gra ma własny motyw
@@ -86,7 +83,7 @@
   const fromUrl = {};
   const map = {
     game: 'game', sub: 'subtitle', cover: 'cover', label: 'label', theme: 'theme', pos: 'position',
-    accent: 'accent', accent2: 'accent2', mode: 'mode', discord: 'discordId', ignore: 'ignore', localUrl: 'localUrl', motion: 'motion'
+    accent: 'accent', accent2: 'accent2', mode: 'mode', ignore: 'ignore', localUrl: 'localUrl', motion: 'motion'
   };
   for (const [k, v] of Object.entries(map)) if (p.has(k)) fromUrl[v] = p.get(k);
   if (p.has('gameThemes')) fromUrl.gameThemes = bool(p.get('gameThemes'));
@@ -107,7 +104,7 @@
   };
 
   const normalize = st => {
-    if (st.mode === 'detect') st.mode = 'discord'; // 'discord' = tylko wykryta automatycznie
+    if (st.mode !== 'manual') st.mode = 'auto';   // źródło gry: auto (GameRadar) albo chwilowo wybrana z listy
     if (!st.since) st.since = Date.now();
     return st;
   };
@@ -133,63 +130,6 @@
     if (!words.length) return '?';
     if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
     return (words[0][0] + words[1][0]).toUpperCase();
-  }
-
-  // ---- Discord (Lanyard) ----
-  // Discord działa tylko, gdy jest włączony w panelu (Ustawienia → Funkcje) albo podany w adresie (?discord=…)
-  const dcId = () => (settings.features && settings.features.discord === false && !fromUrl.discordId) ? '' : settings.discordId;
-  let discordGame = null, discordStatus = '';
-  let ws = null, hb = null, wsId = '', retry = null;
-
-  function assetUrl(a) {
-    const img = a.assets && a.assets.large_image;
-    if (img) {
-      if (img.startsWith('mp:')) return 'https://media.discordapp.net/' + img.slice(3);
-      if (/^\d+$/.test(img) && a.application_id) return `https://cdn.discordapp.com/app-assets/${a.application_id}/${img}.png`;
-    }
-    if (a.application_id) return `https://dcdn.dstn.to/app-icons/${a.application_id}?size=256`;
-    return '';
-  }
-
-  function onPresence(d) {
-    const acts = (d && d.activities) || [];
-    const a = acts.find(x => x.type === 0);
-    discordGame = a ? {
-      name: a.name,
-      sub: [a.details, a.state].filter(Boolean).join(' · '),
-      start: a.timestamps && a.timestamps.start ? a.timestamps.start : 0,
-      images: assetUrl(a) ? [assetUrl(a)] : [],
-      source: 'discord'
-    } : null;
-    discordStatus = (d && d.discord_status) || 'connected';
-    publish();
-    render();
-  }
-
-  function disconnect() {
-    clearInterval(hb); clearTimeout(retry);
-    if (ws) { ws.onclose = null; try { ws.close(); } catch {} }
-    ws = null; wsId = ''; discordStatus = '';
-  }
-
-  function connect(id) {
-    disconnect();
-    if (!id || settings.mode === 'manual') { discordGame = null; publish(); return; }
-    wsId = id;
-    ws = new WebSocket('wss://api.lanyard.rest/socket');
-    ws.onmessage = e => {
-      let m; try { m = JSON.parse(e.data); } catch { return; }
-      if (m.op === 1) {
-        hb = setInterval(() => ws && ws.readyState === 1 && ws.send(JSON.stringify({ op: 3 })), m.d.heartbeat_interval);
-        ws.send(JSON.stringify({ op: 2, d: { subscribe_to_id: id } }));
-      } else if (m.op === 0 && (m.t === 'INIT_STATE' || m.t === 'PRESENCE_UPDATE')) {
-        onPresence(m.d);
-      }
-    };
-    ws.onclose = () => {
-      clearInterval(hb);
-      retry = setTimeout(() => connect(id), 5000);
-    };
   }
 
   // ---- lokalny wykrywacz (detector/detector.ps1) ----
@@ -255,8 +195,7 @@
     try {
       localStorage.setItem(DETECTED_KEY, JSON.stringify({
         at: Date.now(),
-        local: { enabled: !!settings.local, online: localOnline, game: localGame, recent: localRecent, url: settings.localUrl },
-        discord: { enabled: !!dcId(), status: discordStatus, game: discordGame }
+        local: { enabled: !!settings.local, online: localOnline, game: localGame, recent: localRecent, url: settings.localUrl }
       }));
     } catch {}
   }
@@ -278,18 +217,15 @@
         : settings.gameId && settings.local !== false ? [window.vmHub(settings.localUrl) + '/icon?id=' + encodeURIComponent(settings.gameId)] : [],
         source: 'manual', steam: settings.gameSteam || '', kind: settings.gameKind || '', exe: settings.gameExe || '' }
       : null;
-    // kolejność: lokalny wykrywacz > Discord
-    const det = [localGame, discordGame].find(x => x && !ignored(x.name));
+    const det = localGame && !ignored(localGame.name) ? localGame : null;
     let d = det ? { ...det } : null;
     if (d) {
       // ręczny podtytuł / okładka wygrywają, jeśli nazwa się zgadza
       const same = manual && manual.name.toLowerCase() === d.name.toLowerCase();
       if (same && manual.images.length) d.images = manual.images;
       if (same && manual.sub) d.sub = manual.sub;
-      if (!d.sub && settings.subtitle && settings.mode === 'discord') d.sub = settings.subtitle;
     }
     if (settings.mode === 'manual') return manual;
-    if (settings.mode === 'discord') return d;
     return d || manual; // auto
   }
 
@@ -315,9 +251,7 @@
     const popSrc = pd && pd.pop && !th.persona ? pd.pop : '';
     // tk-top (pasek czatu u góry) ustawia mountTicker – nie gubić go przy odświeżeniu stylu
     const keepTop = document.body.classList.contains('tk-top');
-    // fuzja szyta na miarę (np. Vince × Townscaper) – zastępuje ogólnych „sąsiadów”
-    const cb = GT.combo ? GT.combo(th) : null;
-    document.body.className = (keepTop ? 'tk-top ' : '') + `theme-${th.cls} pos-${settings.position} side-${side} ${vt ? 'vt' : 'vb'}` + (flip ? ' face-flip' : '') + (popSrc ? ' has-pop' : '') + (cb ? ' combo ' + cb.cls : '') + (GT.bodyClasses ? GT.bodyClasses(th) : '') +
+    document.body.className = (keepTop ? 'tk-top ' : '') + `theme-${th.cls} pos-${settings.position} side-${side} ${vt ? 'vt' : 'vb'}` + (flip ? ' face-flip' : '') + (popSrc ? ' has-pop' : '') + (GT.bodyClasses ? GT.bodyClasses(th) : '') +
       (reduced ? ' reduced-motion' : '') + (settings.icon ? '' : ' no-icon') + (settings.showLabel ? '' : ' no-label');
     const key = th.cls + '|' + (th.game ? th.game.id : '') + '|' + (th.persona ? th.persona.id : '') + '|' + th.mode + '|' + (th.variant || '');
     if (emblemFor !== key) {
@@ -327,8 +261,6 @@
       emblemEl.innerHTML = def ? def.emblem || '' : '';
       backEl.innerHTML = def ? def.back || '' : '';
     }
-    const cEl = $('combo'), cKey = cb ? cb.key : '';
-    if (cEl.dataset.key !== cKey) { cEl.dataset.key = cKey; cEl.innerHTML = cb ? cb.html : ''; }
     const popEl = $('pop');
     if (popEl.dataset.src !== popSrc) { popEl.dataset.src = popSrc; popEl.innerHTML = popSrc ? `<img src="${popSrc}" alt="">` : ''; }
     // dobudowane okienko (L albo T) w tym samym stylu co karta – tło, ramka, zaokrąglenie skopiowane z karty
@@ -502,12 +434,11 @@
   try { new BroadcastChannel('obsGameOverlay').addEventListener('message', e => { const m = e.data; if (m && m.type === 'scene' && m.name !== obsScene) { obsScene = m.name; mountTicker(); } }); } catch {}
 
   function reload() {
-    const prevId = dcId(), prevMode = settings.mode;
+    const prevMode = settings.mode;
     const prevLocal = settings.local + settings.localUrl;
     settings = normalize({ ...DEFAULTS, ...fromUrl, ...(readStore() || {}) });
     mountTicker();
     if (settings.local + settings.localUrl !== prevLocal || settings.mode !== prevMode) pollLocal();
-    if (dcId() !== prevId || (settings.mode === 'manual') !== (prevMode === 'manual')) connect(dcId());
     render();
   }
   window.addEventListener('storage', e => { if (e.key === KEY) reload(); if (e.key === SIM_KEY) pollLocal(); });
@@ -522,7 +453,6 @@
     };
   } catch {}
 
-  connect(dcId());
   pollLocal();
   render();
   mountTicker();

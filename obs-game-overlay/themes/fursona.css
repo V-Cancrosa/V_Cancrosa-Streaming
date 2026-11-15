@@ -270,9 +270,6 @@
 .vt .fz-plate { top: auto; bottom: -54px; } .vt .fz-fan { top: auto; bottom: -30px; }
 .vt .ft-lantern { top: auto; bottom: -58px; }
 .vt.has-pop .fr-eq { top: auto; bottom: -34px; }
-.vt.fuse-patch #gbadge { top: auto; bottom: -58px; border-radius: 0 0 10px 10px; border-width: 0 3px 3px; }
-.vt.fuse-patch #gbadge.logo { top: auto; bottom: -64px; }
-.vt.fuse-patch #fusebar { bottom: auto; top: -8px; border-radius: 4px 4px 0 0; }
 
 /* środek: ozdoby postaci symetrycznie nad (dół) albo pod (góra) środkiem karty */
 .side-c .fv-frame { left: 50%; right: auto; margin-left: -64px; top: -152px; }

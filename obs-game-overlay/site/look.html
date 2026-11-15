@@ -25,6 +25,7 @@
     <div class="card"><h2>Kto prowadzi</h2><div class="grid" id="hosts" style="grid-template-columns:repeat(auto-fill,minmax(120px,1fr))"></div></div>
     <div class="card stack"><h2>Karta „Teraz gram”</h2><div class="seg" id="pos"></div><p class="hint">Dowolne miejsce: <a href="layouts.html">Ułożenie scen</a> → przeciągnij kartę.</p></div>
     <div class="card stack"><h2>Postać i gra</h2><div class="seg" id="mode"></div><p class="hint" id="modeHint"></p></div>
+    <div class="card stack" id="aeCard" hidden><h2>Tło Vince'a na ekranach</h2><div class="seg" id="ae"></div><p class="hint">Żywy szkic architekta – przy alertach przechodzi przez niego fala, im większy alert, tym silniejsza.</p></div>
     <div class="card stack"><h2>Czat</h2><div class="seg" id="chat"></div></div>
   </div>
   <div id="pv"></div>
@@ -44,11 +45,14 @@
     $('mode').innerHTML = MODE.map(([v, n]) => `<button data-mode="${v}" aria-pressed="${modeOf(s) === v}">${n}</button>`).join('');
     $('modeHint').textContent = (MODE.find(m => m[0] === modeOf(s)) || MODE[0])[2];
     const cd = (s.chatDir || 'v') + '|' + ((s.chatDir || 'v') === 'off' ? '' : s.chatSide || ((s.chatDir || 'v') === 'h' ? 'bottom' : 'right'));
+    $('aeCard').hidden = s.theme !== 'g-vince';
+    $('ae').innerHTML = [[true, 'Szkic z falą'], [false, 'Kratka']].map(([v, n]) => `<button data-ae="${v}" aria-pressed="${(s.aether !== false) === v}">${n}</button>`).join('');
     $('chat').innerHTML = CHAT.map(([v, n]) => `<button data-chat="${v}" aria-pressed="${cd === v}">${n}</button>`).join('');
   }
   $('hosts').onclick = e => { const b = e.target.closest('[data-host]'); if (b) { S.set({ theme: 'g-' + b.dataset.host }); render(); } };
   $('pos').onclick = e => { const b = e.target.closest('[data-pos]'); if (!b) return; const s = S.get(); delete s.cardXY; s.position = b.dataset.pos; localStorage.setItem('obsGameOverlay.v1', JSON.stringify(s)); S.set({}); render(); };
   $('mode').onclick = e => { const b = e.target.closest('[data-mode]'); if (b) { S.set({ gameMode: b.dataset.mode, gameThemes: b.dataset.mode !== 'off' }); render(); } };
+  $('ae').onclick = e => { const b = e.target.closest('[data-ae]'); if (b) { S.set({ aether: b.dataset.ae === 'true' }); render(); } };
   $('chat').onclick = e => { const b = e.target.closest('[data-chat]'); if (!b) return; const [d, side] = b.dataset.chat.split('|'); S.set(side ? { chatDir: d, chatSide: side } : { chatDir: d }); render(); };
   S.onChange(render); render();
   S.preview($('pv'), [

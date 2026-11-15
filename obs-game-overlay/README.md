@@ -74,6 +74,8 @@ Przeglądarka i OBS mają osobne pamięci – łączy je GameRadar (`themes/sync
 
 **Postacie:** Vince · Chip · Ragnar · Toro · Myr-35 · Zarin. Przy każdym uruchomieniu OBS jedna jest losowana jako prowadząca (można od razu zmienić). Każda ma swoje kolory, czcionki, napis nad nazwą gry, głos w alertach i wygląd czatu. Myr-35 to głowa protogena z matrycą LED i czterema rejestrami (protokół / człowiek / terminal / Nanite Syndrome).
 
+Na ekranach Vince'a (start, przerwa) tło to żywy szkic architekta w WebGL: przy każdym alercie przechodzi przez niego fala – legendarny alert daje falę z echem. Wyłączysz na stronie *Postać i wygląd* (Kratka).
+
 **Motywy gier** włączają się same: Talisman, Palworld, Mass Effect (ME1/2/3/Andromeda osobno), Warframe, Deadlock, Darkest Dungeon (głos narratora), Hollow Knight / Silksong, Cyberpunk 2077, Counter-Strike 2, C&C Red Alert / Tiberium / Generals (z częściami), Townscaper, visual novel (Ren'Py rozpoznawane po plikach), Blender i programy 3D („Teraz tworzę”). Grafika motywów jest narysowana od zera (SVG i canvas) – bez logotypów gier.
 
 **Gdy postać i gra mają swoje motywy** – cztery tryby (Wygląd → Postać i gra):
@@ -217,4 +219,5 @@ tools/check-ps1.py  sprawdzenie .ps1 przed commitem (BOM, cudzysłowy, nawiasy)
   - przejście „taśma filmowa” – `film()` z biblioteki [SSGOI](https://github.com/meursyphus/ssgoi),
   - HUD cyberpunk – baner „Yuffie // Cyberpunk Edgerunners”, [velkaa](https://codepen.io/velkaa) (bez GIF-ów i muzyki z oryginału),
   - progi szerokości panelu – „Responsive Grid with @custom-media”, [Chris Coyier](https://codepen.io/chriscoyier).
+- Tło Vince'a na ekranach (`themes/aether.js`) – „Aetheric Blueprint – Interactive Shader”, [Techartist / VoXelo](https://codepen.io/VoXelo/pen/azOeJVo) (MIT); shader przeniesiony z Three.js na czysty WebGL, fala od alertów zamiast kliknięcia, kolory z motywu, bez błysku, najwyżej 30 klatek.
 - Przekaźnik pilota: [ntfy.sh](https://ntfy.sh).

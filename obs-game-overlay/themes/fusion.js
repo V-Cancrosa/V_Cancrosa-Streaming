@@ -1,23 +1,19 @@
 /*
-  Fuzja stylu (postać albo motyw bazowy) z motywem gry. Tryby (ustawienie gameMode):
-    'patch'     – łatka (domyślny): postać prowadzi – karta, czcionki, kolory i avatar są jej, a gra jest
-                  naszyta na wierzch jak łatki: emblemat/logo gry, wstążka w kolorach gry, cząsteczki gry
-    'fuse-half' – pół na pół (50:50, domyślny): wymieszane kolory, teksty po równo
-    'fuse'      – [eksperymentalny] postać bazą, gra dodatkiem (66:33)
-    'fuse-game' – „Gra + postać”: karta w czystym motywie gry, postać wchodzi portretem, plakietką z imieniem i swoim kolorem (bez mieszania)
-    'game'      – motyw gry zastępuje styl
-    'off'       – bez motywów gier
+  Fuzja stylu postaci z motywem gry. Tryby (ustawienie gameMode):
+    'fuse-half' – Fuzja 50:50 (domyślny): wymieszane kolory, czcionki i teksty po równo
+    'fuse-game' – Gra + postać: karta w czystym motywie gry, postać wchodzi portretem, plakietką z imieniem i swoim kolorem
+    'game'      – sam motyw gry
+    'off'       – sama postać (bez motywów gier)
   Proporcja decyduje też, jak często mówi postać, a jak często gra (themes/voices.js → pickMix).
 */
 (function () {
   const GT = window.OverlayGameThemes;
   if (!GT) return;
-  const MIX = { patch: 0.4, fuse: 0.33, 'fuse-half': 0.5, 'fuse-game': 0.66, game: 1 };
+  const MIX = { 'fuse-half': 0.5, 'fuse-game': 0.66, game: 1 };
   const PORTRAIT = { vince: 'themes/fursona/vince.webp', chip: 'themes/fursona/chip.webp', ragnar: 'themes/fursona/ragnar.webp', toro: 'themes/fursona/toro.webp' };
 
   function modeOf(settings) {
     if (settings.gameThemes === false) return 'off';
-    // zostały trzy tryby: fuzja 50:50 (domyślny), sam motyw gry, sama postać; „Sąsiedzi” i eksperymenty 66:33 / 33:66 → fuzja 50:50
     // cztery tryby: fuzja 50:50 (domyślny), gra + postać (karta gry, portret i kolor postaci), sam motyw gry, sama postać
     const m = settings.gameMode || 'fuse-half';
     return ['game', 'off', 'fuse-game'].includes(m) ? m : 'fuse-half';
@@ -83,13 +79,12 @@
   };
 
   GT.bodyClasses = r => (r.def ? ' game-theme' : '') + (r.def && r.def.group === 'fursona' ? ' f-theme' : '') +
-    (r.game ? ' fuse fuse-' + r.game.id : '') + (r.mode === 'fuse-half' && r.game ? ' fuse-half' : '') + (r.mode === 'patch' && r.game ? ' fuse-patch' : '') +
+    (r.game ? ' fuse fuse-' + r.game.id : '') + (r.mode === 'fuse-half' && r.game ? ' fuse-half' : '') +
     (r.persona ? ' fuse-persona fusep-' + r.persona.id : '') + (r.variant ? ' gv-' + r.variant : '');
 
   // cząsteczki: gra (z domieszką koloru postaci) albo sam styl; przy 50:50 więcej
   GT.fusionFx = function (r) {
-    // sąsiedzi (patch): cząsteczki tylko w kolorach gry – bez domieszki postaci
-    const extra = r.mode === 'patch' ? [] : r.persona ? [r.persona.accent[0]] : (r.def && r.game ? [r.def.accent[0]] : []);
+    const extra = r.persona ? [r.persona.accent[0]] : (r.def && r.game ? [r.def.accent[0]] : []);
     const src = r.game ? r.game.fx : (r.def ? r.def.fx : null);
     if (!src) return null;
     const fx = { ...src, colors: [...src.colors, ...extra] };
@@ -133,7 +128,7 @@
     if (!wrap) return;
     const el = id => { let e = wrap.querySelector('#' + id); if (!e) { e = document.createElement('div'); e.id = id; e.setAttribute('aria-hidden', 'true'); wrap.appendChild(e); } return e; };
     const badge = el('gbadge'), bar = el('fusebar'), pbadge = el('pbadge');
-    const logo = r.game && r.mode === 'patch' && r.logo ? r.logo : '';
+    const logo = '';
     const gid = r.game ? r.game.id + (r.variant || '') + '|' + logo : '';
     if (badge.dataset.id !== gid) {
       badge.dataset.id = gid; badge.classList.remove('logo');

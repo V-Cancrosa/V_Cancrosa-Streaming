@@ -1619,7 +1619,7 @@ function Update-Updater {
     if ($now -ge $script:UP.nextLocal) {
         $script:UP.nextLocal = $now.AddSeconds(30)
         if ((Get-AppVersion) -ne $script:AppVersion) { $script:RestartPending = $true }
-        # enable-remote.ps1 prosi o restart (włączono pilota z telefonu)
+        # ktoś poprosił o restart (plik restart.flag w data)
         if (Test-Path $RestartFlag) { Remove-Item $RestartFlag -Force -ErrorAction SilentlyContinue; $script:RestartPending = $true }
     }
     if ($script:UP.auto -and $now -ge $script:UP.nextCheck) {
@@ -1657,23 +1657,14 @@ function Restart-Detector {
 }
 
 # ---------------------------------------------------------------- HTTP
-# ---------------------------------------------------------------- pilot z telefonu: ustawienia, pliki, klucz
+# ---------------------------------------------------------------- wspólne ustawienia (panel, serwis, telefon)
 $SettingsFile = Join-Path $DataDir 'settings.json'
-$RemoteFile = Join-Path $DataDir 'remote.json'
 $RestartFlag = Join-Path $DataDir 'restart.flag'
 Remove-Item $RestartFlag -ErrorAction SilentlyContinue   # stara prośba o restart nie dotyczy świeżo uruchomionego wykrywacza
 $script:Settings = $null; $script:SettingsRev = 0; $script:SettingsFrom = ''
 if (Test-Path $SettingsFile) {
     try { $j = (Get-Content $SettingsFile -Raw -Encoding UTF8) | ConvertFrom-Json; $script:Settings = [string]$j.json; $script:SettingsRev = [int]$j.rev } catch {}
 }
-$script:RemoteKey = ''
-try { $script:RemoteKey = [string]((Get-Content $RemoteFile -Raw) | ConvertFrom-Json).key } catch {}
-if (-not $script:RemoteKey) {
-    $chars = 'abcdefghjkmnpqrstuvwxyz23456789'.ToCharArray()
-    $script:RemoteKey = -join (1..8 | ForEach-Object { $chars[(Get-Random -Maximum $chars.Length)] })
-    [IO.File]::WriteAllText($RemoteFile, (@{ key = $script:RemoteKey } | ConvertTo-Json), $Utf8NoBom)
-}
-$script:LanMode = $false
 
 # ---------------------------------------------------------------- pilot z telefonu przez przekaźnik (ntfy.sh)
 # Telefon (strona pilota na GitHub Pages) wysyła polecenie na prywatny temat ntfy.sh, a GameRadar je odbiera
@@ -1768,21 +1759,10 @@ function Test-Trusted($req, $q) {
     if (-not $origin) {
         $ref = [string]$req.Headers['Referer']
         if ($ref -and $ref.ToLowerInvariant().StartsWith($self + '/')) { return $true }
-        if (-not $req.IsLocal) { return $true }     # telefon: klucz pilota sprawdzony wcześniej
     }
     return $false
 }
 
-function Get-LanAddresses {
-    $ips = @()
-    try {
-        $ips = @(Get-NetIPAddress -AddressFamily IPv4 -ErrorAction Stop | Where-Object {
-            $_.IPAddress -notmatch '^(127\.|169\.254\.)' -and $_.PrefixOrigin -in @('Dhcp', 'Manual') } | ForEach-Object { $_.IPAddress })
-    } catch {
-        $ips = @([Net.Dns]::GetHostAddresses([Net.Dns]::GetHostName()) | Where-Object { $_.AddressFamily -eq 'InterNetwork' -and $_.ToString() -notmatch '^(127\.|169\.254\.)' } | ForEach-Object { $_.ToString() })
-    }
-    return $ips
-}
 
 # ---------------------------------------------------------------- cenzura ekranu: OCR okna na pierwszym planie (Windows.Media.Ocr)
 # Działa w osobnym wątku, tylko gdy warstwa «VM · Cenzura» (censor.html) w OBS co kilka sekund o to prosi.
@@ -1969,18 +1949,8 @@ function Invoke-Request($ctx) {
             $ctx.Response.Headers['Access-Control-Allow-Headers'] = 'X-VM-Key, Content-Type'
             Send-Json $ctx @{ ok = $true }; return
         }
-        # z sieci domowej (telefon) tylko z kluczem; na tym komputerze bez klucza
-        if (-not $req.IsLocal) {
-            $key = [string]$q['key']
-            if (-not $key) { $c = $req.Cookies['vmkey']; if ($c) { $key = $c.Value } }
-            if ($key -ne $script:RemoteKey) {
-                $ctx.Response.StatusCode = 403
-                $b = $Utf8NoBom.GetBytes('Brak dostępu: otwórz adres z kluczem z panelu w OBS (Ustawienia → Pilot z telefonu).')
-                $ctx.Response.ContentType = 'text/plain; charset=utf-8'
-                $ctx.Response.OutputStream.Write($b, 0, $b.Length); $ctx.Response.OutputStream.Close(); return
-            }
-            if ($q['key']) { $ctx.Response.AppendCookie((New-Object Net.Cookie('vmkey', $script:RemoteKey, '/'))) }
-        }
+        # tylko ten komputer (GameRadar nie słucha w sieci domowej – telefon steruje przez przekaźnik)
+        if (-not $req.IsLocal) { Send-Json $ctx @{ ok = $false; error = 'tylko z tego komputera' } 403; return }
         if ($path -eq '/ui' -or $path.StartsWith('/ui/')) { Send-File $ctx ($path -replace '^/ui/?', ''); return }
         # obrazki (ikony, okładki) i stan aktualizacji są niegroźne; reszta tylko dla zaufanych stron
         if (@('/icon', '/art', '/update/status') -notcontains $path.TrimEnd('/') -and -not (Test-Trusted $req $q)) {
@@ -2039,11 +2009,6 @@ function Invoke-Request($ctx) {
                     try { $o = (Get-Content $f -Raw -Encoding UTF8) | ConvertFrom-Json; Send-Json $ctx ([pscustomobject]@{ ok = $true; url = "ws://localhost:$($o.port)"; password = [string]$o.password }) }
                     catch { Send-Json $ctx @{ ok = $false } }
                 } else { Send-Json $ctx @{ ok = $false } }
-            }
-            '/remote/info' {
-                if (-not $req.IsLocal) { Send-Json $ctx @{ ok = $false } 403; return }
-                $urls = @(); if ($script:LanMode) { $urls = @(Get-LanAddresses | ForEach-Object { "http://${_}:$Port/ui/panel.html?key=$($script:RemoteKey)" }) }
-                Send-Json $ctx ([pscustomobject]@{ lan = $script:LanMode; urls = $urls; key = $script:RemoteKey })
             }
             '/game' {
                 Send-Json $ctx ([pscustomobject]@{ online = $true; version = 2; appVersion = $script:AppVersion; settingsRev = $script:SettingsRev; game = $script:State.game; recent = @($script:State.recent); twitch = (Get-TwitchStatus) })
@@ -2319,22 +2284,18 @@ Initialize-CustomFile
 Import-Custom
 Initialize-Twitch
 
-# najpierw w całej sieci domowej (pilot z telefonu), a jeśli Windows nie pozwala – tylko na tym komputerze
+# tylko na tym komputerze
 $listener = New-Object Net.HttpListener
-$listener.Prefixes.Add("http://+:$Port/")
-try { $listener.Start(); $script:LanMode = $true }
+$listener.Prefixes.Add("http://localhost:$Port/")
+try { $listener.Start() }
 catch {
-    try { $listener.Close() } catch {}
-    $listener = New-Object Net.HttpListener
-    $listener.Prefixes.Add("http://localhost:$Port/")
-    try { $listener.Start() } catch {
-        # port zajęty: zawieszona stara kopia? zamknij ją i spróbuj jeszcze raz
-        $retried = $false
-        if (Stop-StaleDetector) { try { $listener.Close() } catch {}; $listener = New-Object Net.HttpListener; $listener.Prefixes.Add("http://localhost:$Port/"); try { $listener.Start(); $retried = $true } catch {} }
-        if (-not $retried) {
-            Log "Nie mogę otworzyć portu $Port – może wykrywacz już działa w innym oknie? ($($_.Exception.Message))" 'Red'
-            [Environment]::Exit(1)
-        }
+    # port zajęty: zawieszona stara kopia? zamknij ją i spróbuj jeszcze raz
+    $err = $_.Exception.Message
+    $retried = $false
+    if (Stop-StaleDetector) { try { $listener.Close() } catch {}; $listener = New-Object Net.HttpListener; $listener.Prefixes.Add("http://localhost:$Port/"); try { $listener.Start(); $retried = $true } catch {} }
+    if (-not $retried) {
+        Log "Nie mogę otworzyć portu $Port – może GameRadar już działa w innym oknie? ($err)" 'Red'
+        [Environment]::Exit(1)
     }
 }
 Log "Nasłuchuję na http://localhost:$Port/" 'Green'
@@ -2342,11 +2303,6 @@ Log "Nasłuchuję na http://localhost:$Port/" 'Green'
 $LaunchFile = Join-Path $DataDir 'launch.json'
 $script:LaunchObs = $false; try { $script:LaunchObs = [bool]((Get-Content $LaunchFile -Raw -Encoding UTF8) | ConvertFrom-Json).obs } catch {}
 if ($StartObs -or $script:LaunchObs) { try { Log ('Start streamu: ' + (Start-Obs)) 'Green' } catch { Log "Nie udało się uruchomić OBS: $($_.Exception.Message)" 'Yellow' } }
-if ($script:LanMode) {
-    foreach ($ip in Get-LanAddresses) { Log "Pilot z telefonu: http://${ip}:$Port/ui/panel.html?key=$($script:RemoteKey)" 'Cyan' }
-} else {
-    Log 'Pilot z telefonu wyłączony – włączysz go skrótem «Włącz pilota z telefonu» (jedna zgoda administratora).' 'DarkGray'
-}
 
 try {
     $next = [DateTime]::MinValue

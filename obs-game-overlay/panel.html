@@ -432,7 +432,6 @@
     <div class="tests" id="obsScenes" hidden></div>
     <p class="hint" style="margin:0">Sceny przełączasz na karcie Start.</p>
     <label class="check"><input id="obsAutoScene" type="checkbox"> wybór ekranu przełącza też scenę OBS („VM · …”)</label>
-    <label class="check"><input id="oneScene" type="checkbox"> wszystko w jednej scenie OBS „VM · Stream” (ekrany i układy zmieniają się w środku)</label>
   </section>
 
   <section>
@@ -718,7 +717,6 @@
       <select id="mode">
         <option value="auto">Auto: wykryta gra, a jak nic nie gra – wpisana ręcznie</option>
         <option value="manual">Tylko ręcznie</option>
-        <option value="discord">Tylko wykryta automatycznie</option>
       </select>
     </label>
     <label>Ignoruj gry o nazwie (po przecinku)
@@ -787,30 +785,8 @@
     </div>
     <div class="row" id="twOnline" hidden><button id="twLogout" class="auto">Wyloguj</button></div>
   </section>
-  <section data-feature="discord" hidden data-gone="1">
-    <h2>Discord (Lanyard) <span id="dcPill" class="pill off">WYŁ.</span></h2>
-    <label>Twoje Discord User ID
-      <input id="discordId" type="text" inputmode="numeric" placeholder="np. 123456789012345678">
-    </label>
-    <div class="status" id="dcStatus">Discord nie jest skonfigurowany.</div>
-    <p class="hint">Opcjonalne. Wymaga dołączenia do serwera <a href="https://discord.gg/lanyard" target="_blank">Lanyard</a> i udostępniania aktywności w Discordzie. Lokalny wykrywacz ma pierwszeństwo.</p>
-  </section>
-  <p class="hint" id="connEmpty" hidden>Wszystkie połączenia są wyłączone. Włączysz je w zakładce „Ustawienia”.</p>
   </div>
   <div class="tab" data-tab="set">
-  <section hidden data-gone="1">
-    <h2>Źródła w OBS</h2>
-    <p class="hint" style="margin:0">Instalator dodaje je sam. Ręcznie: <i>Źródło przeglądarki</i>, bez „Plik lokalny”, 1920×1080, adres <code>file:///…/obs-game-overlay/</code> + plik:</p>
-    <ul class="hint" style="margin:0;padding-left:18px">
-      <li><code>overlay.html</code> – karta „Teraz gram”</li>
-      <li><code>alerts.html</code> – alerty (nad resztą sceny, zaznacz „Kontroluj dźwięk przez OBS”)</li>
-      <li><code>scenes.html?scene=prep</code> / <code>soon</code> / <code>start</code> / <code>late</code> / <code>brb</code> / <code>end</code> – ekrany</li>
-      <li><code>layouts.html?layout=game-full</code> / <code>game-frame</code> / <code>talk</code> – układy (gra/kamerka pod spodem)</li>
-      <li><code>chat.html</code> – sam czat (dymki) albo <code>chat.html?mode=panel</code></li>
-      <li><code>panel.html</code> – ten panel jako dok (<i>Doki → Własne doki przeglądarki</i>)</li>
-    </ul>
-  </section>
-
   <section data-feature="local">
     <h2>GameRadar – podgląd na żywo <span id="logPill" class="pill off"></span></h2>
     <div class="term" id="detLog"><span class="tdim">Łączę z GameRadarem…</span></div>
@@ -833,26 +809,6 @@
     <div class="status" id="ctlStatus"></div>
   </section>
 
-  <section id="remoteSec" hidden>
-    <h2>Pilot z telefonu <span id="rmPill" class="pill off">WYŁ.</span></h2>
-    <div class="status" id="rmStatus">Sprawdzam…</div>
-    <div id="rmOn" hidden>
-      <p class="hint" style="margin:0">Telefon w tej samej sieci Wi‑Fi: zeskanuj kod albo otwórz adres. Zmiany z telefonu od razu widać w OBS.</p>
-      <div id="rmQr" style="background:#fff;padding:10px;border-radius:8px;align-self:center;line-height:0"></div>
-      <input id="rmUrl" type="text" readonly>
-      <div class="row"><button class="auto" id="rmCopy">Kopiuj adres</button></div>
-      <p class="hint" style="margin:0">Adres zawiera klucz – nie pokazuj go na streamie.</p>
-    </div>
-  </section>
-
-  <section hidden data-gone="1">
-    <h2>Funkcje</h2>
-    <p class="hint" style="margin:0">Włącz tylko to, czego używasz – wyłączone funkcje znikają z panelu.</p>
-    <label class="check"><input id="featLocal" type="checkbox"> wykrywanie gry przez wykrywacz na komputerze</label>
-    <label class="check"><input id="featTwitch" type="checkbox"> Twitch (alerty na żywo)</label>
-    <label class="check"><input id="featDiscord" type="checkbox"> wykrywanie gry przez Discord (Lanyard)</label>
-    <label class="check"><input id="featObs" type="checkbox"> połączenie z OBS (avatar reaguje na głos, przełączanie scen)</label>
-  </section>
   <section>
     <h2>Wersja <span id="upPill" class="pill off"></span></h2>
     <div class="status" id="upStatus"></div>
@@ -866,15 +822,6 @@
     <label class="check" style="margin:0"><input id="compact" type="checkbox"> to okno jako pilot – tylko Start i Sterowanie</label>
     <p class="hint" id="compactHint" hidden style="margin:0">Ustawienia: <a href="https://v-cancrosa.github.io/Vincent-Media/" target="_blank">v-cancrosa.github.io/Vincent-Media</a></p>
   </section>
-  <section hidden data-gone="1">
-    <h2>Link bez panelu</h2>
-    <details>
-      <summary>Link bez panelu (statyczny)</summary>
-      <p class="hint">Gotowy URL z obecnymi ustawieniami – możesz wkleić go jako źródło przeglądarki, jeśli nie chcesz używać panelu.</p>
-      <textarea id="staticUrl" rows="4" readonly></textarea>
-      <div class="row" style="margin-top:6px"><button id="copyBtn" class="auto">Kopiuj</button></div>
-    </details>
-  </section>
   </div>
 </main>
 
@@ -886,7 +833,7 @@
   const DEFAULTS = {
     game: '', subtitle: '', cover: '', since: 0,
     label: 'Teraz gram', theme: 'neon', position: 'bl',
-    accent: '', accent2: '', mode: 'auto', discordId: '', ignore: '',
+    accent: '', accent2: '', mode: 'auto', ignore: '',
     timer: true, icon: true, showLabel: true, visible: true, scale: 1, margin: 40,
     local: true, localUrl: 'http://localhost:7777',
     gameThemes: true, gameMode: 'patch', fuseV: 3, motion: 'full', transitions: true, transitionStyle: 'auto', transitionText: true,
@@ -1040,7 +987,7 @@
       // cała strona jako ekran w scenie „VM · Stream” (przechwytywanie gry się chowa)
       const id = b.dataset.live;
       goScene('start', async () => { s.stage = 'page'; s.pageId = id; save(); renderPages(true);
-        if (obs && s.oneScene !== false) { let ok = false; try { ok = await ensureStreamScene(); } catch {} if (ok) { placeStreamCapture(); if (obsRaw !== STREAM_SCENE) obs.setSceneCut(STREAM_SCENE).catch(() => {}); } } });
+        if (obs) { let ok = false; try { ok = await ensureStreamScene(); } catch {} if (ok) { placeStreamCapture(); if (obsRaw !== STREAM_SCENE) obs.setSceneCut(STREAM_SCENE).catch(() => {}); } } });
       return;
     }
     if (b.dataset.src) {
@@ -1074,7 +1021,7 @@
   const OLD_VM = n => /^VM · /.test(n) && n !== STREAM_SCENE && n !== 'VM · Nakładki';
   function tidyCheck() {
     const old = obsSceneList.filter(OLD_VM);
-    $('tidyBox').hidden = !obs || !old.length || s.oneScene === false;
+    $('tidyBox').hidden = !obs || !old.length;
     $('tidyList').textContent = old.length ? 'Do usunięcia: ' + old.map(n => n.replace(/^VM · /, '')).join(', ') + '. Twoje własne sceny zostają.' : '';
   }
   setInterval(tidyCheck, 3000);
@@ -1137,7 +1084,7 @@
     const name = sec => { const h = sec.querySelector(':scope > h2'); const t = h && [...h.childNodes].find(n => n.nodeType === 3 && n.textContent.trim()); return t ? t.textContent.trim() : ''; };
     const secs = [...more.querySelectorAll(':scope > section')];
     for (const n of Object.keys(IC)) { const sec = secs.find(x => name(x) === n); if (!sec) continue; more.appendChild(sec); const h = sec.querySelector(':scope > h2'); if (!h.querySelector('.ic')) h.insertAdjacentHTML('afterbegin', `<span class="ic">${IC[n]}</span>`); }
-    for (const sec of secs) if (sec.hasAttribute('data-gone') || !Object.keys(IC).includes(name(sec))) more.appendChild(sec);
+    for (const sec of secs) if (!Object.keys(IC).includes(name(sec))) more.appendChild(sec);
   }, 0);
   $('dirOpen').onclick = async () => { const b = $('dirOpen'); try { const j = await (await fetch(hubUrl() + '/folder/open', { cache: 'no-store' })).json(); b.textContent = j.ok ? '✓ otwarte' : '✗ ' + (j.error || j.msg || ''); } catch { b.textContent = '✗ GameRadar nie odpowiada'; } setTimeout(() => b.textContent = '📂 Otwórz folder Vincent-Media', 3000); };
   // pilot z telefonu przez przekaźnik: GameRadar trzyma losowy klucz (temat ntfy.sh), strona pilota na GitHub Pages wysyła na niego polecenia
@@ -1168,7 +1115,7 @@
   $('clearBtn').onclick = () => { s.game = ''; s.subtitle = ''; s.cover = ''; $('game').value = ''; $('subtitle').value = ''; $('cover').value = ''; save(); };
 
   // pola ustawień zapisywane od razu
-  const textFields = ['label', 'discordId', 'ignore', 'localUrl'];
+  const textFields = ['label', 'ignore', 'localUrl'];
   textFields.forEach(id => $(id).addEventListener('change', () => { s[id] = $(id).value.trim(); save(); }));
   ['mode', 'position'].forEach(id => $(id).addEventListener('change', () => { s[id] = $(id).value; save(); }));
   // postać osobno od stylu: „bez postaci” wraca do zapamiętanego stylu, gra zostaje ta sama
@@ -1199,7 +1146,7 @@
   function syncUi() {
     if (typeof syncChatUi === 'function') syncChatUi();
     if (document.activeElement !== $('game') && !$('game').value) $('game').value = s.game;
-    for (const id of ['label', 'discordId', 'ignore', 'localUrl']) if (document.activeElement !== $(id)) $(id).value = s[id];
+    for (const id of ['label', 'ignore', 'localUrl']) if (document.activeElement !== $(id)) $(id).value = s[id];
     $('mode').value = s.mode; $('position').value = s.position;
     const pid = personaOf(s.theme);
     $('persona').value = pid; $('theme').value = pid ? (s.baseTheme || 'neon') : s.theme;
@@ -1216,7 +1163,6 @@
     $('visPill').className = 'pill ' + (s.visible ? 'on' : 'off');
     $('toggleBtn').textContent = s.visible ? 'Ukryj nakładkę' : 'Pokaż nakładkę';
     renderDetected();
-    renderStaticUrl();
     if (typeof syncAlerts === 'function') try { syncAlerts(); syncScenes(); applyFeatures(); syncFast(); } catch {}
   }
 
@@ -1265,15 +1211,6 @@
       if (recent.some(r => r.exe === keep)) $('lcExe').value = keep;
       if (!recent.length) { const o = document.createElement('option'); o.textContent = '(przełącz się na okno gry i wróć)'; o.value = ''; $('lcExe').appendChild(o); }
     }
-
-    // Discord
-    const dc = d.discord || {};
-    const dcOn = !!s.discordId && !manualOnly;
-    pill('dcPill', dcOn);
-    if (!dcOn) setStatus($('dcStatus'), [manualOnly ? 'Tryb ręczny – Discord pominięty.' : 'Podaj Discord User ID, żeby włączyć.']);
-    else if (!dc.status) setStatus($('dcStatus'), ['Łączenie z Lanyard…']);
-    else if (dc.game) setStatus($('dcStatus'), ['Discord wykrył: ', { b: dc.game.name }, ` (status: ${dc.status})`]);
-    else setStatus($('dcStatus'), [`Discord: brak gry w tej chwili (status: ${dc.status})`]);
   }
 
   async function callDetector(path) {
@@ -1317,38 +1254,6 @@
     if (e.key === KEY) { s = { ...DEFAULTS, ...load(KEY, {}) }; syncUi(); }
   });
 
-  // --- statyczny URL ---
-  function overlayUrl() { return new URL('overlay.html', location.href); }
-  function renderStaticUrl() {
-    const u = overlayUrl();
-    const q = u.searchParams;
-    q.set('panel', '0');
-    if (s.game) q.set('game', s.game);
-    if (s.subtitle) q.set('sub', s.subtitle);
-    if (s.cover) q.set('cover', s.cover);
-    if (s.discordId) q.set('discord', s.discordId);
-    if (s.mode !== 'auto') q.set('mode', s.mode);
-    if (s.ignore) q.set('ignore', s.ignore);
-    q.set('theme', s.theme); q.set('pos', s.position);
-    if (s.label !== DEFAULTS.label) q.set('label', s.label);
-    if (s.accent) q.set('accent', s.accent.replace('#', ''));
-    if (s.scale !== 1) q.set('scale', s.scale);
-    if (s.margin !== 40) q.set('margin', s.margin);
-    if (!s.timer) q.set('timer', '0');
-    if (!s.icon) q.set('icon', '0');
-    if (!s.showLabel) q.set('showLabel', '0');
-    if (!s.local) q.set('local', '0');
-    if (s.gameThemes === false) q.set('gameThemes', '0');
-    if (s.gameMode && s.gameMode !== 'patch') q.set('gameMode', s.gameMode);
-    if (s.motion === 'reduced') q.set('motion', 'reduced');
-    if (s.localUrl !== DEFAULTS.localUrl) q.set('localUrl', s.localUrl);
-    $('staticUrl').value = u.href;
-  }
-  $('copyBtn').onclick = async () => {
-    $('staticUrl').select();
-    try { await navigator.clipboard.writeText($('staticUrl').value); } catch { document.execCommand('copy'); }
-    vmPulse($('copyBtn')); $('copyBtn').textContent = 'Skopiowano ✓'; setTimeout(() => $('copyBtn').textContent = 'Kopiuj', 1500);
-  };
 
   // --- ekrany przerw ---
   const OBS_SCENE_FOR = { prep: 'VM · Przygotowania', soon: 'VM · Stream za…', start: 'VM · Zaraz zaczynamy', late: 'VM · Spóźnienie', brb: 'VM · Przerwa', 'brb-late': 'VM · Przerwa', end: 'VM · Koniec' };
@@ -1357,7 +1262,7 @@
     s.scene = b.dataset.s;
     if (s.scene === 'late' || s.scene === 'brb-late') s.sceneLateAt = s.sceneUntil && s.sceneUntil < Date.now() ? s.sceneUntil : Date.now();
     const target = OBS_SCENE_FOR[s.scene];
-    const toObs = obs && s.obsAutoScene !== false && (s.oneScene !== false || obsSceneList.includes(target));
+    const toObs = obs && s.obsAutoScene !== false && true;
     // przejście: najpierw zasłona, potem zmiana ekranu (i sceny OBS), na końcu odsłonięcie
     goScene(s.scene, () => { save(); if (toObs) obs.setSceneCut(target).catch(() => {}); });
   });
@@ -1399,7 +1304,7 @@
   function goScene(scene, apply) {
     if (s.transitions === false) { apply(); return; }
     // taśma filmowa: bez zasłony – przejście robi sama scena (stage.html), gdy zmienia się etap
-    if (s.transitionStyle === 'film' && s.oneScene !== false) { apply(); return; }
+    if (s.transitionStyle === 'film') { apply(); return; }
     setTimeout(apply, sendTransition(scene));
   }
 
@@ -1442,7 +1347,7 @@
     const real = obs.setSceneCut.bind(obs);
     obs.setSceneCut = async name => {
       const st = STAGE_FOR[name];
-      if (s.oneScene === false || !st || isRemote) return real(name);
+      if (!st || isRemote) return real(name);
       const k = SCREEN_FOR[name]; if (k && !String(s.scene || '').startsWith(k)) s.scene = k;
       s.stage = st; save(); obsCurrent = virtScene(); tellScene();
       let ok = false; try { ok = await ensureStreamScene(); } catch {}
@@ -1546,7 +1451,6 @@
   setTimeout(thrUi, 0);
   setInterval(() => { const on = $('obsPill').classList.contains('on'); $('obsManual').hidden = on; $('obsStatus').hidden = on; }, 1500);
   $('obsAutoScene').onchange = () => { s.obsAutoScene = $('obsAutoScene').checked; save(); };
-  $('oneScene').onchange = () => { s.oneScene = $('oneScene').checked; save(); };
   $('transitions').onchange = () => { s.transitions = $('transitions').checked; save(); };
   $('transitionText').onchange = () => { s.transitionText = $('transitionText').checked; save(); };
   $('transitionStyle').onchange = () => { s.transitionStyle = $('transitionStyle').value; save(); };
@@ -1614,7 +1518,6 @@
     $('sceneHero').checked = s.sceneHero !== false;
     $('autoLate').checked = s.autoLate !== false;
     $('obsAutoScene').checked = s.obsAutoScene !== false;
-    $('oneScene').checked = s.oneScene !== false;
     $('transitions').checked = s.transitions !== false;
     $('transitionText').checked = s.transitionText !== false;
     $('transitionStyle').value = s.transitionStyle || 'auto';
@@ -2495,19 +2398,7 @@
 
   // --- głosowanie: postać kontra gra/program (scena „VM · Głosowanie”, głosy liczy wykrywacz z czatu) ---
   const VOTE_SCENE = 'VM · Głosowanie';
-  async function ensureVoteScene() {
-    if (!obs) throw new Error('brak połączenia z OBS');
-    if (obsSceneList.includes(VOTE_SCENE)) return;
-    if (!OWN_PAGES) throw new Error('scenę doda panel w OBS');
-    await obs.call('CreateScene', { sceneName: VOTE_SCENE });
-    const vs = await obs.call('GetVideoSettings');
-    const url = new URL('vote.html', location.href).href;
-    const id = (await obs.call('CreateInput', { sceneName: VOTE_SCENE, inputName: 'VM · Głosowanie (ekran)', inputKind: 'browser_source', inputSettings: { url, width: 1920, height: 1080, is_local_file: false } })).sceneItemId;
-    await obs.call('SetSceneItemTransform', { sceneName: VOTE_SCENE, sceneItemId: id, sceneItemTransform: { boundsType: 'OBS_BOUNDS_STRETCH', boundsWidth: vs.baseWidth, boundsHeight: vs.baseHeight, positionX: 0, positionY: 0 } });
-    // alerty i przejścia także na tej scenie
-    const inputs = ((await obs.call('GetInputList')).inputs || []).map(i => i.inputName);
-    for (const n of ['VM · Alerty', 'VM · Przejścia']) if (inputs.includes(n)) { try { await obs.call('CreateSceneItem', { sceneName: VOTE_SCENE, sourceName: n }); } catch {} }
-  }
+
   let voteId = null;
   async function startVote(inFlow) {
     const st = $('capStatus');
@@ -2516,7 +2407,6 @@
     const game = (s.mode === 'manual' && s.game) || (det.local && det.local.game && det.local.game.name) || s.game || '';
     if (!persona || !game) { st.textContent = 'Do głosowania potrzebna jest postać i gra/program (wybierz z listy „Co dziś?”).'; return; }
     try {
-      if (!inFlow && s.oneScene === false) await ensureVoteScene();
       const j = await (await fetch(hubUrl() + '/vote/start?a=' + encodeURIComponent(persona.name) + '&b=' + encodeURIComponent(game) + '&sec=' + (+s.voteSec || 300), { cache: 'no-store' })).json();
       voteId = j.id;
       if (!inFlow) goScene('start', () => obs.setSceneCut(VOTE_SCENE).catch(() => {}));
@@ -2560,19 +2450,7 @@
   const FLOW = [['prep', 'Przygotowania'], ['soon', 'Stream za…'], ['start', 'Zaraz zaczynamy'], ['vote', 'Głosowanie'], ['game', 'Gra']];
   // jedna scena w OBS na cały start: ekran (scenes.html bez ?scene=) przechodzi przez etapy sam
   const FLOW_SCENE = 'VM · Start streamu';
-  async function ensureFlowScene() {
-    if (s.oneScene !== false) return false;     // jedna scena: etapy idą przez „VM · Stream” (setSceneCut niżej)
-    if (!obs) return false;
-    if (obsSceneList.includes(FLOW_SCENE)) return true;
-    if (!OWN_PAGES) return false;
-    await obs.call('CreateScene', { sceneName: FLOW_SCENE });
-    const vs = await obs.call('GetVideoSettings');
-    const id = (await obs.call('CreateInput', { sceneName: FLOW_SCENE, inputName: 'VM · Ekran startu', inputKind: 'browser_source', inputSettings: { url: new URL('scenes.html', location.href).href, width: 1920, height: 1080, is_local_file: false } })).sceneItemId;
-    await obs.call('SetSceneItemTransform', { sceneName: FLOW_SCENE, sceneItemId: id, sceneItemTransform: { boundsType: 'OBS_BOUNDS_STRETCH', boundsWidth: vs.baseWidth, boundsHeight: vs.baseHeight, positionX: 0, positionY: 0 } });
-    const inputs = ((await obs.call('GetInputList')).inputs || []).map(x => x.inputName);
-    for (const n of ['VM · Alerty', 'VM · Przejścia', 'VM · Mikrofon']) if (inputs.includes(n)) { try { await obs.call('CreateSceneItem', { sceneName: FLOW_SCENE, sourceName: n }); } catch {} }
-    return true;
-  }
+
   function flowNow() {
     if (obsCurrent === VOTE_SCENE) return 'vote';
     const pre = !obsCurrent || obsCurrent === FLOW_SCENE || (obsRaw === STREAM_SCENE && s.stage === 'screen' && !/^brb|^end/.test(s.scene || '')) || /^VM · (Przygotowania|Stream za|Zaraz zaczynamy|Spóźnienie)/.test(obsCurrent);
@@ -2605,13 +2483,11 @@
       await startVote(true);
     }
     if (step === 'start' && !(s.sceneUntil > Date.now())) { const m = parseFloat(String($('sceneMin').value).replace(',', '.')) || 5; s.sceneUntil = Date.now() + Math.round(m * 60000); }
-    // ekran zmienia się w tej samej scenie; na scenę „Start streamu” przechodzimy z przejściem tylko, gdy jesteśmy gdzie indziej
-    let ok = false; try { ok = await ensureFlowScene(); } catch {}
+    // etapy zmieniają się w środku sceny „VM · Stream” (setSceneCut przechwytuje dawne nazwy scen)
     const apply = () => { s.scene = step; save(); };
-    if (s.oneScene !== false && obs) { const name = step === 'vote' ? 'VM · Głosowanie' : ({ prep: 'VM · Przygotowania', soon: 'VM · Stream za…', start: 'VM · Zaraz zaczynamy', late: 'VM · Spóźnienie' })[step];
+    if (obs) { const name = step === 'vote' ? 'VM · Głosowanie' : ({ prep: 'VM · Przygotowania', soon: 'VM · Stream za…', start: 'VM · Zaraz zaczynamy', late: 'VM · Spóźnienie' })[step];
       goScene(step === 'vote' ? 'start' : step, () => { apply(); obs.setSceneCut(name).catch(() => {}); }); setTimeout(renderFlow, 1200); return; }
-    if (ok && obsCurrent !== FLOW_SCENE) goScene(step === 'vote' ? 'start' : step, () => { apply(); obs.setSceneCut(FLOW_SCENE).catch(() => {}); });
-    else goScene(step === 'vote' ? 'start' : step, apply);
+    goScene(step === 'vote' ? 'start' : step, apply);
     setTimeout(renderFlow, 1200);
   }
   $('flowNext').onclick = () => { const nx = flowNextStep(flowNow()); if (nx) flowGo(nx[0]); };
@@ -2806,49 +2682,22 @@
   }
 
   // --- funkcje: wyłączone znikają z panelu ---
-  // Twitch i OBS są zawsze włączone (sekcja „Funkcje” zniknęła), Discord/Lanyard – wyłączony na stałe
+  // Twitch, OBS i wykrywanie gier są zawsze włączone
   const feats = () => ({ ...DEFAULTS.features, ...(s.features || {}), twitch: true, obs: true, discord: false });
-  $('featLocal').onchange = () => { s.local = $('featLocal').checked; save(); };
-  $('featTwitch').onchange = () => { s.features = { ...feats(), twitch: $('featTwitch').checked }; save(); };
-  $('featDiscord').onchange = () => { s.features = { ...feats(), discord: $('featDiscord').checked }; save(); };
-  $('featObs').onchange = () => { s.features = { ...feats(), obs: $('featObs').checked }; s.obsVoice = $('featObs').checked; save(); obsStart(); };
   function applyFeatures() {
-    const f = feats();
-    $('featLocal').checked = !!s.local; $('featTwitch').checked = !!f.twitch; $('featDiscord').checked = !!f.discord; $('featObs').checked = f.obs !== false;
-    const on = { local: !!s.local, twitch: !!f.twitch, discord: !!f.discord, detect: !!s.local || !!f.discord, obs: f.obs !== false };
+    const on = { local: !!s.local, twitch: true, detect: true, obs: true };
     for (const sec of document.querySelectorAll('[data-feature]')) sec.hidden = !on[sec.dataset.feature];
-    $('connEmpty').hidden = on.local || on.twitch || on.discord || on.obs;
     updateSubs();
   }
 
   // --- pilot z telefonu ---
   const onPhone = /^https?:$/.test(location.protocol) && location.pathname.indexOf('/ui/') === 0;
-  if (onPhone) $('remoteSec').hidden = true;
-  let qrLib = null, rmShown = '';
+  let qrLib = null;
   function loadQr() {
     if (qrLib) return qrLib;
     qrLib = new Promise((ok, fail) => { const sc = document.createElement('script'); sc.src = 'lib/qrcode.min.js'; sc.onload = ok; sc.onerror = fail; document.head.appendChild(sc); });
     return qrLib;
   }
-  async function rmPoll() {
-    if (onPhone) return;
-    let info = null;
-    try { const r = await fetch(window.vmHub(s.localUrl || DEFAULTS.localUrl) + '/remote/info', { cache: 'no-store' }); info = await r.json(); } catch {}
-    $('rmOn').hidden = !(info && info.lan && info.urls && info.urls.length);
-    if (!info) { pill('rmPill', false, '', 'BRAK'); setStatus($('rmStatus'), ['Pilot działa przez wykrywacz, a ten teraz nie odpowiada. Uruchom go: ', { b: 'Menu Start → Vincent-Media → GameRadar' }, '.']); }
-    else if (!info.lan) { pill('rmPill', false, '', 'WYŁ.'); setStatus($('rmStatus'), ['Wymaga jednej zgody administratora: ', { b: 'Menu Start → Vincent-Media → Włącz pilota z telefonu' }, '. Wykrywacz sam uruchomi się ponownie.']); }
-    else {
-      pill('rmPill', true, 'DZIAŁA'); setStatus($('rmStatus'), [info.urls.length > 1 ? 'Komputer ma kilka adresów – użyj tego z Twojej sieci Wi‑Fi.' : '']);
-      const url = info.urls[0];
-      if (rmShown !== url) {
-        rmShown = url; $('rmUrl').value = url; $('rmQr').textContent = '';
-        try { await loadQr(); new window.QRCode($('rmQr'), { text: url, width: 180, height: 180, correctLevel: window.QRCode.CorrectLevel.M }); }
-        catch { $('rmQr').hidden = true; }
-      }
-    }
-    setTimeout(rmPoll, 10000);
-  }
-  $('rmCopy').onclick = async () => { $('rmUrl').select(); try { await navigator.clipboard.writeText($('rmUrl').value); } catch { document.execCommand('copy'); } };
 
   // --- wersja i aktualizacje (przez wykrywacz) ---
   const hub = path => fetch(window.vmHub(s.localUrl || DEFAULTS.localUrl) + path, { cache: 'no-store' }).then(r => r.json());
@@ -2892,7 +2741,7 @@
 
   // --- podgląd ---
   const frame = $('frame');
-  frame.src = overlayUrl().href;
+  frame.src = new URL('overlay.html', location.href).href;
   const frameA = $('frameAlerts');
   frameA.src = new URL('alerts.html?volume=0', location.href).href; // podgląd bez dźwięku – gra źródło w OBS
   const fit = () => { const k = `scale(${$('preview').clientWidth / 1920})`; frame.style.transform = k; frameA.style.transform = k; };
@@ -2906,7 +2755,6 @@
   syncScenes();
   applyFeatures();
   pullHub();
-  rmPoll();
   obsStart();
   twPoll();
   upPoll();
