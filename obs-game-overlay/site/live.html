@@ -18,6 +18,7 @@
 <script src="../themes/obssetup.js"></script>
 <script src="../themes/sync.js"></script>
 <script src="site.js"></script>
+<script>if (new URLSearchParams(location.search).has('dock')) document.documentElement.classList.add('dock');</script>
 <style>
   /*
     Kokpit: jedna strona do prowadzenia streamu. OBS tylko nadaje.
@@ -73,6 +74,31 @@
   .vbar div { display: grid; place-items: center; min-width: 0; transition: flex .4s; color: #fff; white-space: nowrap; overflow: hidden; }
   .empty { color: var(--dim); font-size: 13px; padding: 10px; }
   @media (max-width: 1100px) { .cock { grid-template-columns: 1fr; } #chat { height: 50vh; } }
+  /* dok w OBS (?dock=1): wąsko i gęsto, bez menu i podglądu (OBS ma swój) */
+  html.dock .app { display: block; } html.dock .nav { display: none; }
+  html.dock main { padding: 6px 8px 14px; }
+  html.dock .pvw, html.dock #cdRow, html.dock .stages .lbl { display: none; }
+  html.dock .cock { grid-template-columns: 1fr; gap: 8px; }
+  html.dock .col { gap: 8px; }
+  html.dock .top { margin: 0; padding: 4px 0 6px; gap: 5px; }
+  html.dock .pill { padding: 5px 9px; font-size: 12px; }
+  html.dock .big { padding: 6px 10px; font-size: 12.5px; border-radius: 8px; }
+  html.dock .card { padding: 9px; border-radius: 10px; }
+  html.dock h2 { font-size: 10.5px; margin-bottom: 6px; }
+  html.dock .stages { gap: 6px; }
+  html.dock .stages .seg { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 4px; }
+  html.dock .stages .seg button { padding: 6px 6px; font-size: 12px; border-radius: 8px; }
+  html.dock .next { padding: 8px; font-size: 13.5px; }
+  html.dock .ctl { grid-template-columns: 1fr 1fr; gap: 6px; }
+  html.dock .ctl .card { padding: 8px; gap: 5px; } html.dock .ctl b { font-size: 11.5px; }
+  html.dock .ctl button { padding: 5px 6px; font-size: 12px; }
+  html.dock .panic { padding: 6px; }
+  html.dock #chat { height: 36vh; min-height: 160px; }
+  html.dock #alerts { max-height: 20vh; }
+  html.dock .msg { font-size: 12.5px; padding: 4px 6px; }
+  html.dock .msg .act { display: flex; } html.dock .msg .act button { padding: 1px 5px; font-size: 11px; }
+  html.dock #obsFix { font-size: 12px; padding: 7px 10px !important; }
+  #fullLink { display: none; } html.dock #fullLink { display: inline-flex; }
   @media (max-width: 760px) { .top { margin: 0 -16px; padding: 8px 16px; } .stages .seg button { flex: 1 1 auto; } .msg .act { display: flex; position: static; margin-top: 4px; } }
 </style>
 </head>
@@ -85,6 +111,7 @@
   <span class="grow"></span>
   <button class="big go" id="bStream" disabled>▶ Rozpocznij stream</button>
   <button class="big" id="bRec" disabled>● Nagrywaj</button>
+  <a class="big" id="fullLink" href="live.html" target="_blank" title="Pełny kokpit w przeglądarce" style="text-decoration:none;border:1px solid var(--line);background:var(--panel2)">↗</a>
 </div>
 <a id="obsFix" href="obs.html" hidden style="display:block;margin:0 0 12px;padding:10px 14px;border-radius:10px;background:color-mix(in srgb,var(--warn) 14%,var(--panel));border:1px solid color-mix(in srgb,var(--warn) 50%,transparent);text-decoration:none"></a>
 <div class="cock">
@@ -216,8 +243,9 @@
     $('pLive').classList.toggle('live', !!streamAt);
     $('pLiveT').textContent = streamAt ? 'NA ŻYWO ' + hms(Date.now() - streamAt) : ok ? 'offline' : 'OBS niepołączony';
     $('pRec').hidden = !recAt; $('pRec').classList.toggle('rec', !!recAt); $('pRecT').textContent = recAt ? hms(Date.now() - recAt) : '';
-    $('bStream').textContent = streamAt ? '■ Zakończ stream' : '▶ Rozpocznij stream'; $('bStream').className = 'big ' + (streamAt ? 'stop' : 'go');
-    $('bRec').textContent = recAt ? '■ Zatrzymaj nagrywanie' : '● Nagrywaj';
+    const dock = document.documentElement.classList.contains('dock');   // w wąskim doku krótsze napisy
+    $('bStream').textContent = streamAt ? (dock ? '■ Stop' : '■ Zakończ stream') : (dock ? '▶ Start' : '▶ Rozpocznij stream'); $('bStream').className = 'big ' + (streamAt ? 'stop' : 'go');
+    $('bRec').textContent = recAt ? (dock ? '■ REC' : '■ Zatrzymaj nagrywanie') : (dock ? '● REC' : '● Nagrywaj');
   }
   setInterval(refreshOut, 1000);
   $('bStream').onclick = async () => {
@@ -363,6 +391,13 @@
     vTimer = setTimeout(vote, v.active ? 1000 : 5000);
   }
 
+  // dok w OBS: niewidoczny silnik panelu (łapanie okna gry, nagrywanie, pilot, cenzura, sceny dla alertów) działa w tle
+  if (document.documentElement.classList.contains('dock')) {
+    $('obsFix').target = '_blank';
+    const f = document.createElement('iframe'); f.src = '../panel.html?engine=1'; f.title = 'Silnik Vincent-Media'; f.tabIndex = -1;
+    f.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none;border:0';
+    document.body.appendChild(f);
+  }
   S.onChange(render);
   render(); start(); poll(); audience(); vote();
   document.addEventListener('visibilitychange', () => { if (!document.hidden) preview(); });

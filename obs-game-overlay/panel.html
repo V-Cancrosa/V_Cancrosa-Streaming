@@ -4,7 +4,20 @@
 <meta charset="utf-8">
 <title>Game Overlay – panel</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+  // Panel zastąpiony kokpitem: w doku OBS → kompaktowy kokpit (site/live.html?dock=1), w przeglądarce → pełny kokpit.
+  // Kokpit w doku uruchamia ten plik niewidocznie (?engine=1) – robota w tle (okno gry, nagrywanie, pilot, cenzura) zostaje.
+  // ?legacy=1 – stary wygląd panelu (strona «Wszystkie ustawienia»).
+  (function () {
+    var q = new URLSearchParams(location.search);
+    if (q.has('engine')) { document.documentElement.className += ' engine'; return; }
+    if (q.has('legacy') || window.top !== window) return;
+    var inObs = !!window.obsstudio || /\bOBS\//.test(navigator.userAgent);
+    location.replace(new URL('site/live.html' + (inObs ? '?dock=1' : ''), location.href).href);
+  })();
+</script>
 <style>
+  html.engine body { display: none; }
   :root {
     --bg: #1b1d23; --panel: #23262e; --line: #343844; --text: #e7e9ee; --muted: #9aa0ad;
     --accent: #7c5cff; --ok: #3ddc84; --warn: #ffb347;

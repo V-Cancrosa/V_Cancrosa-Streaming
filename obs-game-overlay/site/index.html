@@ -39,7 +39,7 @@
     ['alerts.html', 'Alerty', 'follow, sub, raid… – na wierzchu każdej sceny'],
     ['transition.html', 'Przejścia', 'zasłona przy zmianie ekranu'],
     ['censor.html', 'Cenzura ekranu', 'naklejki na brzydkie słowa w oknach'],
-    ['panel.html', 'Panel – dok w OBS', 'Docki → Własne docki przeglądarki'],
+    ['site/live.html?dock=1', 'Kokpit – dok w OBS', 'Docki → Własne docki przeglądarki (stary adres panel.html też działa)'],
   ];
   const abs = u => new URL('../' + u, location.href).href;
   $('views').innerHTML = VIEWS.map(([u, n, d]) => `<div class="row" style="justify-content:space-between;padding:8px 10px;border-radius:10px;background:var(--panel2)"><span><b>${esc(n)}</b><br><span class="hint">${esc(d)}</span></span><span class="row"><button data-open="${u}">⤢</button><button data-copy="${u}">⧉ Adres</button></span></div>`).join('');

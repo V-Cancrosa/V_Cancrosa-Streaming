@@ -1,5 +1,5 @@
 {
-  "version": "1.56.0",
+  "version": "1.57.0",
   "date": "2026-11-15",
-  "notes": "Automatyczne ustawienia OBS (obraz, scena, mikrofon, Twitch z kluczem, jakość) ze strony OBS i z kokpitu"
+  "notes": "Dok w OBS to teraz kompaktowy kokpit (ten sam co w przeglądarce); robota panelu działa w tle"
 }

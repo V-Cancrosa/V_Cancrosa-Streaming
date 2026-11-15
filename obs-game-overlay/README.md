@@ -50,7 +50,7 @@ Instalator można uruchomić ponownie – nie tworzy duplikatów.
 - ostatnie alerty z przyciskiem ↻ (pokaż jeszcze raz; nie liczy się drugi raz do statystyk),
 - głosowanie: postać czy gra, 2/3/5 min, wynik na żywo, zakończenie przed czasem.
 
-Na razie panel w OBS dalej działa w tle (sam łapie okno gry i pilnuje nagrywania) – zniknie, gdy kokpit przejmie te rzeczy.
+**Kokpit w OBS:** dok *Vincent-Media* w OBS to teraz kompaktowy kokpit (`site/live.html?dock=1`) – ten sam co w przeglądarce, zawsze zsynchronizowany; stary adres `panel.html` przekierowuje sam (bez zmian w OBS). Robota dawnego panelu (łapanie okna gry, automatyczne nagrywanie, polecenia z pilota, cenzura, podpowiedzi scen dla alertów) działa w doku niewidocznie (`panel.html?engine=1`). Stary wygląd panelu: serwis → *Wszystkie ustawienia*.
 
 1. **Vincent-Media** (program z ikoną) → kreator sprawdza wszystko, uruchamia GameRadar, OBS i kokpit. Z autostartem GameRadar wstaje sam po włączeniu komputera (w tle, bez okna).
 2. **Panel → Start** pokazuje uruchamianie krok po kroku: GameRadar, OBS, Twitch, przechwytywanie gry – kółko kręci się, dopóki trwa łączenie, i rysuje ✓, gdy zadziała. Gdy wszystko działa, zostaje jedna zielona belka. Coś nie gra → lista zostaje otwarta, przy kroku jest **Napraw**.
