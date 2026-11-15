@@ -15,6 +15,7 @@
     ['creator.html', '✦', 'Kreator stron'],
     ['settings.html', '⚙', 'Wszystkie ustawienia'],
     ['pilot.html', '🎛', 'Pilot (telefon)'],
+    ['log.html', '📜', 'Dziennik'],
   ];
   const here = location.pathname.split('/').pop() || 'index.html';
   const $ = id => document.getElementById(id);

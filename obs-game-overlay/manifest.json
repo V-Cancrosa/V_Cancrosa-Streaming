@@ -1,5 +1,5 @@
 {
- "version": "1.53.3",
+ "version": "1.54.0",
  "files": {
   "README.md": "02a8925ee206caddcf17397fb759fd70a7146853a5d11efb1d0b66086f72a947",
   "alerts.html": "aedf34b91e83adaa93b882f9370fd22c427c361ad67634fa198794a72805307d",
@@ -11,7 +11,7 @@
   "detector/mods/windows.ps1": "4aa726723756d9cd97a04fecbeb1ef207868c6a14efd1481ebb1cfbeebbe2022",
   "editor.html": "64320b5c2d3d3dd86f21dd5406030874231bb75858fee454fedda8528f08c1da",
   "gallery.html": "4fe318e2a9de17175faea457bce37fd5735f5b64a77fc90f46b0ef1ed6ba501e",
-  "launcher/launcher.ps1": "22ee6fbf312110b8509122b8cd9c5c1a74116c3fe2251fe1a237d31ab0571abc",
+  "launcher/launcher.ps1": "a39b003126eb490397ed115e62a433592b7b0fb384be97406f1f15e46838304c",
   "launcher/launcher.vbs": "b9d7112eccb1dcf6603c8dfabc3c8d907ca10fa8a0a0f167ed1f450072a5836b",
   "launcher/logo.png": "91a4e63b088173d4f3f1e76f892282d6c083e8740b04cb757377428a1f3b33dc",
   "launcher/vincent-media.ico": "bade712dd6c8ff68c52c3a70e477c490c467f4b92592605c53086a2b8f8514d6",
@@ -27,12 +27,13 @@
   "site/index.html": "64e05d393f965165a984d2692acf15f417d02ca603f4819d5564393971e6a5a3",
   "site/layouts.html": "578971fa4b2652b29d852137036ab21548351ce8959c6f662889c7767f696d28",
   "site/live.html": "c587b5f3be2b90430053268623a58fc0c3c5e669ed497d2daca60ad6050472c9",
+  "site/log.html": "8e944e8810c90f7d648c746f961ccd1ef3ea82d1b4cf4655ae672bc69927d6ef",
   "site/look.html": "fb3749d51c93b8cfa53bff5b81c8682188b6cf239071c82ddfba4549f2e09d6b",
   "site/pilot.html": "e3c6b2d932b6ea5e7ba2a28cd96652e505dede3a079406aae82b1aeb03b77bbb",
   "site/screens.html": "a08ab3f18264a611dfff68a26fb164255079b4edbc4f4771717b0bf1a3880d92",
   "site/settings.html": "f2ce6970ebd96ce03b6da4e5fd1f3bec5aeb8b26a7953fb77b72d1553dde9a4c",
   "site/site.css": "5ca5f5aa3fa51444ef3ddea607a2d9c70dc3333836b527305ad5704d12595385",
-  "site/site.js": "41d8189295b3ab73ffcbf34fae784fc21df77e9d318e8ca853783796eaf3945c",
+  "site/site.js": "ed688b4a5731c81d625d8004a24b697951a9b9e6fecc6a96bd7d006bb99f6965",
   "site/voice.html": "1b9b756a703be78bd6138f634c74c27228eef48b87cc34d9dc564e94dcff2db9",
   "stage.html": "426759aa63e9e531fe988da980f67c22622e69adbd0e968db91dedf5f8eaba25",
   "themes/aether.js": "51fffd10579bddb065d6bab7f99cdd70f0e8533403956523d7653051d24eec88",
@@ -85,8 +86,8 @@
   "themes/zones.js": "235ed7e8b81cd1a6c93df3c2977156ec0f86f49eeb1d61cd500bfb7776af2c4b",
   "transition.html": "8722e73dbe98046e98e02e80a6b8e714f89062b9ebe8fc89298c61af8b70d8d4",
   "update.ps1": "60971a08b0147c0a426fd11a01fa2c041ffad5e211168673d11ac78397144f04",
-  "version.js": "9be5d1fc31db1e6d4d08c1918922e80472f206c2f2d27a6ddf33ae8948b38c2f",
-  "version.json": "d543f8b865d39e762e201747cb83d248636d94852865ba2ef4f008a13b0677fd",
+  "version.js": "714417fba4c66650d52559ce96afb2b3c8fd429ca3baabd3ed0dc31d7168b487",
+  "version.json": "a97c2c858ec0270dc121aeeeddd463a3bd6904a00ec614324c31e803ce2cc011",
   "vote.html": "ecc040a618030f6bee831ff467a68f707278dfc79381b16339a7786d526dbed0"
  }
 }

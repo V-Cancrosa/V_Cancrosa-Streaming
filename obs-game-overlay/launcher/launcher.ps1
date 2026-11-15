@@ -125,6 +125,10 @@ $Work = {
         $i = 3; Set-Step 3 'run' 'Sprawdzam, czy działa…'
         $st = Get-Radar
         if (-not $st -and (Test-RadarRunning)) {
+            # działa, ale nie odpowiada: najczęściej właśnie przechodzi na nową wersję albo się uruchamia – chwilę czekamy
+            for ($k = 0; $k -lt 25 -and -not $st; $k++) { Set-Step 3 'run' 'Uruchamia się – czekam…'; Start-Sleep -Seconds 1; $st = Get-Radar }
+        }
+        if (-not $st -and (Test-RadarRunning)) {
             # działa, ale kreator nie może się z nim połączyć – nie uruchamiamy drugiej kopii
             Set-Step 3 'warn' ("Działa, ale kreator nie może się z nim połączyć: $($script:RadarErr)") 'log'
             $st = 'running'
@@ -295,7 +299,7 @@ function Invoke-Action([string]$a) {
         'retry' { Reset-Steps; $script:closeAt = $null; $ui.Status.Text = ''; Build-Rows; Start-Work }
         'defender' { try { Start-Process 'windowsdefender://threat' } catch {} }
         'obsdl' { Start-Process 'https://obsproject.com/download' }
-        'log' { $lg = Join-Path $App 'detector\data\detector.log'; if (Test-Path $lg) { Start-Process notepad.exe -ArgumentList ('"' + $lg + '"') } else { Start-Process explorer.exe -ArgumentList ('"' + (Join-Path $App 'detector') + '"') } }
+        'log' { Start-Process ($Cockpit -replace 'live\.html$', 'log.html') }
     }
 }
 function Show-Row($r) {

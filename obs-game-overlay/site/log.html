@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dziennik · Vincent-Media</title>
+<link rel="stylesheet" href="../themes/fonts.css">
+<link rel="stylesheet" href="site.css">
+<script src="../version.js"></script>
+<script src="../themes/sync.js"></script>
+<script src="site.js"></script>
+<style>
+  .sess { margin-bottom: 14px; }
+  .sess > summary { cursor: pointer; list-style: none; display: flex; gap: 10px; align-items: center; padding: 12px 14px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); }
+  .sess > summary::-webkit-details-marker { display: none; }
+  .sess > summary b { font-size: 14.5px; } .sess > summary small { color: var(--dim); }
+  .sess > summary .bad { color: var(--bad); font-weight: 700; }
+  .sess[open] > summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+  .lines { border: 1px solid var(--line); border-top: 0; border-radius: 0 0 12px 12px; background: #121318; padding: 6px 0; }
+  .ln { display: grid; grid-template-columns: 62px 26px minmax(0, 1fr); gap: 6px; padding: 4px 14px; font-size: 13.5px; line-height: 1.4; }
+  .ln:hover { background: var(--panel2); }
+  .ln time { color: var(--dim); font: 12px 'Space Mono', monospace; padding-top: 2px; }
+  .ln i { font-style: normal; text-align: center; }
+  .ln.warn span { color: #ffd39a; } .ln.err span { color: #ffb4bc; } .ln.dim span { color: var(--dim); }
+  .empty { color: var(--dim); padding: 20px; }
+</style>
+</head>
+<body>
+<div class="app"><nav class="nav"></nav><main>
+<h1>Dziennik</h1>
+<p class="lead">Co robił GameRadar, uruchomienie po uruchomieniu – najnowsze na górze. Problemy są na czerwono i żółto.</p>
+<div class="row" style="margin-bottom:14px"><span class="seg" id="mode"></span><span style="flex:1"></span><button id="reload">↻ Odśwież</button><button id="raw" title="Cały plik detector.log">⤓ Plik</button></div>
+<div id="out"><p class="empty">Wczytuję…</p></div>
+</main></div>
+<script>
+(() => {
+  const S = window.VMSite, $ = S.$, esc = S.esc;
+  // rodzaj wpisu: ikona, waga (0 – szczegół, 1 – zwykły, 2 – ważny), wygląd
+  const KIND = [
+    [/niedostępny, słucham przez/, '·', 0, 'dim'],   // stara rezerwacja portu – działa, to tylko informacja
+    [/Nie mog|Błąd|błąd|nie wczytany|zablokował|nie udało|Nie udało|niedostępny: /, '⚠', 2, 'err'],
+    [/Zablokowano stronę|niedostępny|uwaga|Uwaga|Boty\?|zawieszon/, '!', 2, 'warn'],
+    [/^Uruchamiam wykrywacz|^Wczytano bazę/, '⏻', 2, ''],
+    [/^Aktualizacja/, '⬆', 2, ''],
+    [/^Alert: (transition|effect)/, '·', 0, 'dim'],
+    [/^Alert:/, '🔔', 1, ''],
+    [/^Twitch/, '💬', 2, ''],
+    [/^(Gra|Koniec gry|Uruchamiam:)/, '🎮', 1, ''],
+    [/^Głosowanie/, '🗳', 1, ''],
+    [/^Głos \(TTS\)/, '🔊', 1, ''],
+    [/^Cenzura/, '🛡', 1, ''],
+    [/^(Moduły|my-games|Port|Nasłuchuję|Biblioteka|Start streamu)/, '·', 0, 'dim'],
+  ];
+  const MODES = [['main', 'Najważniejsze'], ['bad', 'Problemy'], ['all', 'Wszystko']];
+  let mode = 'main', text = '';
+  const kind = t => KIND.find(k => k[0].test(t)) || [null, '·', 1, ''];
+  function parse(raw) {
+    const sess = []; let cur = null;
+    for (const line of raw.split(/\r?\n/)) {
+      const m = line.match(/^(\d{4}-\d\d-\d\d)?\s*\[(\d\d:\d\d:\d\d)\]\s*(.*)$/); if (!m) continue;
+      const [, day, tm, msg] = m;
+      // nowe uruchomienie: «Uruchamiam wykrywacz…» albo «Wczytano bazę» bez poprzedzającego restartu
+      if (!cur || /^Uruchamiam wykrywacz/.test(msg) || (/^Wczytano bazę/.test(msg) && !/^Uruchamiam wykrywacz/.test(cur.last))) { cur = { day: day || '', start: tm, lines: [], last: '' }; sess.push(cur); }
+      const k = kind(msg); cur.lines.push({ tm, msg, ic: k[1], w: k[2], cls: k[3] }); cur.last = msg; cur.end = tm;
+    }
+    return sess.reverse();
+  }
+  function render() {
+    $('mode').innerHTML = MODES.map(([k, n]) => `<button data-m="${k}" aria-pressed="${mode === k}">${n}</button>`).join('');
+    const sess = parse(text);
+    if (!sess.length) { $('out').innerHTML = '<p class="empty">Dziennik jest pusty albo GameRadar nie odpowiada.</p>'; return; }
+    $('out').innerHTML = sess.slice(0, 40).map((s, i) => {
+      const bad = s.lines.filter(l => l.cls === 'err').length, warn = s.lines.filter(l => l.cls === 'warn').length;
+      const show = s.lines.filter(l => mode === 'all' || (mode === 'bad' ? l.cls === 'err' || l.cls === 'warn' : l.w >= 1)).reverse();
+      const alerts = s.lines.filter(l => /^Alert: (?!transition|effect)/.test(l.msg)).length, games = [...new Set(s.lines.map(l => (l.msg.match(/^Gra: (.+?)\s{2,}/) || [])[1]).filter(Boolean))];
+      return `<details class="sess" ${i === 0 ? 'open' : ''}><summary><b>${i === 0 ? 'Teraz' : 'Uruchomienie'} · ${esc(s.day)} ${esc(s.start)}–${esc(s.end)}</b>
+        <small>${[alerts ? alerts + ' alertów' : '', games.length ? '🎮 ' + games.join(', ') : ''].filter(Boolean).map(esc).join(' · ')}</small><span style="flex:1"></span>
+        ${bad ? `<span class="bad">⚠ ${bad}</span>` : ''}${warn ? `<small>! ${warn}</small>` : ''}</summary>
+        <div class="lines">${show.map(l => `<div class="ln ${l.cls}"><time>${l.tm}</time><i>${l.ic}</i><span>${esc(l.msg)}</span></div>`).join('') || '<p class="empty">Nic w tym widoku.</p>'}</div></details>`;
+    }).join('');
+  }
+  async function load() {
+    try { const r = await fetch(S.hub() + '/log/file', { cache: 'no-store' }); if (!r.ok) throw 0; text = await r.text(); }
+    catch { text = ''; }
+    render();
+  }
+  $('mode').onclick = e => { const b = e.target.closest('[data-m]'); if (b) { mode = b.dataset.m; render(); } };
+  $('reload').onclick = load;
+  $('raw').onclick = () => window.open(S.hub() + '/log/file', '_blank');
+  load(); setInterval(() => { if (!document.hidden) load(); }, 15000);
+})();
+</script>
+</body>
+</html>

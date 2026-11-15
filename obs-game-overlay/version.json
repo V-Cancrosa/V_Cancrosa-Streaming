@@ -1,5 +1,5 @@
 {
-  "version": "1.53.3",
+  "version": "1.54.0",
   "date": "2026-11-15",
-  "notes": "Kreator: rozpoznaje działający GameRadar (bez drugiej kopii), łączy się z pominięciem proxy, czyta dziennik z datami"
+  "notes": "Czytelny dziennik na stronie (uruchomienia, ikony, Najważniejsze/Problemy/Wszystko); kreator czeka na GameRadar w trakcie jego restartu"
 }
