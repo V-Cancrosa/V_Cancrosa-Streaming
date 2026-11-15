@@ -1,5 +1,5 @@
 {
-  "version": "1.53.2",
+  "version": "1.53.3",
   "date": "2026-11-15",
-  "notes": "GameRadar: koniec ciągłych restartów (nowa kopia nie zabija działającej, panel nie uruchamia drugiej)"
+  "notes": "Kreator: rozpoznaje działający GameRadar (bez drugiej kopii), łączy się z pominięciem proxy, czyta dziennik z datami"
 }

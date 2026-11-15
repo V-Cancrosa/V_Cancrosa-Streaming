@@ -1,5 +1,5 @@
 {
- "version": "1.53.2",
+ "version": "1.53.3",
  "files": {
   "README.md": "02a8925ee206caddcf17397fb759fd70a7146853a5d11efb1d0b66086f72a947",
   "alerts.html": "aedf34b91e83adaa93b882f9370fd22c427c361ad67634fa198794a72805307d",
@@ -11,7 +11,7 @@
   "detector/mods/windows.ps1": "4aa726723756d9cd97a04fecbeb1ef207868c6a14efd1481ebb1cfbeebbe2022",
   "editor.html": "64320b5c2d3d3dd86f21dd5406030874231bb75858fee454fedda8528f08c1da",
   "gallery.html": "4fe318e2a9de17175faea457bce37fd5735f5b64a77fc90f46b0ef1ed6ba501e",
-  "launcher/launcher.ps1": "c6608ee934e8e46c47d6827599d0cd06950496a083908772f7fb48f8889663a6",
+  "launcher/launcher.ps1": "22ee6fbf312110b8509122b8cd9c5c1a74116c3fe2251fe1a237d31ab0571abc",
   "launcher/launcher.vbs": "b9d7112eccb1dcf6603c8dfabc3c8d907ca10fa8a0a0f167ed1f450072a5836b",
   "launcher/logo.png": "91a4e63b088173d4f3f1e76f892282d6c083e8740b04cb757377428a1f3b33dc",
   "launcher/vincent-media.ico": "bade712dd6c8ff68c52c3a70e477c490c467f4b92592605c53086a2b8f8514d6",
@@ -85,8 +85,8 @@
   "themes/zones.js": "235ed7e8b81cd1a6c93df3c2977156ec0f86f49eeb1d61cd500bfb7776af2c4b",
   "transition.html": "8722e73dbe98046e98e02e80a6b8e714f89062b9ebe8fc89298c61af8b70d8d4",
   "update.ps1": "60971a08b0147c0a426fd11a01fa2c041ffad5e211168673d11ac78397144f04",
-  "version.js": "e8aca9ee16e29fc0857a5e398a6748d5132abd81c057ef676a9c73bea4f93a86",
-  "version.json": "a18c73c5458c276092e4031a29d173f9e6c7d05bab105aeb28b8b402256eadef",
+  "version.js": "9be5d1fc31db1e6d4d08c1918922e80472f206c2f2d27a6ddf33ae8948b38c2f",
+  "version.json": "d543f8b865d39e762e201747cb83d248636d94852865ba2ef4f008a13b0677fd",
   "vote.html": "ecc040a618030f6bee831ff467a68f707278dfc79381b16339a7786d526dbed0"
  }
 }

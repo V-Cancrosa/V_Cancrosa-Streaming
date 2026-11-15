@@ -35,7 +35,23 @@ $Work = {
     $ErrorActionPreference = 'Stop'
     $Det = Join-Path $App 'detector'; $Data = Join-Path $Det 'data'; $Port = 7777
     function Set-Step([int]$i, [string]$state, [string]$detail, [string]$action = '') { $s = $sync.steps[$i]; $s.state = $state; $s.detail = $detail; $s.action = $action; $s.rev++ }
-    function Get-Radar { foreach ($t in 1, 2) { try { return Invoke-RestMethod -UseBasicParsing -TimeoutSec 4 -Uri "http://localhost:$Port/update/status" } catch {} }; return $null }
+    # GameRadar: zapytanie z pominięciem proxy (ustawienia proxy Windows potrafią przechwycić «localhost»), po kolei kilka adresów
+    $script:RadarErr = ''
+    function Get-Radar {
+        foreach ($h in 'localhost', '127.0.0.1', '[::1]') {
+            try {
+                $rq = [Net.HttpWebRequest]::Create("http://${h}:$Port/update/status"); $rq.Proxy = $null; $rq.Timeout = 4000; $rq.ReadWriteTimeout = 4000
+                $rs = $rq.GetResponse(); try { $txt = (New-Object IO.StreamReader($rs.GetResponseStream(), [Text.Encoding]::UTF8)).ReadToEnd() } finally { $rs.Close() }
+                return ($txt | ConvertFrom-Json)
+            } catch { $script:RadarErr = $_.Exception.Message -replace '^Exception calling "\w+" with "\d+" argument\(s\): ', '' }
+        }
+        return $null
+    }
+    # GameRadar działa? – po jego blokadzie «jedna kopia naraz» (niezależnie od sieci)
+    function Test-RadarRunning {
+        $m = $null
+        try { $m = [Threading.Mutex]::OpenExisting('Local\VincentMediaDetector'); return $true } catch { return $false } finally { if ($m) { $m.Dispose() } }
+    }
     function Find-Obs {
         foreach ($k in 'HKLM:\SOFTWARE\OBS Studio', 'HKLM:\SOFTWARE\WOW6432Node\OBS Studio') {
             try { $d = (Get-ItemProperty $k -ErrorAction Stop).'(default)'; if ($d) { $e = Join-Path $d 'bin\64bit\obs64.exe'; if (Test-Path $e) { return $e } } } catch {}
@@ -108,7 +124,12 @@ $Work = {
         # 4. GameRadar
         $i = 3; Set-Step 3 'run' 'Sprawdzam, czy działa…'
         $st = Get-Radar
-        if ($st -and (Test-VMNewer (Get-VMLocalVersion $App) ([string]$st.installed))) {
+        if (-not $st -and (Test-RadarRunning)) {
+            # działa, ale kreator nie może się z nim połączyć – nie uruchamiamy drugiej kopii
+            Set-Step 3 'warn' ("Działa, ale kreator nie może się z nim połączyć: $($script:RadarErr)") 'log'
+            $st = 'running'
+        }
+        if ($st -and $st -isnot [string] -and (Test-VMNewer (Get-VMLocalVersion $App) ([string]$st.installed))) {
             Set-Step 3 'run' 'Działa stara wersja – uruchamiam ponownie…'
             $key = ''; try { $key = ([IO.File]::ReadAllText((Join-Path $Data 'local-key.txt'))).Trim() } catch {}
             try { [void](Invoke-RestMethod -UseBasicParsing -TimeoutSec 3 -Uri "http://localhost:$Port/restart" -Headers @{ 'X-VM-Key' = $key }) } catch {}
@@ -127,14 +148,15 @@ $Work = {
             while (((Get-Date) - $t0).TotalSeconds -lt 90) {
                 Start-Sleep -Milliseconds 600
                 $st = Get-Radar; if ($st) { break }
+                if ($p.HasExited -and (Test-RadarRunning)) { $st = 'running'; break }
                 if ($p.HasExited) { Start-Sleep -Milliseconds 400; break }
                 $last = ''; try { $last = [string](Get-Content $lg -Tail 1 -Encoding UTF8 -ErrorAction Stop) } catch {}
-                if ($last) { Set-Step 3 'run' ('Uruchamiam… ' + ($last -replace '^\[[\d:]+\]\s*', '')) }
+                if ($last) { Set-Step 3 'run' ('Uruchamiam… ' + ($last -replace '^[\d-]*\s*\[[\d:]+\]\s*', '')) }
             }
             if (-not $st) {
                 $why = ''; if (Test-Path $errFile) { $why = [IO.File]::ReadAllText($errFile) }
-                $tail = @(); if (Test-Path $lg) { $tail = @(Get-Content $lg -Tail 40 -Encoding UTF8 | Where-Object { [string]$_ -match '^\[' }) }
-                $hit = @($tail | Where-Object { $_ -match 'Nie mog|błąd|Błąd|zablok' } | Select-Object -Last 1)
+                $tail = @(); if (Test-Path $lg) { $tail = @(Get-Content $lg -Tail 40 -Encoding UTF8 | Where-Object { [string]$_ -match '\[\d\d:\d\d:\d\d\]' }) }
+                $hit = @($tail | Where-Object { $_ -match 'Nie mog|nie wczytany|zablokował|ParserError' } | Select-Object -Last 1)
                 if (-not $why -or $why -like 'exit |*') { if ($hit) { $why = [string]$hit[0] } elseif ($why) { $why = $why.Substring(7) + $(if ($tail) { ' · ostatnio: ' + [string]$tail[-1] } else { ' · dziennik pusty' }) } }
                 if ($why -match 'Malicious') { Set-Step 3 'err' 'Antywirus zablokował GameRadar (fałszywy alarm) – zobacz Historię ochrony' 'defender' }
                 elseif ($why -match 'port') { Set-Step 3 'err' "Port $Port zajęty – zamknij drugą kopię GameRadara albo program na tym porcie" 'retry' }
@@ -143,7 +165,8 @@ $Work = {
                 $sync.finished = $true; return
             }
         }
-        Set-Step 3 'ok' "Działa – wersja $($st.installed)"
+        if ($st -is [string]) { if ($sync.steps[3].state -ne 'warn') { Set-Step 3 'warn' ("Działa, ale kreator nie może się z nim połączyć: $($script:RadarErr)") 'log' } }
+        else { Set-Step 3 'ok' "Działa – wersja $($st.installed)" }
 
         # 5. OBS
         $i = 4
