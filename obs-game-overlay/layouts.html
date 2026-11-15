@@ -161,6 +161,8 @@
   .theme-g-zarin { --font: 'Space Grotesk', sans-serif; } .theme-g-zarin #bg { background: #14171b; }
 
   .reduced-motion *, .reduced-motion *::before, .reduced-motion *::after { animation: none !important; }
+  /* scena OBS nieaktywna (osobne sceny) – animacje stoją, nie obciążają komputera */
+  .vm-inactive *, .vm-inactive *::before, .vm-inactive *::after { animation-play-state: paused !important; }
 </style>
 </head>
 <body>
@@ -377,6 +379,12 @@
     window.OverlayOBS.connect({ ...cfg, mic: s.obsMic || '', threshold: s.micThreshold ?? -38, onTalking: setTalking });
   })();
 })();
+  // OBS: źródło w nieaktywnej scenie → pauza animacji i tła WebGL (osobne sceny w OBS)
+  window.addEventListener('obsSourceActiveChanged', e => {
+    const on = !!(e.detail && e.detail.active);
+    document.documentElement.classList.toggle('vm-inactive', !on);
+    if (window.VMAether && window.VMAether.on) window.VMAether.still(!on || document.body.classList.contains('reduced-motion'));
+  });
 </script>
 </body>
 </html>

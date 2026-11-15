@@ -32,13 +32,14 @@
 <div class="split">
   <div class="card stack">
     <div class="row"><h2 style="margin:0;flex:1">Ustawienia OBS</h2><span class="hint" id="state">łączę z OBS…</span><button class="primary" id="all" disabled>Ustaw wszystko</button></div>
+    <div class="row" style="margin:4px 0 6px"><span class="hint" style="flex:1">Układ scen: <b>osobne sceny</b> – każdy etap to scena OBS (skróty klawiszowe, tryb studia); <b>jedna scena</b> – wszystko w „VM · Stream”.</span><span class="seg" id="mode"></span></div>
     <div id="list"></div>
     <div id="login" class="login" hidden></div>
   </div>
   <div class="card stack">
     <h2>Co i dlaczego</h2>
     <p class="hint"><b>Obraz 1920×1080, 60 kl./s</b> – widoki Vincent-Media są rysowane w tym rozmiarze; 60 klatek dla płynnej gry.</p>
-    <p class="hint"><b>Scena „VM · Stream”</b> – jedna scena na cały stream: gra na dole, nad nią ekrany i układy, alerty, na wierzchu przejścia. Twoje własne źródła zostają.</p>
+    <p class="hint"><b>Sceny streamu</b> – osobna scena OBS na każdy etap: Przygotowania, Stream za…, Zaraz zaczynamy, Spóźnienie, Głosowanie, Gra – pełny ekran, Gra – w ramce, Rozmowa, Przerwa, Koniec. W każdej: plansza albo układ, a nad nimi alerty i przejścia (wspólne źródła). Przełączasz w kokpicie, w OBS albo skrótem – jedno idzie za drugim. Twoje własne źródła zostają.</p>
     <p class="hint"><b>Mikrofon</b> – redukcja szumów (RNNoise), bramka, kompresor i limiter. Dostroisz w OBS: prawy klik na mikrofon → Filtry.</p>
     <p class="hint"><b>Twitch</b> – klucz transmisji bierzemy prosto od Twitcha (przez GameRadar), nie trzeba go nigdzie wklejać.</p>
     <p class="hint"><b>Jakość</b> – koder karty graficznej (mniej obciąża procesor w grach), 6000 kb/s obrazu i 160 kb/s dźwięku – zalecenia Twitcha dla 1080p60. Działa od następnego uruchomienia OBS.</p>
@@ -50,13 +51,17 @@
 (() => {
   const S = window.VMSite, $ = S.$, esc = S.esc, SET = window.VMObsSetup;
   let obs = null, ok = false, items = [], live = '', running = new Set(), errs = {};
+  const mode = () => S.get().obsMode || 'scenes';
+  function renderMode() { $('mode').innerHTML = [['scenes', 'Osobne sceny'], ['stage', 'Jedna scena']].map(([k, n]) => `<button data-mode="${k}" aria-pressed="${mode() === k}">${n}</button>`).join(''); }
+  $('mode').onclick = e => { const b = e.target.closest('[data-mode]'); if (!b) return; S.set({ obsMode: b.dataset.mode }); renderMode(); refresh(); };
+  renderMode();
   async function connect() {
     const cfg = await window.OverlayOBS.config(S.get());
     obs = window.OverlayOBS.connect({ ...cfg, onStatus: (t, good) => { ok = good; $('state').textContent = good ? '' : 'OBS niepołączony – uruchom OBS'; if (!good) { items = []; render(); } }, onReady: refresh });
   }
   async function refresh() {
     if (!obs || !ok) return;
-    items = await SET.check(obs, { hub: S.hub() }); live = await SET.busy(obs);
+    items = await SET.check(obs, { hub: S.hub(), mode: mode() }); live = await SET.busy(obs);
     render();
   }
   function render() {

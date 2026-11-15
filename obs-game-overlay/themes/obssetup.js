@@ -17,6 +17,21 @@
     { name: 'VM · Alerty', kind: 'browser_source', file: 'alerts.html', audio: true },
     { name: 'VM · Przejścia', kind: 'browser_source', file: 'transition.html' },
   ];
+  // osobne sceny (obsMode „scenes”, domyślnie): każdy etap streamu to scena OBS z własną planszą/układem;
+  // nazwy jak dawne sceny VM – alerty, czat i silnik panelu je znają
+  const SCENES = [
+    { k: 'prep', name: 'VM · Przygotowania', src: ['VM · Ekran · Przygotowania', 'scenes.html?scene=prep'] },
+    { k: 'soon', name: 'VM · Stream za…', src: ['VM · Ekran · Stream za…', 'scenes.html?scene=soon'] },
+    { k: 'start', name: 'VM · Zaraz zaczynamy', src: ['VM · Ekran · Zaraz zaczynamy', 'scenes.html?scene=start'] },
+    { k: 'late', name: 'VM · Spóźnienie', src: ['VM · Ekran · Spóźnienie', 'scenes.html?scene=late'] },
+    { k: 'vote', name: 'VM · Głosowanie', src: ['VM · Ekran · Głosowanie', 'scenes.html?scene=vote&vote=1'] },
+    { k: 'game', name: 'VM · Gra – pełny ekran', cap: 'full', src: ['VM · Układ · Gra', 'layouts.html?layout=game-full'], extra: [['VM · Teraz gram', 'overlay.html']] },
+    { k: 'frame', name: 'VM · Gra – w ramce', cap: 'frame', src: ['VM · Układ · Ramka', 'layouts.html?layout=game-frame'] },
+    { k: 'talk', name: 'VM · Rozmowa', src: ['VM · Układ · Rozmowa', 'layouts.html?layout=talk'] },
+    { k: 'brb', name: 'VM · Przerwa', src: ['VM · Ekran · Przerwa', 'scenes.html?scene=brb'] },
+    { k: 'end', name: 'VM · Koniec', src: ['VM · Ekran · Koniec', 'scenes.html?scene=end'] },
+  ];
+  const TOP = [['VM · Alerty', 'alerts.html', true], ['VM · Przejścia', 'transition.html', false]];
   const VOICE_FX = [
     ['VM · Redukcja szumów', 'noise_suppress_filter_v2', { method: 'rnnoise' }],
     ['VM · Bramka szumów', 'noise_gate_filter', { open_threshold: -36, close_threshold: -44, attack_time: 25, hold_time: 200, release_time: 150 }],
@@ -45,9 +60,52 @@
     return (sp.mic1 && mics.includes(sp.mic1) ? sp.mic1 : '') || mics.find(n => n === 'VM · Mikrofon') || mics[0] || '';
   }
 
+  // elementy sceny od dołu do góry: [nazwa, plik strony | null, dźwięk przez OBS, przechwytywanie gry]
+  const wantItems = (d, all) => [
+    ...(d.cap && all.includes(CAP) ? [[CAP, null, false, d.cap]] : []),
+    [d.src[0], d.src[1], false], ...(d.extra || []).map(([n, f]) => [n, f, false]), ...TOP,
+  ];
+  async function sceneState(obs) {
+    const scenes = ((await obs.call('GetSceneList')).scenes || []).map(s => s.sceneName);
+    const all = ((await obs.call('GetInputList')).inputs || []).map(i => i.inputName);
+    const bad = [];
+    for (const d of SCENES) {
+      if (!scenes.includes(d.name)) { bad.push(d.name.replace('VM · ', '') + ' (brak)'); continue; }
+      const items = ((await obs.call('GetSceneItemList', { sceneName: d.name })).sceneItems || []).slice().sort((a, b) => a.sceneItemIndex - b.sceneItemIndex).map(i => i.sourceName);
+      const want = wantItems(d, all).map(w => w[0]);
+      const order = want.map(n => items.indexOf(n));
+      if (order.some(i => i < 0)) bad.push(d.name.replace('VM · ', '') + ' (niepełna)');
+      else if (!order.every((v, i) => !i || v > order[i - 1])) bad.push(d.name.replace('VM · ', '') + ' (kolejność)');
+    }
+    return bad;
+  }
+  async function fixScenes(obs, opts = {}) {
+    const vs = await obs.call('GetVideoSettings'), kx = vs.baseWidth / 1920, ky = vs.baseHeight / 1080;
+    const frame = opts.frameRect || [40, 40, 1440, 810];
+    for (const d of SCENES) {
+      if (!((await obs.call('GetSceneList')).scenes || []).some(s => s.sceneName === d.name)) await obs.call('CreateScene', { sceneName: d.name });
+      let all = ((await obs.call('GetInputList')).inputs || []).map(i => i.inputName);
+      const want = wantItems(d, all);
+      let cur = ((await obs.call('GetSceneItemList', { sceneName: d.name })).sceneItems || []);
+      for (const [name, file, audio, cap] of want) {
+        if (cur.some(i => i.sourceName === name)) continue;
+        let id;
+        if (all.includes(name)) id = (await obs.call('CreateSceneItem', { sceneName: d.name, sourceName: name })).sceneItemId;
+        else { id = (await obs.call('CreateInput', { sceneName: d.name, inputName: name, inputKind: 'browser_source', inputSettings: { url: BASE + file, width: 1920, height: 1080, is_local_file: false, reroute_audio: !!audio, shutdown: false } })).sceneItemId; all.push(name); }
+        const r = cap === 'frame' ? frame : [0, 0, 1920, 1080];
+        await obs.call('SetSceneItemTransform', { sceneName: d.name, sceneItemId: id, sceneItemTransform: cap ? { positionX: r[0] * kx, positionY: r[1] * ky, boundsType: 'OBS_BOUNDS_SCALE_INNER', boundsAlignment: 0, boundsWidth: r[2] * kx, boundsHeight: r[3] * ky } : { positionX: 0, positionY: 0, boundsType: 'OBS_BOUNDS_STRETCH', boundsWidth: vs.baseWidth, boundsHeight: vs.baseHeight } });
+      }
+      cur = ((await obs.call('GetSceneItemList', { sceneName: d.name })).sceneItems || []);
+      let idx = 0;
+      for (const [name] of want) { const it = cur.find(i => i.sourceName === name); if (it) await obs.call('SetSceneItemIndex', { sceneName: d.name, sceneItemId: it.sceneItemId, sceneItemIndex: idx++ }); }
+    }
+    return 'sceny gotowe';
+  }
+
   async function check(obs, opts = {}) {
     const hub = opts.hub || 'http://localhost:7777';
     const out = [];
+    const separate = (opts.mode || 'scenes') === 'scenes';
     // 1. obraz
     try {
       const v = await obs.call('GetVideoSettings'), fps = v.fpsNumerator / v.fpsDenominator;
@@ -56,8 +114,14 @@
         fix: async () => { await obs.call('SetVideoSettings', { baseWidth: 1920, baseHeight: 1080, outputWidth: 1920, outputHeight: 1080, fpsNumerator: 60, fpsDenominator: 1 }); return 'ustawione'; } });
     } catch (e) { out.push({ id: 'video', title: 'Obraz 1920×1080, 60 kl./s', ok: false, detail: 'OBS nie odpowiada: ' + e.message }); }
 
-    // 2. scena «VM · Stream»
-    try {
+    // 2a. osobne sceny
+    if (separate) try {
+      const bad = await sceneState(obs);
+      out.push({ id: 'scenes', title: 'Sceny streamu w OBS', ok: !bad.length, detail: !bad.length ? '10 scen: przygotowania → gra → przerwa → koniec, każda z planszą, alertami i przejściami' : 'do poprawy: ' + bad.slice(0, 4).join(', ') + (bad.length > 4 ? ` i ${bad.length - 4} więcej` : ''),
+        fix: () => fixScenes(obs, opts) });
+    } catch (e) { out.push({ id: 'scenes', title: 'Sceny streamu w OBS', ok: false, detail: 'OBS nie odpowiada: ' + e.message }); }
+    // 2b. jedna scena «VM · Stream» (dawny tryb)
+    if (!separate) try {
       const scenes = ((await obs.call('GetSceneList')).scenes || []).map(s => s.sceneName);
       const has = scenes.includes(STREAM);
       const items = has ? ((await obs.call('GetSceneItemList', { sceneName: STREAM })).sceneItems || []) : [];
@@ -145,5 +209,5 @@
     try { const [a, b] = await Promise.all([obs.call('GetStreamStatus'), obs.call('GetRecordStatus')]); return a.outputActive ? 'trwa transmisja' : b.outputActive ? 'trwa nagrywanie' : ''; } catch (e) { return ''; }
   }
 
-  window.VMObsSetup = { check, busy, VOICE_FX, STREAM, CAP, gpu };
+  window.VMObsSetup = { check, busy, VOICE_FX, STREAM, CAP, gpu, SCENES, fixScenes };
 })();

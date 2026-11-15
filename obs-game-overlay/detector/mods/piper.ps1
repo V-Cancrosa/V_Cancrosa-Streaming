@@ -21,7 +21,11 @@ $script:Piper = [hashtable]::Synchronized(@{ busy = $false; pct = 0; step = ''; 
 function Get-PiperExe { $e = Join-Path $PiperDir 'piper\piper.exe'; if (Test-Path $e) { return $e } else { return '' } }
 function Get-PiperInstalled {
     $vd = Join-Path $PiperDir 'voices'
-    return @($PiperVoices.Keys | Where-Object { (Test-Path (Join-Path $vd "$_.onnx")) -and (Test-Path (Join-Path $vd "$_.onnx.json")) })
+    # model to kilkadziesiąt MB – mały plik to strona z błędem zamiast modelu (nieudane pobieranie): nie liczy się, pobierze się od nowa
+    return @($PiperVoices.Keys | Where-Object {
+        $o = Join-Path $vd "$_.onnx"; $j = Join-Path $vd "$_.onnx.json"
+        (Test-Path $o) -and (Test-Path $j) -and (Get-Item $o).Length -gt 5MB -and (Get-Item $j).Length -gt 200 -and ([IO.File]::ReadAllText($j).TrimStart().StartsWith([string][char]123))
+    })
 }
 function Get-PiperStatus {
     $inst = Get-PiperInstalled
@@ -70,6 +74,7 @@ $PiperInstallScript = {
         $k = 1
         foreach ($v in $todo) {
             $base = Join-Path (Join-Path $dir 'voices') $v.id
+            foreach ($x in "$base.onnx", "$base.onnx.json") { if ((Test-Path $x) -and (Get-Item $x).Length -lt $(if ($x.EndsWith('.json')) { 200 } else { 5MB })) { Remove-Item -LiteralPath $x -Force } }   # uszkodzone – od nowa
             if (-not (Test-Path "$base.onnx.json")) { Get-File "$hf/$($v.path)/$($v.id).onnx.json?download=true" "$base.onnx.json" ($k / $n) 0 "głos $($v.name)" }
             if (-not (Test-Path "$base.onnx")) { Get-File "$hf/$($v.path)/$($v.id).onnx?download=true" "$base.onnx" ($k / $n) (1.0 / $n) "głos $($v.name)" }
             $k++

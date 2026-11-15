@@ -172,7 +172,7 @@
       const style = s.transitionStyle || 'auto';
       try { await fetch(S.hub() + '/transition?scene=' + encodeURIComponent(screen ? 'start' : k) + '&style=' + encodeURIComponent(style), { cache: 'no-store' }); wait = 1150 + (s.transitionLength === 'short' ? 420 : s.transitionLength === 'long' ? 800 : 700); } catch (e) {}
     }
-    setTimeout(async () => { S.set(patch); render(); await obsStage(patch.stage); }, wait);
+    setTimeout(async () => { S.set(patch); render(); if (separate()) await toScene(k); else await obsStage(patch.stage); }, wait);
   }
   function render() {
     const now = current(), s = S.get();
@@ -199,13 +199,31 @@
 
   // ---------------------------------------------------------------- OBS
   let obs = null, ok = false, streamAt = 0, recAt = 0, micName = '', inputs = [];
+  // osobne sceny w OBS (domyślnie): etap = scena OBS; zmiana w OBS (skrót, klik) wraca tu jako etap i odwrotnie
+  const SCENE_FOR = { prep: 'VM · Przygotowania', soon: 'VM · Stream za…', start: 'VM · Zaraz zaczynamy', late: 'VM · Spóźnienie', vote: 'VM · Głosowanie', game: 'VM · Gra – pełny ekran', frame: 'VM · Gra – w ramce', talk: 'VM · Rozmowa', brb: 'VM · Przerwa', brbLate: 'VM · Przerwa', 'brb-late': 'VM · Przerwa', end: 'VM · Koniec' };
+  const KIND_OF = { 'VM · Przygotowania': 'prep', 'VM · Stream za…': 'soon', 'VM · Zaraz zaczynamy': 'start', 'VM · Spóźnienie': 'late', 'VM · Głosowanie': 'vote', 'VM · Gra – pełny ekran': 'game', 'VM · Gra – w ramce': 'frame', 'VM · Rozmowa': 'talk', 'VM · Przerwa': 'brb', 'VM · Koniec': 'end' };
+  const separate = () => (S.get().obsMode || 'scenes') === 'scenes';
+  let program = '', sceneNames = [], asked = { name: '', at: 0 };
+  async function toScene(k) {
+    const name = SCENE_FOR[k]; if (!obs || !ok || !name || program === name || !sceneNames.includes(name)) return;
+    asked = { name, at: Date.now() };
+    try { await obs.setSceneCut(name); } catch (e) {}
+  }
+  function onScenes(list, cur) {
+    sceneNames = list || []; const was = program; program = cur || '';
+    if (!separate() || !program || program === was) return;
+    // przełączone w samym OBS (nie przez nas) → etap w kokpicie i na stronach idzie za OBS
+    if (Date.now() - asked.at < 3000 && asked.name === program) return;
+    const k = KIND_OF[program]; if (!k || current() === k || (k === 'brb' && current() === 'brbLate')) return;
+    S.set(['game', 'frame', 'talk'].includes(k) ? { stage: k } : { stage: 'screen', scene: k }); render();
+  }
   const MIC = ['wasapi_input_capture', 'coreaudio_input_capture', 'pulse_input_capture'], DESK = ['wasapi_output_capture', 'coreaudio_output_capture', 'pulse_output_capture'];
   async function start() {
     const cfg = await window.OverlayOBS.config(S.get());
     obs = window.OverlayOBS.connect({
       ...cfg, mic: S.get().obsMic || '',
       onStatus: (t, good) => { ok = good; $('bStream').disabled = $('bRec').disabled = !good; if (!good) { $('pLiveT').textContent = 'OBS niepołączony'; previewFallback(); } },
-      onReady: refresh,
+      onReady: refresh, onScenes,
       onOutput: (t, d) => { if (t === 'StreamStateChanged') streamAt = d.outputActive ? (streamAt || Date.now()) : 0; else recAt = d.outputActive ? (recAt || Date.now()) : 0; refreshOut(); },
       onLevel: (db, name) => { if (!micName || name === micName) { micName = name; $('micName').textContent = '· ' + name.replace(/^VM · /, ''); $('micM').style.width = Math.max(0, Math.min(100, (db + 60) / 60 * 100)) + '%'; } },
     });
@@ -228,7 +246,7 @@
   async function obsHealth() {
     if (!window.VMObsSetup || !obs) return;
     try {
-      const bad = (await VMObsSetup.check(obs, { hub: S.hub() })).filter(i => !i.ok);
+      const bad = (await VMObsSetup.check(obs, { hub: S.hub(), mode: S.get().obsMode || 'scenes' })).filter(i => !i.ok);
       $('obsFix').hidden = !bad.length;
       $('obsFix').innerHTML = `⚠ <b>OBS: ${bad.length} ${bad.length === 1 ? 'ustawienie' : bad.length < 5 ? 'ustawienia' : 'ustawień'} do poprawy</b> – ${bad.map(i => esc(i.title)).join(', ')} <b style="float:right">Ustaw →</b>`;
     } catch (e) {}
@@ -403,6 +421,8 @@
     const ping = () => fetch(S.hub() + '/ping?who=cockpit', { cache: 'no-store' }).catch(() => {});
     ping(); setInterval(ping, 20000);
   }
+  // etap zmieniony gdzie indziej (strona Ekrany, telefon, Nora) → scena w OBS
+  S.onChange(() => { if (separate()) toScene(current()); });
   S.onChange(render);
   render(); start(); poll(); audience(); vote();
   document.addEventListener('visibilitychange', () => { if (!document.hidden) preview(); });

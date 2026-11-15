@@ -144,7 +144,7 @@
     const a = ctx(), buf = await a.decodeAudioData(await r.arrayBuffer());
     const src = a.createBufferSource(); src.buffer = buf;
     // Piper nie zmienia wysokości – robi to szybsze/wolniejsze odtwarzanie (GameRadar wydłużył mowę o tyle samo)
-    if (voice.startsWith('piper:')) src.playbackRate.value = Math.max(0.6, Math.min(1.6, 1 + P.pitch / 100));
+    if (voice.startsWith('piper:') && !r.headers.get('X-VM-Fallback')) src.playbackRate.value = Math.max(0.6, Math.min(1.6, 1 + P.pitch / 100));
     const [inp, out] = chain(a, o.fx != null ? o.fx : P.fx);
     const g = a.createGain(); g.gain.value = vol;
     src.connect(inp); out.connect(g).connect(a.destination);

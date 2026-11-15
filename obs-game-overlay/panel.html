@@ -1374,7 +1374,8 @@
     const real = obs.setSceneCut.bind(obs);
     obs.setSceneCut = async name => {
       const st = STAGE_FOR[name];
-      if (!st || isRemote) return real(name);
+      // osobne sceny (domyślnie): dawne nazwy to prawdziwe sceny OBS – przełączamy normalnie, bez «VM · Stream»
+      if (!st || isRemote || (s.obsMode || 'scenes') === 'scenes') return real(name);
       const k = SCREEN_FOR[name]; if (k && !String(s.scene || '').startsWith(k)) s.scene = k;
       s.stage = st; save(); obsCurrent = virtScene(); tellScene();
       let ok = false; try { ok = await ensureStreamScene(); } catch {}

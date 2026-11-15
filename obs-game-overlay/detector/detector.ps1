@@ -1827,7 +1827,7 @@ function Send-Json($ctx, $obj, [int]$code = 200) {
 function Send-Bytes($ctx, [byte[]]$bytes, [string]$type) {
     $res = $ctx.Response
     $res.ContentType = $type
-    $res.Headers['Access-Control-Allow-Origin'] = $script:AllowOrigin; $res.Headers['Access-Control-Allow-Private-Network'] = 'true'; $res.Headers['Cache-Control'] = 'no-store'
+    $res.Headers['Access-Control-Allow-Origin'] = $script:AllowOrigin; $res.Headers['Access-Control-Allow-Private-Network'] = 'true'; $res.Headers['Cache-Control'] = 'no-store'; $res.Headers['Access-Control-Expose-Headers'] = 'X-VM-Fallback'
     $res.ContentLength64 = $bytes.Length; $res.OutputStream.Write($bytes, 0, $bytes.Length); $res.OutputStream.Close()
 }
 
@@ -2135,7 +2135,17 @@ function Invoke-Request($ctx) {
                     if (-not $script:PiperCache) { $script:PiperCache = [ordered]@{} }
                     if ($script:PiperCache.Contains($key)) { $wav = $script:PiperCache[$key] }
                     else {
-                        try { $wav = Get-PiperWav $voice.Substring(6) $text $ls; $script:PiperCache[$key] = $wav; while ($script:PiperCache.Count -gt 30) { $script:PiperCache.RemoveAt(0) } } catch { Log "Głos (Piper): $($_.Exception.Message)" 'Yellow' }
+                        try { $wav = Get-PiperWav $voice.Substring(6) $text $ls; $script:PiperCache[$key] = $wav; while ($script:PiperCache.Count -gt 30) { $script:PiperCache.RemoveAt(0) } } catch { Log "Głos (Piper, $($voice.Substring(6))): $($_.Exception.Message)" 'Yellow' }
+                    }
+                    # Piper zawiódł – głos Windows w tym samym języku (i płci, jeśli jest), żeby alert nie był niemy
+                    if (-not $wav -and (Get-Command Initialize-Tts -ErrorAction SilentlyContinue)) {
+                        Initialize-Tts
+                        if ($script:Tts.ready) {
+                            $pv = $PiperVoices[$voice.Substring(6)]; $lang = $(if ($pv) { $pv.lang } else { 'pl-PL' }); $gen = $(if ($pv) { $pv.gender } else { '' })
+                            $wv = @($script:Tts.voices | Where-Object { $_.lang -like ($lang.Substring(0, 2) + '*') })
+                            $pick = @($wv | Where-Object { $_.gender -eq $gen })[0]; if (-not $pick) { $pick = $wv[0] }; if (-not $pick) { $pick = @($script:Tts.voices)[0] }
+                            try { $wav = Get-TtsWav $text ([string]$pick.id) $rate $pitch; $ctx.Response.Headers['X-VM-Fallback'] = 'windows' } catch {}
+                        }
                     }
                 } else {
                     if (-not (Get-Command Initialize-Tts -ErrorAction SilentlyContinue)) { Send-Json $ctx @{ ok = $false; error = 'moduł głosu nie działa' } 503; return }
