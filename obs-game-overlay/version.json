@@ -1,5 +1,5 @@
 {
-  "version": "1.63.0",
+  "version": "1.63.1",
   "date": "2026-11-15",
-  "notes": "Osobne sceny w OBS (10 scen, przełączanie w obie strony), głosy męskie: odrzucanie uszkodzonych modeli Piper i zastępczy głos Windows"
+  "notes": "Moobot i inne boty kanału: plakietka BOT w kokpicie, wybór pokazywania na ekranie"
 }

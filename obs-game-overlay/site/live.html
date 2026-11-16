@@ -329,8 +329,8 @@
     const d = document.createElement('div');
     d.className = 'msg' + (e.flag ? ' flag ' + (e.flag.level || '') : '');
     d.title = e.flag ? 'Uwaga: ' + (e.flag.reasons || []).join(', ') : time(e.at);
-    d.innerHTML = `<b style="color:${esc(e.color || '#b9a7ff')}">${esc(e.user)}</b>: ${esc(e.text)}` +
-      (e.msgId ? `<span class="act"><button data-mod="delete" title="Usuń wiadomość">🗑</button><button data-mod="timeout" title="Wycisz na 10 minut">⏱</button><button data-mod="ban" title="Zbanuj">⛔</button></span>` : '');
+    d.innerHTML = (e.bot ? '<span style="font-size:10px;font-weight:800;padding:1px 5px;border-radius:4px;background:#2a2d38;color:#9ea1ad;margin-right:5px">BOT</span>' : '') + `<b style="color:${esc(e.color || '#b9a7ff')}">${esc(e.user)}</b>: ${esc(e.text)}` +
+      (e.msgId && !e.bot ? `<span class="act"><button data-mod="delete" title="Usuń wiadomość">🗑</button><button data-mod="timeout" title="Wycisz na 10 minut">⏱</button><button data-mod="ban" title="Zbanuj">⛔</button></span>` : '');
     d.dataset.msg = e.msgId || ''; d.dataset.user = e.userId || ''; d.dataset.name = e.user || '';
     const stick = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
     box.appendChild(d); while (box.children.length > 200) box.firstChild.remove();

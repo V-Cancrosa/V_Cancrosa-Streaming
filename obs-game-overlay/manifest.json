@@ -1,5 +1,5 @@
 {
- "version": "1.63.0",
+ "version": "1.63.1",
  "files": {
   "README.md": "a4df747a9d7c4213e9cc512acc9ca28f4efa8540419858e0e56ef21c856a95dc",
   "alerts.html": "9fa3ac4c0aaae2ac03ee8b3b4f7ddeb49e2cf79b2cd24304331d179e9d3db655",
@@ -34,9 +34,9 @@
   "site/games.html": "74c73f6bfc9c4fbf5455f2a6fb0ff59bdb45aba9c06d92b56b7dfe0106c0ef62",
   "site/index.html": "e99099ab41de0b13623568395a986d1346a9dd52313a527a115caac771a58acf",
   "site/layouts.html": "578971fa4b2652b29d852137036ab21548351ce8959c6f662889c7767f696d28",
-  "site/live.html": "73aed692e03aa46d9f64ba0f2b5685799d30784f5db7418ab015a938b9b38d50",
+  "site/live.html": "046f0e21e6e7ff33477b2c402577cb1dc4ab998710b340f8554d5d7959c304b7",
   "site/log.html": "8e944e8810c90f7d648c746f961ccd1ef3ea82d1b4cf4655ae672bc69927d6ef",
-  "site/look.html": "c735a7134ac881f82ab4f319631744bfab1480d6fde99857fbc519d76709ed21",
+  "site/look.html": "9bcb76359faf523f54a2086370edf674efcb0cc6a2fd7948c1cb25f595cc40ea",
   "site/obs.html": "5d2df22563d02f672f9bc5eb88f1aee2207569fb8b935f79a7be8e9e8fba6750",
   "site/pilot.html": "e3c6b2d932b6ea5e7ba2a28cd96652e505dede3a079406aae82b1aeb03b77bbb",
   "site/screens.html": "24e657deb6633e0be3adce1c598c375deb0c294eaafc277bcc2f0c99fad513e2",
@@ -98,8 +98,8 @@
   "themes/zones.js": "235ed7e8b81cd1a6c93df3c2977156ec0f86f49eeb1d61cd500bfb7776af2c4b",
   "transition.html": "8722e73dbe98046e98e02e80a6b8e714f89062b9ebe8fc89298c61af8b70d8d4",
   "update.ps1": "7c1196a2f9711f6bd9601bd1e903cd2ba9f904644429d33bf664377027770ffe",
-  "version.js": "24595c1ba542a72a67ca324d2feae9283a49c83204f849e31623d3f3456e20e9",
-  "version.json": "28e2ba6994b5fa56c58c4a475167ba0ee76bc23ebbab22eadba12e952dbaf9bf",
+  "version.js": "3fe86d5c77f1ec9b176c780dd5f768087b80d565f4e9e7fa1e5ec36f4a657f7a",
+  "version.json": "6ad9f5c5c091e5151f588e0c6ebf7ec3f04f4d93c6cd43eec045282d0359c9dd",
   "vote.html": "ecc040a618030f6bee831ff467a68f707278dfc79381b16339a7786d526dbed0"
  }
 }
