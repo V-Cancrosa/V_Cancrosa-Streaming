@@ -16,6 +16,8 @@
 <script src="../themes/chat.js"></script>
 <script src="../themes/obsws.js"></script>
 <script src="../themes/obssetup.js"></script>
+<script src="../themes/wordfilter.js"></script>
+<script src="../themes/automod.js"></script>
 <script src="../themes/sync.js"></script>
 <script src="site.js"></script>
 <script>if (new URLSearchParams(location.search).has('dock')) document.documentElement.classList.add('dock');</script>
@@ -324,6 +326,7 @@
   const ALERT_T = { follow: 'follow', sub: 'sub', resub: 'resub', gift: 'gift', cheer: 'bitsy', raid: 'raid', redeem: 'nagroda', donation: 'donacja', tip: 'donacja' };
   const alertText = e => e.type === 'cheer' ? `${e.amount} bitsów` : e.type === 'gift' ? `×${e.count || 1}` : e.type === 'raid' ? `${e.viewers} os.` : e.type === 'resub' ? `${e.months}. miesiąc` : e.type === 'redeem' ? e.reward || '' : '';
   const time = at => at ? new Date(at).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : '';
+  const LOADED_AT = Date.now();
   function addChat(e) {
     const box = $('chat'); box.querySelector('.empty')?.remove();
     const d = document.createElement('div');
@@ -334,6 +337,13 @@
     d.dataset.msg = e.msgId || ''; d.dataset.user = e.userId || ''; d.dataset.name = e.user || '';
     const stick = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
     box.appendChild(d); while (box.children.length > 200) box.firstChild.remove();
+    // automoderacja (bot czatu włączony): naruszenie → GameRadar usuwa i karze (jedna kara na wiadomość)
+    // tylko świeże wiadomości (nie historia wczytana przy otwarciu kokpitu)
+    const kind = window.VMAutomod && e.msgId && e.userId && (e.at || 0) > LOADED_AT - 15000 ? VMAutomod.check(e, S.get()) : null;
+    if (kind) {
+      d.classList.add('gone'); d.title = 'Bot: ' + ({ hate: 'zakazane słowo', words: 'wyzwiska', caps: 'CAPS', links: 'link', spam: 'spam' })[kind];
+      fetch(S.hub() + `/bot/act?msg=${encodeURIComponent(e.msgId)}&user=${encodeURIComponent(e.userId)}&name=${encodeURIComponent(e.user || '')}&kind=${kind}`, { cache: 'no-store' }).catch(() => {});
+    }
     if (stick) box.scrollTop = box.scrollHeight;
   }
   function addAlert(e) {

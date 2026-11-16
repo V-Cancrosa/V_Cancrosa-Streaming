@@ -62,6 +62,8 @@ Instalator można uruchomić ponownie – nie tworzy duplikatów.
 
 **Sociale w stylu postaci** (ekrany i układy): każde konto osobno – Vince: adnotacje architekta (A-01… z liniami odniesienia), Chip: karteczki z taśmą, Ragnar: playlista z korektorem, Toro: kołyszące się lampiony, Myr-35: linie terminala `> link.… =`, Zarin: przykręcone płyty kadłuba. Przy dużej postaci/herbie układają się w dwie kolumny, żeby nie wchodzić na art.
 
+**Bot czatu** (serwis → *Studio → Bot czatu*, domyślnie wyłączony): pisze z Twojego konta, każda wiadomość zaczyna się znacznikiem (domyślnie 🤖). Porządek: wyzwiska i słowa nienawiści, CAPS, linki, spam – wykrywa kokpit (`themes/automod.js`), karze GameRadar (`detector/mods/bot.ps1`): słowa nienawiści od razu 10 min, reszta 1. raz ostrzeżenie, potem timeout coraz dłuższy; bez kontroli Ty, moderatorzy, VIP-y, boty kanału (linki wolno subskrybentom). Komendy: !komendy, !sociale, !gra, !postac + własne (`{user}` = nick). Timery: co N minut, gdy czat żyje. Potrzebne ponowne logowanie do Twitcha (pisanie na czacie).
+
 **Alerty** mają ramy wielkości: poziom 1 najwyżej 42% szerokości i 26% wysokości ekranu, poziom 5 – 58% i 40%.
 
 **Kokpit w OBS:** dok *Vincent-Media* w OBS to teraz kompaktowy kokpit (`site/live.html?dock=1`) – ten sam co w przeglądarce, zawsze zsynchronizowany; stary adres `panel.html` przekierowuje sam (bez zmian w OBS). Robota dawnego panelu (łapanie okna gry, automatyczne nagrywanie, polecenia z pilota, cenzura, podpowiedzi scen dla alertów) działa w doku niewidocznie (`panel.html?engine=1`). Stary wygląd panelu: serwis → *Wszystkie ustawienia*.

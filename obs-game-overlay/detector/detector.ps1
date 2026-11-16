@@ -1241,7 +1241,7 @@ function Export-Stream([string]$id, [string]$fmt, [int]$offsetSec = 0) {
 Add-Type -AssemblyName System.Security
 $TwitchCfgFile = Join-Path $DataDir 'twitch.json'
 $TwitchTokFile = Join-Path $DataDir 'twitch-token.bin'
-$TwitchScopes  = 'moderator:read:followers channel:read:subscriptions bits:read channel:read:redemptions user:read:chat moderator:manage:chat_settings moderator:manage:chat_messages moderator:manage:banned_users channel:read:stream_key'
+$TwitchScopes  = 'moderator:read:followers channel:read:subscriptions bits:read channel:read:redemptions user:read:chat moderator:manage:chat_settings moderator:manage:chat_messages moderator:manage:banned_users channel:read:stream_key user:write:chat'
 $script:TW = [pscustomobject]@{
     status = 'off'; clientId = ''; user = ''; userId = ''; error = ''
     code = ''; uri = ''; deviceCode = ''; deviceInterval = 5; deviceUntil = [DateTime]::MinValue; nextPoll = [DateTime]::MinValue
@@ -1433,6 +1433,10 @@ function Convert-TwitchEvent([string]$type, $e) {
             $ce = New-ChatEvent ([string]$e.chatter_user_login) ([string]$e.chatter_user_name) ([string]$e.color) ([string]$e.message.text) $frags $badges $false ([string]$e.chatter_user_id)
             # do moderacji z kokpitu: numer wiadomości i konta
             if ($ce) { $ce | Add-Member -NotePropertyName msgId -NotePropertyValue ([string]$e.message_id) -Force; $ce | Add-Member -NotePropertyName userId -NotePropertyValue ([string]$e.chatter_user_id) -Force }
+            # bot czatu: wiadomości z jego znacznikiem są «botem» (plakietka, «ukryj boty»); komendy i licznik timerów
+            if ($ce -and (Get-Command Invoke-Bot -ErrorAction SilentlyContinue)) {
+                try { if (Test-BotMessage ([string]$ce.text)) { $ce | Add-Member -NotePropertyName bot -NotePropertyValue $true -Force } else { Invoke-Bot $ce } } catch {}
+            }
             return $ce
         }
         'channel.channel_points_custom_reward_redemption.add' {
@@ -2229,6 +2233,21 @@ function Invoke-Request($ctx) {
                 Send-Raw $ctx $txt $(if ($fmt -eq 'json') { 'application/json' } else { 'text/plain' })
             }
             '/twitch/status' { Send-Json $ctx (Get-TwitchStatus) }
+            '/bot/act' {
+                # automoderacja: kokpit wykrył naruszenie → kara (jedna na wiadomość)
+                if (-not (Get-Command Invoke-BotAct -ErrorAction SilentlyContinue)) { Send-Json $ctx @{ ok = $false; error = 'moduł bota nie działa' } 503; return }
+                Send-Json $ctx (Invoke-BotAct ([string]$q['msg']) ([string]$q['user']) ([string]$q['name']) ([string]$q['kind']))
+            }
+            '/bot/log' {
+                if (-not (Get-Command Get-BotCfg -ErrorAction SilentlyContinue)) { Send-Json $ctx @{ ok = $false; error = 'moduł bota nie działa' }; return }
+                $c = Get-BotCfg
+                Send-Json $ctx ([pscustomobject]@{ ok = $true; on = $c.on; prefix = $c.prefix; log = @($script:Bot.log | Select-Object -Last 30) })
+            }
+            '/bot/test' {
+                if (-not (Get-Command Send-ChatMessage -ErrorAction SilentlyContinue)) { Send-Json $ctx @{ ok = $false; error = 'moduł bota nie działa' }; return }
+                $okk = Send-ChatMessage ([string]$q['text']); if ($okk) { Add-BotLog ('test: ' + [string]$q['text']) }
+                Send-Json $ctx @{ ok = $okk; error = $(if ($okk) { '' } else { (@($script:Bot.log)[-1]).t }) }
+            }
             '/ping' {
                 # otwarty kokpit melduje się co kilkanaście sekund – kreator nie otwiera wtedy drugiego
                 if ([string]$q['who'] -eq 'cockpit') { $script:CockpitSeen = Get-Date }
@@ -2304,7 +2323,7 @@ Initialize-Twitch
 
 # moduły: każdy w osobnym pliku – zablokowany (antywirus, błąd) wyłącza tylko swoją funkcję
 $script:Mods = [ordered]@{}
-foreach ($m in @('censor', 'tts', 'windows', 'piper')) {
+foreach ($m in @('censor', 'tts', 'windows', 'piper', 'bot')) {
     $mf = Join-Path $PSScriptRoot "mods\$m.ps1"
     try { . $mf; $script:Mods[$m] = 'ok' }
     catch {
@@ -2347,6 +2366,7 @@ try {
             $next = [DateTime]::Now.AddSeconds($Interval)
         }
         try { Update-Updater } catch { Log "Aktualizacja: $($_.Exception.Message)" 'DarkYellow' }
+        try { if (Get-Command Update-BotTimers -ErrorAction SilentlyContinue) { Update-BotTimers } } catch {}
         if ($script:ShutdownAt) { Stop-Everything }
         if ($script:RestartPending -and -not (Test-Live)) { Restart-Detector }   # restart (nowa wersja) nigdy w trakcie transmisji/nagrywania
         try { Update-Archive } catch {}

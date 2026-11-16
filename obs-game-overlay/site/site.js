@@ -15,6 +15,7 @@
     ['screens.html', '⏱', 'Ekrany'],
     ['-', 'Studio'],
     ['obs.html', '🎬', 'OBS'],
+    ['bot.html', '🤖', 'Bot czatu'],
     ['layouts.html', '✥', 'Ułożenie scen'],
     ['creator.html', '✦', 'Kreator stron'],
     ['-', 'Więcej'],
