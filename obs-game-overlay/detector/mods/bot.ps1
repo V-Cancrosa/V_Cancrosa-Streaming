@@ -63,7 +63,7 @@ function Invoke-Bot($ev) {
     foreach ($x in $c.commands) { if ((Remove-Diacritics ([string]$x.name)).TrimStart('!').ToLowerInvariant() -eq $cmd) { $reply = ([string]$x.reply).Replace('{user}', '@' + [string]$ev.user); break } }
     if (-not $reply) {
         switch ($cmd) {
-            { $_ -in 'komendy' } { $reply = 'komendy: ' + ((@('!sociale', '!gra', '!postac') + @($c.commands | ForEach-Object { '!' + ([string]$_.name).TrimStart('!') })) -join ' ') }
+            { $_ -in 'komendy', 'commands' } { $reply = 'komendy: ' + ((@('!sociale', '!gra', '!postac') + @($c.commands | ForEach-Object { '!' + ([string]$_.name).TrimStart('!') })) -join ' ') }
             { $_ -in 'sociale', 'socials' } { $reply = (($c.socials -split '[,|\n]' | ForEach-Object { $_.Trim() } | Where-Object { $_ }) -join ' · ') }
             { $_ -in 'gra', 'game' } { $g = $(if ($script:State -and $script:State.game) { [string]$script:State.game.name } else { '' }); $reply = $(if ($g) { "teraz: $g" } else { 'teraz bez gry – rozmowa' }) }
             { $_ -in 'postac', 'character' } { $p = $c.theme -replace '^g-', ''; $names = @{ vince = 'Vince'; chip = 'Chip'; ragnar = 'Ragnar'; toro = 'Toro'; myr = 'Myr-35'; zarin = 'Zarin' }; $reply = $(if ($names[$p]) { "prowadzi: $($names[$p])" } else { $null }) }

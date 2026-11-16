@@ -236,6 +236,7 @@ obs-game-overlay/
   builder.html      Kreator stron      editor.html   edytor ułożenia
   themes/           motywy, postacie, czat, głosy, słowa, Kreator (pagekit.js), synchronizacja (sync.js)…
   detector/         GameRadar (PowerShell 5.1 – pliki .ps1 z polskimi znakami muszą mieć BOM UTF-8)
+    core/           części GameRadara (wymagane, w tej kolejności): games, chat, archive, twitch, updates, http, api
     mods/           moduły: cenzura (OCR), głos (TTS Windows), Piper (głosy neuronowe), lista okien – zablokowany moduł nie zatrzymuje reszty
   obs-theme/        motyw wyglądu OBS (Yami_VincentMedia.ovt)
   nora/             aplikacja Nora: Nora.exe + WebView2, interfejs nora/ui/index.html (źródła: ../nora/, budowanie: tools/build-nora.py)
