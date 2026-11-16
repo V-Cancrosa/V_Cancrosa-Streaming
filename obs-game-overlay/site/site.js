@@ -43,6 +43,9 @@
       <a class="nora" href="nora://start" title="Uruchamia aplikację Nora na tym komputerze (włącz w Norze: «Uruchamianie ze strony»)">▶ Nora</a>
       <button class="kill" id="killBtn" title="Kończy transmisję i nagrywanie (jeśli trwają), zamyka OBS i GameRadar">⏻ Zamknij OBS i GameRadar</button>`;
     document.getElementById('killBtn').onclick = annihilate;
+    // serwis w oknie Nory (ramka w stronie z innego adresu) – przycisk «Nora» niepotrzebny
+    let inNora = false; try { inNora = window.top !== window && !window.top.location.href; } catch (e) { inNora = window.top !== window; }
+    if (inNora) { const n = nav.querySelector('.nora'); if (n) n.remove(); }
   }
   async function ping() {
     let ok = false;

@@ -70,6 +70,7 @@ bez czytania całego kodu. Szczegóły dla użytkownika: `obs-game-overlay/READM
   zalogować ponownie (strona OBS sama to proponuje, gdy Twitch odmawia).
 - **Klucz tego komputera** (`data\local-key.txt` → `vm-key.js`): strony z dysku (OBS) wysyłają go w nagłówku `X-VM-Key`;
   strony z GitHub Pages są zaufane po adresie. Bez tego GameRadar (hasło do OBS, czat) odpowiadałby każdej stronie z internetu.
+- **Serwis w oknie Nory** to ramka (`nora/ui/index.html` → GitHub Pages). `sync.js` synchronizuje w ramce TYLKO wtedy, gdy strona nad nią jest z innego adresu (Nora); ramki z tego samego adresu (podglądy, stage.html) zostawiają to stronie nad nimi.
 - **Nora nie uruchamia ukrytego PowerShella poza samym GameRadarem** – aktualizacje i naprawy zleca GameRadarowi (`/update/run`).
 
 ## Przed każdym wypchnięciem

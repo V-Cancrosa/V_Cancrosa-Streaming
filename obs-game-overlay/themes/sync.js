@@ -34,7 +34,10 @@
   }
   window.VMMigrate = window.VMMigrate || { migrate, VERSION: SETTINGS_VERSION };
   // tylko strona główna karty – ramki w środku (podglądy, stage.html w OBS) korzystają z tej samej pamięci przeglądarki
-  if (window.VMSync || window.top !== window) return;
+  // ramka w stronie z tego samego adresu (podgląd w serwisie, stage.html w OBS) – synchronizuje strona nad nią;
+  // ramka w stronie z innego adresu (serwis w oknie Nory) – synchronizuje sama
+  let nested = false; try { nested = window.top !== window && !!window.top.location.href; } catch (e) { nested = false; }
+  if (window.VMSync || nested) return;
   const SET = 'obsGameOverlay.v1', KV = ['obsGameOverlay.pages', 'obsGameOverlay.pageState', 'obsGameOverlay.pageVis', 'obsGameOverlay.notes'], STATE = 'obsGameOverlay.syncState';
   const CLIENT = Math.random().toString(36).slice(2);
   const raw = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
