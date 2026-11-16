@@ -393,6 +393,9 @@ function Invoke-Request($ctx) {
                 $okk = Send-ChatMessage ([string]$q['text']); if ($okk) { Add-BotLog ('test: ' + [string]$q['text']) }
                 Send-Json $ctx @{ ok = $okk; error = $(if ($okk) { '' } else { (@($script:Bot.log)[-1]).t }) }
             }
+            '/backup/list' { Send-Json $ctx ([pscustomobject]@{ ok = $true; items = @(Get-Backups) }) }
+            '/backup/make' { try { $n = New-Backup 'reczna'; Send-Json $ctx @{ ok = [bool]$n; name = $n } } catch { Send-Json $ctx @{ ok = $false; error = $_.Exception.Message } } }
+            '/backup/restore' { try { $d = Restore-Backup ([string]$q['name']); Send-Json $ctx @{ ok = $true; restored = @($d) } } catch { Send-Json $ctx @{ ok = $false; error = $_.Exception.Message } } }
             '/ping' {
                 # otwarty kokpit melduje się co kilkanaście sekund – kreator nie otwiera wtedy drugiego
                 if ([string]$q['who'] -eq 'cockpit') { $script:CockpitSeen = Get-Date }

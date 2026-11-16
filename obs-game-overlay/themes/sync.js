@@ -9,6 +9,30 @@
   Wczytują go: strony serwisu (site/*.html) i główne widoki w OBS (stage.html, page.html).
 */
 (function () {
+  // ---------------------------------------------------------------- migracje ustawień (settingsVersion)
+  // Jedno miejsce na zmiany formatu: każdy krok przerabia ustawienia z wersji n-1 na n. Nowy format = nowy krok na końcu
+  // listy (nigdy nie zmieniaj starych kroków). Uruchamia je synchronizacja (lokalne i te z GameRadara), więc każde stare
+  // ustawienia – z pamięci przeglądarki, z OBS albo z kopii zapasowej – dochodzą do bieżącego formatu.
+  const MIGRATIONS = [
+    // 1: porządki z 1.4x – tryb «discord» i ręczny bez gry → auto; fuzja z gry: dawne fuseV/patch/fuse → «fuse-half»
+    st => {
+      if (st.mode === 'discord' || (st.mode === 'manual' && !st.game)) st.mode = 'auto';
+      if (['patch', 'fuse'].includes(st.gameMode) || (st.fuseV !== 4 && !['game', 'off', 'fuse-game', 'fuse-half'].includes(st.gameMode))) st.gameMode = 'fuse-half';
+      st.fuseV = 4;
+    },
+    // 2: usunięte funkcje (Discord/Lanyard, jedna scena „Start streamu”, przełączniki funkcji) – martwe klucze precz
+    st => { for (const k of ['discordId', 'oneScene', 'featDiscord', 'featTwitch', 'featDetect', 'featObs']) delete st[k]; },
+  ];
+  const SETTINGS_VERSION = MIGRATIONS.length;
+  function migrate(st) {
+    st = st && typeof st === 'object' ? { ...st } : {};
+    const from = +st.settingsVersion || 0;
+    if (from >= SETTINGS_VERSION) return { st, changed: false };
+    for (let v = from; v < SETTINGS_VERSION; v++) { try { MIGRATIONS[v](st); } catch (e) {} }
+    st.settingsVersion = SETTINGS_VERSION;
+    return { st, changed: true };
+  }
+  window.VMMigrate = window.VMMigrate || { migrate, VERSION: SETTINGS_VERSION };
   // tylko strona główna karty – ramki w środku (podglądy, stage.html w OBS) korzystają z tej samej pamięci przeglądarki
   if (window.VMSync || window.top !== window) return;
   const SET = 'obsGameOverlay.v1', KV = ['obsGameOverlay.pages', 'obsGameOverlay.pageState', 'obsGameOverlay.pageVis', 'obsGameOverlay.notes'], STATE = 'obsGameOverlay.syncState';
@@ -70,7 +94,7 @@
             // cudza zmiana: bierzemy ją, ale własne niewysłane pola zostają (i pójdą przy następnym przebiegu)
             const ch = base ? diff(parse(raw(SET))) : {};
             setRev = j.rev; base = j.settings;
-            write(SET, JSON.stringify(overlay(j.settings, ch)));
+            write(SET, JSON.stringify(migrate(overlay(j.settings, ch)).st));
             if (Object.keys(ch).length) known[SET] = JSON.stringify(j.settings);
           } else if (j) {
             setRev = j.rev;
@@ -103,7 +127,10 @@
       status(true);
     } catch (e) { status(false); } finally { busy = false; }
   }
-  function lead() { setInterval(scan, 700); setTimeout(() => { scan(); pull(); }, 300); }
+  function lead() {
+    try { const m = migrate(parse(raw(SET))); if (m.changed && raw(SET)) localStorage.setItem(SET, JSON.stringify(m.st)); } catch (e) {}
+    setInterval(scan, 700); setTimeout(() => { scan(); pull(); }, 300);
+  }
   // jedna synchronizująca strona na przeglądarkę; pozostałe tylko pokazują stan
   function follow() {
     const tick = () => { if (leader) return; const s = parse(raw(STATE)); status(!!s.ok && Date.now() - (s.at || 0) < 15000); };

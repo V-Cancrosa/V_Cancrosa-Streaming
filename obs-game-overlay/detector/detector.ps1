@@ -119,7 +119,7 @@ function Clean($s) {
 # ---------------------------------------------------------------- części GameRadara (detector\core\*.ps1)
 # Kolejność ma znaczenie: każda część korzysta z poprzednich. Wszystkie są wymagane (moduły opcjonalne są w mods\).
 $DetectorScript = $PSCommandPath        # restart (core\updates.ps1) uruchamia ten plik, nie część
-foreach ($part in @('games', 'chat', 'archive', 'twitch', 'updates', 'http', 'api')) { . (Join-Path $PSScriptRoot "core\$part.ps1") }
+foreach ($part in @('games', 'chat', 'archive', 'twitch', 'updates', 'http', 'backup', 'api')) { . (Join-Path $PSScriptRoot "core\$part.ps1") }
 
 # ---------------------------------------------------------------- start
 Write-Host ''
@@ -181,6 +181,7 @@ try {
         }
         try { Update-Updater } catch { Log "Aktualizacja: $($_.Exception.Message)" 'DarkYellow' }
         try { if (Get-Command Update-BotTimers -ErrorAction SilentlyContinue) { Update-BotTimers } } catch {}
+        try { Update-Backup } catch {}
         if ($script:ShutdownAt) { Stop-Everything }
         if ($script:RestartPending -and -not (Test-Live)) { Restart-Detector }   # restart (nowa wersja) nigdy w trakcie transmisji/nagrywania
         try { Update-Archive } catch {}

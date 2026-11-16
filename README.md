@@ -13,5 +13,8 @@ Wszystko do streamowania na Twitchu i nagrywania w OBS: karta „Teraz gram” z
 |---|---|
 | [`obs-game-overlay/`](obs-game-overlay) | serwis, panel, widoki dla OBS i GameRadar (wykrywacz gier i most do Twitcha) |
 | [`install.ps1`](install.ps1), [`Zainstaluj-Vincent-Media.bat`](Zainstaluj-Vincent-Media.bat) | instalator |
+| [`NOTES.md`](NOTES.md) | mapa całości i „dlaczego tak” – zacznij tu, gdy coś trzeba naprawić |
 | [`tools/check-ps1.py`](tools/check-ps1.py) | sprawdzenie skryptów PowerShell przed commitem |
+| [`tools/test/`](tools/test) | testy w przeglądarce z udawanym OBS i GameRadarem (`bash tools/test/run-all.sh`) |
+| [`nora/`](nora) | źródła aplikacji Nora (C#, WebView2) |
 | [`index.html`](index.html) | przekierowanie z GitHub Pages do serwisu |

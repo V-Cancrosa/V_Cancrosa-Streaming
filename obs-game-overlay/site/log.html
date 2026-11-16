@@ -30,6 +30,10 @@
 <h1>Dziennik</h1>
 <p class="lead">Co robił GameRadar, uruchomienie po uruchomieniu – najnowsze na górze. Problemy są na czerwono i żółto.</p>
 <div class="row" style="margin-bottom:14px"><span class="seg" id="mode"></span><span style="flex:1"></span><button id="reload">↻ Odśwież</button><button id="raw" title="Cały plik detector.log">⤓ Plik</button></div>
+<details class="card" id="bk" style="margin-bottom:14px"><summary style="cursor:pointer;font-weight:700">Kopie zapasowe <span class="hint" id="bkInfo"></span></summary>
+  <p class="hint" style="margin:8px 0">GameRadar raz dziennie zapisuje ustawienia, strony Kreatora, uwagi, bibliotekę gier i my-games.txt (ostatnie 14 dni; bez logowania Twitcha). Przywrócenie najpierw robi kopię obecnego stanu.</p>
+  <div class="row" style="margin-bottom:8px"><button id="bkMake">Zrób kopię teraz</button></div>
+  <div id="bkList"></div></details>
 <div id="out"><p class="empty">Wczytuję…</p></div>
 </main></div>
 <script>
@@ -88,6 +92,17 @@
   $('reload').onclick = load;
   $('raw').onclick = () => window.open(S.hub() + '/log/file', '_blank');
   load(); setInterval(() => { if (!document.hidden) load(); }, 15000);
+  // kopie zapasowe (GameRadar: data\backup)
+  async function backups() {
+    try { const j = await (await fetch(S.hub() + '/backup/list', { cache: 'no-store' })).json(); const it = j.items || [];
+      $('bkInfo').textContent = it.length ? '· ostatnia ' + it[0].at : '· jeszcze żadnej';
+      $('bkList').innerHTML = it.map(b => `<div class="ln" style="grid-template-columns:150px minmax(0,1fr) auto"><time>${esc(b.at)}</time><span>${esc(b.name)} · ${b.kb} KB${b.before ? ' · <i>przed przywróceniem</i>' : ''}</span><button data-restore="${esc(b.name)}">Przywróć</button></div>`).join('') || '<p class="empty">Brak kopii – pierwsza powstanie w ciągu godziny od uruchomienia GameRadara.</p>';
+    } catch { $('bkInfo').textContent = '· GameRadar nie odpowiada'; }
+  }
+  $('bkMake').onclick = async () => { try { const j = await (await fetch(S.hub() + '/backup/make', { cache: 'no-store' })).json(); S.toast(j.ok ? 'Kopia: ' + j.name : 'Nie wyszło: ' + (j.error || '')); } catch { S.toast('GameRadar nie odpowiada'); } backups(); };
+  $('bkList').onclick = async e => { const b = e.target.closest('[data-restore]'); if (!b || !confirm('Przywrócić kopię ' + b.dataset.restore + '? Obecny stan zostanie zapisany jako kopia.')) return;
+    try { const j = await (await fetch(S.hub() + '/backup/restore?name=' + encodeURIComponent(b.dataset.restore), { cache: 'no-store' })).json(); S.toast(j.ok ? 'Przywrócono: ' + (j.restored || []).join(', ') : 'Nie wyszło: ' + (j.error || '')); } catch { S.toast('GameRadar nie odpowiada'); } backups(); };
+  $('bk').addEventListener('toggle', () => { if ($('bk').open) backups(); }); backups();
 })();
 </script>
 </body>

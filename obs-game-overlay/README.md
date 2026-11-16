@@ -251,7 +251,10 @@ tools/make-crests.py rysuje herby Myr-35 i Zarin (themes/fursona/*-crest.svg)
 
 - **Wspólny stan:** `localStorage` `obsGameOverlay.v1` (ustawienia), `…pages` / `…pageState` / `…pageVis` (Kreator), `…detected`, `…activeTheme`, `…ready`; `BroadcastChannel('obsGameOverlay')`.
 - **GameRadar (`http://localhost:7777`):** `/game`, `/library`, `/icon`, `/art`, `/events`, `/settings`, `/kv`, `/session`, `/vote…`, `/censor…`, `/relay`, `/launch`, `/shortcut`, `/restart`, `/processes`, `/tts…`, `/mod`, `/replay`, `/shutdown`, `/log…`, `/update/…`.
-- Przed commitem: `python3 tools/make-manifest.py && python3 tools/check-ps1.py`. Typograficzne cudzysłowy („ ”) w `.ps1` psują PowerShella – używaj « ».
+- **Najpierw przeczytaj [`NOTES.md`](../NOTES.md)** – mapa całości, klucze, adresy i „dlaczego tak”.
+- Przed commitem: `python3 tools/make-manifest.py && python3 tools/check-ps1.py`, testy: `bash tools/test/run-all.sh`.
+- **Kopie zapasowe** (GameRadar, `detector\data\backup`): raz dziennie, ostatnie 14, bez logowania Twitcha; przywracanie: serwis → Dziennik → Kopie zapasowe.
+- **Migracje ustawień**: `themes/sync.js` → `MIGRATIONS` (`settingsVersion`); nowy format = nowy krok na końcu listy. Typograficzne cudzysłowy („ ”) w `.ps1` psują PowerShella – używaj « ».
 - Wersja: `version.json` i `version.js`.
 
 ---
